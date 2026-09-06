@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}{{ company.name }} | DertDerman{% endblock %}
+
+{% block content %}
+    <main class="content-section">
+        <div class="section-inner">
+            <div class="section-heading">
+                <h1>{{ company.name }}</h1>
+                {% if company.category %}
+                    <p>Kategori: {{ company.category.name }}</p>
+                {% endif %}
+            </div>
+            <p>{{ company.description }}</p>
+            <p>Web sitesi: {{ company.website }}</p>
+            <p>Email: {{ company.email }}</p>
+            <p>Telefon: {{ company.phone }}</p>
+        </div>
+    </main>
+{% endblock %}

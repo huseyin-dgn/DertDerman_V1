@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}DertDerman | Sorununuzu Çözüme Ulaştırın{% endblock %}
+
+{% block content %}
+    <main>
+        <section class="hero-section">
+            <div class="section-inner hero-inner">
+                <div class="hero-copy">
+                    <p class="section-kicker">Tüketici ve şirket iletişim platformu</p>
+                    <h1>Sorununuzu çözüme ulaştırın.</h1>
+                    <p>
+                        Tüketiciler ve şirketler arasında şeffaf, güvenilir ve çözüm odaklı iletişim.
+                    </p>
+                </div>
+
+                <div class="home-search-card" aria-label="Arama">
+                    <form method="get" action="">
+                        <label for="home-search">Şirket, şikayet veya konu ara</label>
+                        <div class="home-search-row">
+                            <input id="home-search" type="search" name="q" placeholder="Şirket, şikayet veya konu ara...">
+                            <button type="submit">Ara</button>
+                        </div>
+                    </form>
+                    <div class="hero-actions">
+                        <a class="primary-action" href="{% url 'complaints:create' %}">
+                            Şikayet Oluştur
+                        </a>
+                        <span class="cta-note">Şikayetiniz inceleme sonrası yayınlanır.</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="stats-section">
+            <div class="section-inner stats-grid" aria-label="Platform istatistikleri">
+                <article class="stat-item">
+                    <span>{{ stats.total_complaints }}</span>
+                    <p>Toplam Şikayet</p>
+                </article>
+                <article class="stat-item">
+                    <span>{{ stats.companies }}</span>
+                    <p>Kayıtlı Şirket</p>
+                </article>
+                <article class="stat-item">
+                    <span>{{ stats.users }}</span>
+                    <p>Kullanıcı</p>
+                </article>
+                <article class="stat-item">
+                    <span>{{ stats.solution_rate }}</span>
+                    <p>Çözüm Oranı</p>
+                </article>
+            </div>
+        </section>
+
+        <section class="content-section">
+            <div class="section-inner">
+                <div class="section-heading">
+                    <h2>Son Şikayetler</h2>
+                    <p>Yayınlanan şikayetler burada listelenecek.</p>
+                </div>
+                <div class="empty-state">
+                    <p>Henüz yayınlanmış şikayet bulunmuyor.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="content-section section-muted">
+            <div class="section-inner">
+                <div class="section-heading">
+                    <h2>Popüler Şirketler</h2>
+                    <p>Aktif şirket kayıtlarından öne çıkanlar.</p>
+                </div>
+                <div class="company-grid">
+                    {% for company in popular_companies %}
+                        <article class="company-card">
+                            {% if company.logo %}
+                                <img src="{{ company.logo.url }}" alt="{{ company.name }} logosu">
+                            {% else %}
+                                <div class="company-avatar" aria-hidden="true">{{ company.name|first }}</div>
+                            {% endif %}
+                            <div>
+                                <h3>
+                                    <a href="{% url 'companies_public:company_detail' company.slug %}">
+                                        {{ company.name }}
+                                    </a>
+                                </h3>
+                                {% if company.category %}
+                                    <p>{{ company.category.name }}</p>
+                                {% else %}
+                                    <p>Kategori belirtilmedi</p>
+                                {% endif %}
+                            </div>
+                        </article>
+                    {% empty %}
+                        <div class="empty-state">
+                            <p>Henüz listelenecek aktif şirket bulunmuyor.</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+
+        <section class="content-section">
+            <div class="section-inner">
+                <div class="section-heading">
+                    <h2>Çözüme Kavuşan Şikayetler</h2>
+                    <p>Çözüm süreci tamamlanan kayıtlar burada gösterilecek.</p>
+                </div>
+                <div class="empty-state">
+                    <p>Henüz çözüme kavuşan şikayet bulunmuyor.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="content-section section-muted">
+            <div class="section-inner">
+                <div class="section-heading">
+                    <h2>Nasıl Çalışır?</h2>
+                </div>
+                <div class="steps-grid">
+                    <article class="step-card">
+                        <span>1</span>
+                        <h3>Şikayetini paylaş</h3>
+                        <p>Yaşadığın sorunu açık ve anlaşılır şekilde ilet.</p>
+                    </article>
+                    <article class="step-card">
+                        <span>2</span>
+                        <h3>Şirketle iletişim kur</h3>
+                        <p>İlgili şirket süreci görür ve yanıtlayabilir.</p>
+                    </article>
+                    <article class="step-card">
+                        <span>3</span>
+                        <h3>Çözümü takip et</h3>
+                        <p>Gelişmeleri hesabından güvenle izlersin.</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+    </main>
+{% endblock %}

@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Şikayet Oluştur | DertDerman{% endblock %}
+
+{% block content %}
+    <main class="content-section section-muted">
+        <section class="section-inner account-shell" aria-labelledby="complaint-create-title">
+            <div class="account-card account-form-card">
+                <div class="account-header">
+                    <h1 id="complaint-create-title">Şikayet Oluştur</h1>
+                    <p>Yaşadığınız sorunu seçtiğiniz şirkete açık ve anlaşılır şekilde iletin.</p>
+                </div>
+
+                <form method="post" class="account-form">
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                        <div class="form-alert" role="alert">
+                            {{ form.non_field_errors }}
+                        </div>
+                    {% endif %}
+
+                    <div class="account-field">
+                        <label for="{{ form.company.id_for_label }}">Şirket</label>
+                        {{ form.company }}
+                        {% if form.company.help_text %}
+                            <p class="field-help">{{ form.company.help_text }}</p>
+                        {% endif %}
+                        {% if form.company.errors %}
+                            <div class="field-error" role="alert">{{ form.company.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="account-field">
+                        <label for="{{ form.title.id_for_label }}">Şikayet başlığı</label>
+                        {{ form.title }}
+                        {% if form.title.help_text %}
+                            <p class="field-help">{{ form.title.help_text }}</p>
+                        {% endif %}
+                        {% if form.title.errors %}
+                            <div class="field-error" role="alert">{{ form.title.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="account-field">
+                        <label for="{{ form.description.id_for_label }}">Açıklama</label>
+                        {{ form.description }}
+                        {% if form.description.help_text %}
+                            <p class="field-help">{{ form.description.help_text }}</p>
+                        {% endif %}
+                        {% if form.description.errors %}
+                            <div class="field-error" role="alert">{{ form.description.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="account-form-actions">
+                        <button type="submit" class="auth-submit compact-submit">Şikayeti Gönder</button>
+                        <a class="secondary-action" href="{% url 'dashboard:home' %}">Panele Dön</a>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </main>
+{% endblock %}

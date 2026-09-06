@@ -1,0 +1,38 @@
+{% extends "complaints/private_base.html" %}
+
+{% block title %}Şikayet Detayı | DertDerman{% endblock %}
+
+{% block content %}
+    <main class="content-section section-muted">
+        <article class="section-inner account-shell" aria-labelledby="complaint-title">
+            <div class="account-card private-complaints">
+                <header class="account-header">
+                    <p class="complaint-company">{{ complaint.company.name }}</p>
+                    <h1 id="complaint-title">{{ complaint.title }}</h1>
+                </header>
+                <dl class="account-details">
+                    <div>
+                        <dt>Durum</dt>
+                        <dd>{% include "complaints/status_badge.html" %}</dd>
+                    </div>
+                    <div>
+                        <dt>Oluşturulma tarihi</dt>
+                        <dd><time datetime="{{ complaint.created_at|date:'c' }}">{{ complaint.created_at|date:"d.m.Y H:i" }}</time></dd>
+                    </div>
+                    <div>
+                        <dt>Son güncelleme tarihi</dt>
+                        <dd><time datetime="{{ complaint.updated_at|date:'c' }}">{{ complaint.updated_at|date:"d.m.Y H:i" }}</time></dd>
+                    </div>
+                </dl>
+                {% if complaint.status == "PENDING" %}
+                    <p class="complaint-pending-note">Şikayetiniz incelemede. Henüz yayınlanmadı.</p>
+                {% endif %}
+                <section class="complaint-description" aria-labelledby="description-title">
+                    <h2 id="description-title">Açıklama</h2>
+                    <p>{{ complaint.description }}</p>
+                </section>
+                <a class="secondary-action" href="{% url 'complaints:list' %}">Şikayetlerime Dön</a>
+            </div>
+        </article>
+    </main>
+{% endblock %}

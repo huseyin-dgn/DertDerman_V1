@@ -1,0 +1,28 @@
+from django.urls import path
+
+from .views import (
+    RegisterView,
+    SecureLoginView,
+    SecureLogoutView,
+    SecurePasswordChangeView,
+    account_entry,
+    profile,
+    profile_edit,
+)
+
+
+app_name = "accounts"
+
+urlpatterns = [
+    path("", account_entry, name="entry"),
+    path("kayit/", RegisterView.as_view(), name="register"),
+    path("giris/", SecureLoginView.as_view(), name="login"),
+    path("cikis/", SecureLogoutView.as_view(), name="logout"),
+    path("profil/", profile, name="profile"),
+    path("profil/duzenle/", profile_edit, name="profile_edit"),
+    path(
+        "sifre-degistir/",
+        SecurePasswordChangeView.as_view(),
+        name="password_change",
+    ),
+]

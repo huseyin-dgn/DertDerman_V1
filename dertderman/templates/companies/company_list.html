@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}Şirketler | DertDerman{% endblock %}
+
+{% block content %}
+    <main class="content-section">
+        <div class="section-inner">
+            <div class="section-heading">
+                <h1>Şirketler</h1>
+                <p>Aktif şirket kayıtları.</p>
+            </div>
+        <ul>
+            {% for company in companies %}
+                <li>
+                    <a href="{% url 'companies_public:company_detail' company.slug %}">
+                        {{ company.name }}
+                    </a>
+                </li>
+            {% empty %}
+                <li>Henüz şirket yok.</li>
+            {% endfor %}
+        </ul>
+        </div>
+    </main>
+{% endblock %}

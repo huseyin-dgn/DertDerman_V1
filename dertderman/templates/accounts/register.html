@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Kayıt Ol | DertDerman{% endblock %}
+{% block body_class %}auth-page{% endblock %}
+{% block navbar %}{% endblock %}
+{% block footer %}{% endblock %}
+
+{% block content %}
+    <main class="auth-shell">
+        <section class="auth-card" aria-labelledby="register-title">
+            <div class="auth-brand">
+                <p class="brand-name">DertDerman</p>
+                <p class="brand-tagline">Sorununuzu paylaşın, çözümü birlikte takip edin.</p>
+            </div>
+
+            <div class="auth-heading">
+                <h1 id="register-title">Kayıt Ol</h1>
+                <p>Hesabınızı oluşturun ve sürecinizi güvenle takip edin.</p>
+            </div>
+
+            <form method="post" class="auth-form">
+            {% csrf_token %}
+                {% if form.non_field_errors %}
+                    <div class="form-alert" role="alert">
+                        {{ form.non_field_errors }}
+                    </div>
+                {% endif %}
+
+                <div class="auth-field">
+                    {{ form.username.label_tag }}
+                    {{ form.username }}
+                    {% if form.username.errors %}
+                        <div class="field-error" role="alert">{{ form.username.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="auth-field">
+                    {{ form.email.label_tag }}
+                    {{ form.email }}
+                    {% if form.email.errors %}
+                        <div class="field-error" role="alert">{{ form.email.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="auth-field">
+                    {{ form.first_name.label_tag }}
+                    {{ form.first_name }}
+                    {% if form.first_name.errors %}
+                        <div class="field-error" role="alert">{{ form.first_name.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="auth-field">
+                    {{ form.last_name.label_tag }}
+                    {{ form.last_name }}
+                    {% if form.last_name.errors %}
+                        <div class="field-error" role="alert">{{ form.last_name.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="auth-field">
+                    {{ form.phone.label_tag }}
+                    {{ form.phone }}
+                    {% if form.phone.errors %}
+                        <div class="field-error" role="alert">{{ form.phone.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="auth-field">
+                    {{ form.password1.label_tag }}
+                    {{ form.password1 }}
+                    {% if form.password1.errors %}
+                        <div class="field-error" role="alert">{{ form.password1.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="auth-field">
+                    {{ form.password2.label_tag }}
+                    {{ form.password2 }}
+                    {% if form.password2.errors %}
+                        <div class="field-error" role="alert">{{ form.password2.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <button type="submit" class="auth-submit">Kayıt Ol</button>
+            </form>
+
+            <p class="auth-footer">
+                Zaten hesabınız var mı?
+                <a href="{% url 'accounts:login' %}">Giriş yapın</a>
+            </p>
+        </section>
+    </main>
+{% endblock %}

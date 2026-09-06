@@ -1,0 +1,47 @@
+{% extends "complaints/private_base.html" %}
+
+{% block title %}Şikayetlerim | DertDerman{% endblock %}
+
+{% block content %}
+    <main class="content-section section-muted">
+        <section class="section-inner account-shell" aria-labelledby="complaints-title">
+            <div class="account-card private-complaints">
+                <header class="account-header">
+                    <h1 id="complaints-title">Şikayetlerim</h1>
+                    <p>Şikayetlerinizi ve güncel durumlarını buradan takip edebilirsiniz.</p>
+                </header>
+                {% if complaints %}
+                    <div class="complaint-mini-list">
+                        {% for complaint in complaints %}
+                            <article class="complaint-mini-card">
+                                <div>
+                                    <p class="complaint-company">{{ complaint.company.name }}</p>
+                                    <h2 class="complaint-card-title">{{ complaint.title }}</h2>
+                                </div>
+                                <dl>
+                                    <div>
+                                        <dt>Durum</dt>
+                                        <dd>{% include "complaints/status_badge.html" %}</dd>
+                                    </div>
+                                    <div>
+                                        <dt>Oluşturulma tarihi</dt>
+                                        <dd><time datetime="{{ complaint.created_at|date:'c' }}">{{ complaint.created_at|date:"d.m.Y H:i" }}</time></dd>
+                                    </div>
+                                </dl>
+                                <a class="secondary-action complaint-detail-link" href="{% url 'complaints:detail' complaint.pk %}">Detayı Gör<span class="visually-hidden">: {{ complaint.title }}</span></a>
+                            </article>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <p>Henüz bir şikayetiniz bulunmuyor.</p>
+                    </div>
+                {% endif %}
+                <div class="hero-actions">
+                    <a class="primary-action" href="{% url 'complaints:create' %}">Şikayet Oluştur</a>
+                    <a class="secondary-action" href="{% url 'dashboard:home' %}">Panelime Dön</a>
+                </div>
+            </div>
+        </section>
+    </main>
+{% endblock %}
