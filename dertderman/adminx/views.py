@@ -4,6 +4,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST, require_safe
 
 from complaints.models import Complaint
+from companies.models import Company
 from .decorators import admin_required
 
 
@@ -11,7 +12,17 @@ from .decorators import admin_required
 @require_safe
 def home(request):
     pending_count = Complaint.objects.filter(status=Complaint.Status.PENDING).count()
-    return render(request, "adminx/home.html", {"pending_count": pending_count})
+    pending_company_count = Company.objects.filter(
+        approval_status=Company.ApprovalStatus.PENDING
+    ).count()
+    return render(
+        request,
+        "adminx/home.html",
+        {
+            "pending_count": pending_count,
+            "pending_company_count": pending_company_count,
+        },
+    )
 
 
 def _moderation_complaints():

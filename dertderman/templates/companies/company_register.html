@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Şirket Kaydı | DertDerman{% endblock %}
+{% block body_class %}auth-page register-page company-register-page{% endblock %}
+{% block navbar %}{% endblock %}{% block footer %}{% endblock %}
+{% block content %}
+<main class="auth-shell" id="main-content">
+    {% include 'components/auth_story.html' %}
+    <div class="auth-form-area"><section class="auth-card" aria-labelledby="auth-title">
+        <a class="auth-back" href="{% url 'core:home' %}">{% include 'components/icon.html' with name='back' %} Ana Sayfaya Dön</a>
+        <header class="auth-heading"><p class="section-kicker">Kurumsal Başvuru</p><h1 id="auth-title">Şirket hesabınızı oluşturun.</h1><p>Başvurunuz yönetim ekibinin onayından sonra kurumsal erişime açılır.</p></header>
+        <form method="post" class="auth-form">
+            {% csrf_token %}
+            {% if form.non_field_errors %}<div class="form-alert" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+            {% include 'components/field.html' with field=form.company_name %}
+            <div class="field-pair">{% include 'components/field.html' with field=form.first_name %}{% include 'components/field.html' with field=form.last_name %}</div>
+            {% include 'components/field.html' with field=form.email %}
+            {% include 'components/field.html' with field=form.phone %}
+            {% include 'components/field.html' with field=form.website %}
+            {% include 'components/field.html' with field=form.username %}
+            {% include 'components/field.html' with field=form.password1 label='Şifre' %}
+            {% include 'components/field.html' with field=form.password2 label='Şifre tekrar' %}
+            <button type="submit" class="auth-submit">Başvuruyu Gönder {% include 'components/icon.html' %}</button>
+        </form>
+        <p class="auth-footer">Başvurunuz var mı? <a href="{% url 'company_auth:login' %}">Şirket Girişi</a></p>
+    </section></div>
+</main>
+{% endblock %}

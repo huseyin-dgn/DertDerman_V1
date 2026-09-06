@@ -5,6 +5,7 @@
 <nav aria-label="Yönetim alanları"><ul class="management-list">
 <li><div><h2>Şikayetler</h2><p>İnceleme bekleyen {{ pending_count }} şikayet. Yayın ve ret kararları.</p></div><a class="primary-action" href="{% url 'adminx:complaint_list' %}">Şikayet Moderasyonu</a></li>
 <li><div><h2>Şirketler</h2><p>Şirket kayıtları, tanıtım ve iletişim bilgileri.</p></div><a class="secondary-action" href="{% url 'adminx:company_list' %}">Şirketleri Yönet</a></li>
+<li><div><h2>Şirket Başvuruları</h2><p>Onay bekleyen {{ pending_company_count }} kurumsal başvuru.</p></div><a class="secondary-action" href="{% url 'adminx:company_application_list' %}">Başvuruları İncele</a></li>
 <li><div><h2>Blog Yazıları</h2><p>Taslak hazırlama, içerik düzenleme ve yayınlama.</p></div><a class="secondary-action" href="{% url 'adminx:blog_list' %}">Blog Yazıları</a></li>
 <li><div><h2>Kullanıcılar</h2><p>Hesap, rol ve aktiflik bilgilerini görüntüleme.</p></div><a class="secondary-action" href="{% url 'adminx:user_list' %}">Kullanıcıları Görüntüle</a></li>
 <li><div><h2>Ana Sayfa İçerikleri</h2><p>Hero marka mesajlarının salt okunur önizlemesi.</p></div><a class="secondary-action" href="{% url 'adminx:homepage_content' %}">İçerikleri Görüntüle</a></li>

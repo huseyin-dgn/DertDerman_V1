@@ -52,6 +52,11 @@ class CompanyCategory(models.Model):
 
 
 class Company(models.Model):
+    class ApprovalStatus(models.TextChoices):
+        PENDING = "PENDING", "Onay bekliyor"
+        APPROVED = "APPROVED", "Onaylandı"
+        REJECTED = "REJECTED", "Reddedildi"
+
     name = models.CharField(max_length=255)
     slug = models.SlugField(max_length=280, unique=True, blank=True)
     description = models.TextField(blank=True)
@@ -71,6 +76,12 @@ class Company(models.Model):
         null=True,
     )
     is_verified = models.BooleanField(default=False)
+    approval_status = models.CharField(
+        max_length=20,
+        choices=ApprovalStatus.choices,
+        default=ApprovalStatus.APPROVED,
+        db_index=True,
+    )
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

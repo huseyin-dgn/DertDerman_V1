@@ -1,16 +1,23 @@
 {% extends "base.html" %}
 
 {% block title %}Şikayetler | DertDerman{% endblock %}
+{% block body_class %}public-site public-index complaints-index{% endblock %}
 
 {% block content %}
-    <main class="content-section section-muted" id="main-content">
-        <section class="section-inner" aria-labelledby="public-complaints-title">
-            <header class="section-heading">
-                <p class="section-kicker">Paylaşılan deneyimler</p><h1 id="public-complaints-title">Şikayetler</h1>
-                <p>Yayınlanan şikayetleri en yeniden en eskiye inceleyin.</p>
+    <main id="main-content">
+        <section class="public-page-hero"><div class="section-inner public-page-heading" aria-labelledby="public-complaints-title">
+            <p class="page-code">DD / DENEYİMLER</p>
+            <header>
+                <p class="section-kicker">Paylaşılan deneyimler</p><h1 id="public-complaints-title">Şikayetler,<br><span>olduğu gibi.</span></h1>
+                <p>İnceleme sürecinden geçerek yayınlanan tüketici deneyimlerini en yeniden en eskiye okuyun.</p>
             </header>
+            <a class="primary-action button-lg" href="{% url 'complaints:create' %}">Şikayet Yaz {% include 'components/icon.html' with name='write' %}</a>
+        </div></section>
+        <section class="content-section"><div class="section-inner public-list-layout">
+            <aside><span>YAYIN AKIŞI</span><p>Yalnızca herkese açık kayıtlar</p></aside>
             {% if page_obj %}
-                <div class="public-complaint-grid">
+            
+                <div class="public-complaint-grid complaint-feed">
                     {% for complaint in page_obj %}
                         {% include "complaints/public_card.html" with complaint=complaint only %}
                     {% endfor %}
@@ -29,6 +36,6 @@
                     {% endif %}
                 </nav>
             {% endif %}
-        </section>
+        </div></section>
     </main>
 {% endblock %}

@@ -1,7 +1,9 @@
 {% extends 'base.html' %}
 {% block title %}DertDerman Blog{% endblock %}
-{% block content %}<main class="content-section" id="main-content"><section class="section-inner">
-    <header class="section-heading"><p class="section-kicker">Bilgiyle bir adım ileri</p><h1>DertDerman Blog</h1><p>Güncel bilgiler, rehberler ve tüketici deneyimine dair yazılar.</p></header>
-    <div class="blog-grid">{% for post in page_obj %}{% include 'blog/card.html' with post=post only %}{% empty %}<div class="empty-state"><p>Henüz yayınlanmış bir yazı bulunmuyor.</p></div>{% endfor %}</div>
+{% block body_class %}public-site public-index blog-index{% endblock %}
+{% block content %}<main id="main-content"><section class="public-page-hero"><div class="section-inner public-page-heading">
+    <p class="page-code">DD / BLOG &amp; REHBER</p><header><p class="section-kicker">Bilgiyle bir adım ileri</p><h1>Daha bilinçli<br><span>bir deneyim.</span></h1><p>Güncel bilgiler, pratik rehberler ve tüketici deneyimine dair editoryal yazılar.</p></header>
+</div></section><section class="content-section"><div class="section-inner">
+    <div class="blog-grid editorial-grid">{% for post in page_obj %}{% include 'blog/card.html' with post=post only %}{% empty %}<div class="empty-state"><p>Henüz yayınlanmış bir yazı bulunmuyor.</p></div>{% endfor %}</div>
     {% include 'components/pagination.html' %}
-</section></main>{% endblock %}
+</div></section></main>{% endblock %}

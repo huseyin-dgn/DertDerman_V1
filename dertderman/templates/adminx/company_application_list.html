@@ -1,0 +1,13 @@
+{% extends 'adminx/content_base.html' %}
+{% block title %}Şirket Başvuruları | Yönetim{% endblock %}
+{% block content_heading %}<h1>Şirket Başvuruları</h1><p>Kurumsal hesap başvurularını inceleyin ve sonuçlandırın.</p>{% endblock %}
+{% block management_content %}
+<ul class="management-list">
+{% for company in applications %}
+<li>
+    <div><h2>{{ company.name }}</h2><p>{{ company.get_approval_status_display }} · {{ company.email }} · {{ company.created_at|date:'d.m.Y H:i' }}</p></div>
+    <a class="secondary-action" href="{% url 'adminx:company_application_detail' company.pk %}" aria-label="{{ company.name }} başvurusunu incele">İncele</a>
+</li>
+{% empty %}<li>Henüz şirket başvurusu yok.</li>{% endfor %}
+</ul>
+{% endblock %}

@@ -250,7 +250,6 @@ class BlogTests(TestCase):
             Post.objects.create(title=f"Performance post {index}", excerpt="Summary", content="Body", status="PUBLISHED", published_at=timezone.now())
         after = {url: measure(url) for url in ["/", self.list_url]}
         self.assertEqual(before, after)
-        # Real complaint totals add one aggregate query, independent of list size.
         self.assertLessEqual(after["/"], 6)
         self.assertLessEqual(after[self.list_url], 2)
 

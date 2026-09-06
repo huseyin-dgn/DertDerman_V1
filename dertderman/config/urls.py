@@ -10,6 +10,7 @@ urlpatterns = [
     path("blog/", include("blog.urls")),
     path("", include("complaints.urls")),
     path("hesap/", include("accounts.urls")),
+    path("kurumsal/", include("companies.auth_urls")),
     path("panel/", include("dashboard.urls")),
     path("sirket-panel/", include("companies.urls")),
     path("sirketler/", include("companies.public_urls")),

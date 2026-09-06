@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Şirket Girişi | DertDerman{% endblock %}
+{% block body_class %}auth-page company-login-page{% endblock %}
+{% block navbar %}{% endblock %}{% block footer %}{% endblock %}
+{% block content %}
+<main class="auth-shell" id="main-content">
+    {% include 'components/auth_story.html' %}
+    <div class="auth-form-area"><section class="auth-card" aria-labelledby="auth-title">
+        <a class="auth-back" href="{% url 'core:home' %}">{% include 'components/icon.html' with name='back' %} Ana Sayfaya Dön</a>
+        <header class="auth-heading"><p class="section-kicker">Kurumsal Giriş</p><h1 id="auth-title">Şirket hesabınıza giriş yapın.</h1><p>Onaylanmış kurumsal hesabınızla şirket çalışma alanına erişin.</p></header>
+        <form method="post" class="auth-form">
+            {% csrf_token %}
+            {% if form.non_field_errors %}<div class="form-alert" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+            {% include 'components/field.html' with field=form.username label='Kullanıcı adı' %}
+            {% include 'components/field.html' with field=form.password label='Şifre' %}
+            <button type="submit" class="auth-submit">Şirket Girişi {% include 'components/icon.html' %}</button>
+        </form>
+        <p class="auth-footer">Kurumsal hesabınız yok mu? <a href="{% url 'company_auth:register' %}">Şirket Başvurusu Yap</a></p>
+    </section></div>
+</main>
+{% endblock %}

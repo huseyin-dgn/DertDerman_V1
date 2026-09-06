@@ -1,41 +1,56 @@
 {% extends "base.html" %}
-{% block title %}DertDerman | Sorununuzu Çözüme Ulaştırın{% endblock %}
+{% block title %}DertDerman | Derdinizi Anlatın, Süreci Takip Edin{% endblock %}
+{% block body_class %}public-site home-public{% endblock %}
 {% block content %}
 <main id="main-content">
     <section class="hero-section"><div class="section-inner hero-inner" data-brand-intro>
         <div class="hero-copy">
-            <div class="brand-intro" aria-label="DertDerman"><span>DERT</span><span class="intro-line" aria-hidden="true"><span class="intro-pulse"></span></span><span class="intro-word">DertDerman</span></div>
-            <h1>Sorununuzu anlatın.<br><span>Çözümün ilk adımı<br>sesiniz olsun.</span></h1>
-            <p class="hero-lead">Yaşadığınız deneyimi paylaşın. Şikayetinizi ve inceleme sürecini tek bir yerden takip edin.</p>
-            <form class="home-search-card" method="get" action="">
-                <label for="home-search">Şirket, şikayet veya konu ara</label>
-                <div class="home-search-row">{% include 'components/icon.html' with name='search' %}<input id="home-search" type="search" name="q" placeholder="Kimi ya da neyi arıyorsunuz?"><button class="primary-action button-sm" type="submit">Ara</button></div>
+            <p class="eyebrow">Tüketici deneyimleri platformu</p>
+            <h1>Derdinizi duyurun.<br><span>Çözüm yolunu görün.</span></h1>
+            <p class="hero-lead">Yaşadığınız deneyimi doğru şirketle buluşturun. İncelenen şikayetinizi yayın aşamasından güncel durumuna kadar tek yerden takip edin.</p>
+            <form class="home-search-card" method="get" action="{% url 'companies_public:company_list' %}">
+                <label for="home-search">Şirket ara</label>
+                <div class="home-search-row">{% include 'components/icon.html' with name='search' %}<input id="home-search" type="search" name="q" placeholder="Bir şirket adı yazın"><button class="primary-action button-sm" type="submit">Keşfet</button></div>
             </form>
-            <div class="hero-actions"><a class="primary-action button-lg" href="{% url 'complaints:create' %}">Şikayet Yaz {% include 'components/icon.html' with name='write' %}</a><a class="secondary-action button-lg" href="{% url 'complaints:public_list' %}">Şikayetleri İncele</a></div>
-            <span class="cta-note">Şikayetiniz inceleme sonrası yayınlanır.</span>
+            <div class="hero-actions"><a class="primary-action button-lg" href="{% url 'complaints:create' %}">Şikayet Yaz {% include 'components/icon.html' with name='write' %}</a><a class="secondary-action button-lg" href="{% url 'complaints:public_list' %}">Yayınlananları İncele</a></div>
+            <span class="cta-note">Her şikayet yayınlanmadan önce incelenir.</span>
         </div>
         {% include 'components/hero_brand.html' %}
     </div></section>
+
     <section class="stats-section" aria-labelledby="stats-title"><div class="section-inner stats-layout">
-        <header><p class="section-kicker">Gerçek deneyimler, güncel sayılar</p><h2 id="stats-title">DertDerman'a<br><strong>bir bakış.</strong></h2><p class="stats-note">Platformun bugünkü görünümü.</p></header>
+        <header><p class="section-index">01</p><div><p class="section-kicker">Platformun bugünkü görünümü</p><h2 id="stats-title">Rakamların söylediği.</h2></div><p class="stats-note">Yalnızca sistemdeki güncel ve gerçek kayıtlar.</p></header>
         <div class="stats-grid" data-count-region>
             {% include 'components/metric.html' with value=stats.total_complaints label='Toplam Şikayet' %}
+            {% include 'components/metric.html' with value=stats.published label='Yayınlanan' %}
+            {% include 'components/metric.html' with value=stats.resolved label='Çözülen' %}
             {% include 'components/metric.html' with value=stats.companies label='Kayıtlı Şirket' %}
             {% include 'components/metric.html' with value=stats.users label='Kullanıcı' %}
-            {% include 'components/metric.html' with value=stats.published label='Yayınlanan Şikayet' %}
-            {% include 'components/metric.html' with value=stats.resolved label='Çözülen Şikayet' %}
         </div>
-        <p class="stats-note">Toplamlar güncel kayıtları esas alır. Yayınlanan şikayet sayısı, aktif şirketlerdeki herkese açık kayıtları gösterir.</p>
+        <p class="stats-note stats-disclosure">Yayınlanan şikayet sayısı, aktif şirketlerdeki herkese açık kayıtları gösterir.</p>
     </div></section>
-    <section class="content-section"><div class="section-inner">
-        <header class="section-heading section-heading-row"><div><p class="section-kicker">Deneyimler görünür olsun</p><h2>Son Şikayetler</h2><p>Yayınlanan en son şikayetler.</p></div><a class="text-action" href="{% url 'complaints:public_list' %}">Tüm Şikayetleri Gör {% include 'components/icon.html' %}</a></header>
-        <div class="public-complaint-grid">{% for complaint in recent_complaints %}{% include 'complaints/public_card.html' with complaint=complaint only %}{% empty %}<div class="empty-state"><p>Henüz yayınlanmış şikayet bulunmuyor.</p><a class="text-action" href="{% url 'complaints:create' %}">İlk adımı atın {% include 'components/icon.html' %}</a></div>{% endfor %}</div>
+
+    <section class="content-section complaint-feed-section"><div class="section-inner split-section">
+        <header class="section-heading sticky-heading"><p class="section-index">02</p><p class="section-kicker">Kamusal deneyimler</p><h2>Son Şikayetler</h2><p>İncelemeden geçerek yayına alınan en yeni tüketici deneyimleri.</p><a class="text-action" href="{% url 'complaints:public_list' %}">Tüm şikayetler {% include 'components/icon.html' %}</a></header>
+        <div class="public-complaint-grid complaint-feed">{% for complaint in recent_complaints %}{% include 'complaints/public_card.html' with complaint=complaint only %}{% empty %}<div class="empty-state"><p>Henüz yayınlanmış şikayet bulunmuyor.</p><a class="text-action" href="{% url 'complaints:create' %}">İlk adımı atın {% include 'components/icon.html' %}</a></div>{% endfor %}</div>
     </div></section>
-    <section class="content-section company-section"><div class="section-inner">
-        <header class="section-heading section-heading-row"><div><p class="section-kicker">Doğru muhatabı bulun</p><h2>Popüler Şirketler</h2><p>Aktif şirket kayıtlarından öne çıkanlar.</p></div><a class="text-action" href="{% url 'companies_public:company_list' %}">Şirketleri Keşfet {% include 'components/icon.html' %}</a></header>
-        <div class="company-grid">{% for company in popular_companies %}{% include 'components/company_card.html' with company=company only %}{% empty %}<div class="empty-state"><p>Henüz listelenecek aktif şirket bulunmuyor.</p></div>{% endfor %}</div>
-    </div></section>
-    {% if recent_posts %}<section class="content-section"><div class="section-inner"><header class="section-heading section-heading-row"><div><p class="section-kicker">DertDerman Blog</p><h2>Blogdan Son Yazılar</h2></div><a class="text-action" href="{% url 'blog:list' %}">Tüm Yazılar {% include 'components/icon.html' %}</a></header><div class="blog-grid">{% for post in recent_posts %}{% include 'blog/card.html' with post=post only %}{% endfor %}</div></div></section>{% endif %}
+
     {% include 'components/solution_path.html' %}
+
+    <section class="content-section company-section"><div class="section-inner">
+        <header class="section-heading section-heading-row"><div><p class="section-index">04</p><p class="section-kicker">Şirket keşfi</p><h2>Doğru muhatabı bulun.</h2><p>Aktif şirket kayıtlarını inceleyin; deneyiminizi doğru yere yönlendirin.</p></div><a class="text-action" href="{% url 'companies_public:company_list' %}">Tüm şirketler {% include 'components/icon.html' %}</a></header>
+        <div class="company-grid company-directory">{% for company in popular_companies %}{% include 'components/company_card.html' with company=company only %}{% empty %}<div class="empty-state"><p>Henüz listelenecek aktif şirket bulunmuyor.</p></div>{% endfor %}</div>
+    </div></section>
+
+    <section class="content-section reasons-section"><div class="section-inner reasons-layout">
+        <div><p class="section-index">05</p><p class="section-kicker">Neden DertDerman?</p><h2>Sadece anlatmak değil,<br>ilerleyişi görebilmek için.</h2></div>
+        <div class="reason-lines"><article><span>01</span><div><h3>Doğru muhatap</h3><p>Deneyiminizi sistemdeki şirket kaydıyla doğrudan ilişkilendirin.</p></div></article><article><span>02</span><div><h3>İncelenen yayın</h3><p>İçerikler herkese açılmadan önce yayın sürecinden geçer.</p></div></article><article><span>03</span><div><h3>Tek yerde takip</h3><p>Şikayetinizin güncel durumunu kişisel alanınızdan izleyin.</p></div></article></div>
+    </div></section>
+
+    <section class="business-cta"><div class="section-inner business-cta-inner"><p class="business-mark" aria-hidden="true">DD / KURUM</p><div><p class="section-kicker">Şirketler için</p><h2>Müşteri deneyimine<br>doğru yerden yaklaşın.</h2></div><p>Şirket hesabınızla size yönelen deneyimleri düzenli bir çalışma alanından takip edin.</p><a class="secondary-action button-lg" href="{% url 'accounts:register' %}">Kurumsal hesap oluştur {% include 'components/icon.html' %}</a></div></section>
+
+    {% if recent_posts %}<section class="content-section editorial-section"><div class="section-inner"><header class="section-heading section-heading-row"><div><p class="section-index">07</p><p class="section-kicker">Blog &amp; Rehber</p><h2>Bilgi, daha iyi bir<br>deneyimin başlangıcı.</h2></div><a class="text-action" href="{% url 'blog:list' %}">Tüm yazılar {% include 'components/icon.html' %}</a></header><div class="blog-grid editorial-grid">{% for post in recent_posts %}{% include 'blog/card.html' with post=post only %}{% endfor %}</div></div></section>{% endif %}
+
+    <section class="trust-section"><div class="section-inner trust-layout"><div><p class="section-index">08</p><p class="section-kicker">Güven &amp; şeffaflık</p><h2>Ne görüyorsanız,<br>onu esas alırız.</h2></div><div class="trust-copy"><p>Gösterilen metrikler sistemdeki gerçek kayıtlardan üretilir. Herkese açık alanlarda yalnızca yayın politikasından geçen şikayetler yer alır.</p><p>Kişisel süreçler hesap alanında kalır; kamusal içerik ile özel takip birbirinden ayrılır.</p><a class="text-action" href="{% url 'complaints:public_list' %}">Yayınlanan deneyimleri incele {% include 'components/icon.html' %}</a></div></div></section>
 </main>
 {% endblock %}

@@ -1,0 +1,29 @@
+{% extends 'adminx/content_base.html' %}
+{% block title %}{{ company.name }} Başvurusu | Yönetim{% endblock %}
+{% block content_heading %}<h1>{{ company.name }}</h1><p>Kurumsal hesap başvurusu · {{ company.get_approval_status_display }}</p>{% endblock %}
+{% block management_content %}
+<section class="account-card management-form" aria-labelledby="application-details">
+    <h2 id="application-details">Başvuru bilgileri</h2>
+    <dl class="account-details">
+        <div><dt>Şirket adı</dt><dd>{{ company.name }}</dd></div>
+        <div><dt>Durum</dt><dd>{{ company.get_approval_status_display }}</dd></div>
+        <div><dt>Kurumsal e-posta</dt><dd>{{ company.email }}</dd></div>
+        <div><dt>Telefon</dt><dd>{{ company.phone|default:'—' }}</dd></div>
+        <div><dt>Web sitesi</dt><dd>{% if company.website %}<a href="{{ company.website }}" rel="noopener noreferrer">{{ company.website }}</a>{% else %}—{% endif %}</dd></div>
+        <div><dt>Başvuru tarihi</dt><dd>{{ company.created_at|date:'d.m.Y H:i' }}</dd></div>
+    </dl>
+    <h2>Yetkililer</h2>
+    <ul class="management-list">
+        {% for membership in company.memberships.all %}<li><div><h3>{{ membership.user.get_full_name|default:membership.user.username }}</h3><p>{{ membership.user.email }} · {{ membership.get_role_display }} · {% if membership.is_active %}Aktif{% else %}Onay bekliyor{% endif %}</p></div></li>{% empty %}<li>Bağlı yetkili bulunamadı.</li>{% endfor %}
+    </ul>
+    {% if decision_error %}<div class="form-alert" role="alert">{{ decision_error }}</div>{% endif %}
+    {% if company.approval_status == 'PENDING' %}
+    <form method="post" class="account-form-actions">
+        {% csrf_token %}
+        <button class="primary-action" type="submit" name="action" value="approve">Onayla</button>
+        <button class="danger-action" type="submit" name="action" value="reject">Reddet</button>
+    </form>
+    {% endif %}
+    <p><a class="secondary-action" href="{% url 'adminx:company_application_list' %}">Başvurulara Dön</a></p>
+</section>
+{% endblock %}

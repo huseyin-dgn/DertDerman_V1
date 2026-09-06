@@ -1,4 +1,134 @@
-<div class="hero-brand" data-motion-region aria-label="DertDerman">
-  <svg class="hero-brand-path" width="32" height="240" viewBox="0 0 32 240" aria-hidden="true"><path d="M6 8v76q0 20 10 20t10 20v100" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="6" cy="8" r="4" fill="currentColor"/><path d="m20 219 6 7 6-9" fill="none" stroke="currentColor" stroke-width="2"/></svg>
-  <div class="hero-brand-words">{% for message in hero_brand_messages %}<p class="hero-brand-line">{{ message }}</p>{% endfor %}</div>
+<div class="hero-brand" data-journey-slider data-active-step="1" data-current-slide="1" aria-label="DertDerman’da bir şikayetin yolculuğu">
+  <header class="journey-head">
+    <span>CANLI SÜREÇ</span>
+    <p>Dertten dermana, adım adım.</p>
+  </header>
+
+  <div class="journey-viewport">
+    <div class="journey-card-stack">
+      <article class="journey-card journey-card--write is-active" data-journey-card aria-hidden="false">
+        <div class="journey-card-top">
+          <span class="journey-step journey-reveal journey-reveal--step">01 / 05</span>
+          <span class="journey-icon journey-reveal journey-reveal--icon" aria-hidden="true">
+            <svg viewBox="0 0 48 48">
+              <path d="M12 8h19a5 5 0 0 1 5 5v22H17l-7 6V13a5 5 0 0 1 2-5Z"/>
+              <path d="M18 17h12M18 23h9"/>
+              <path class="journey-icon-accent journey-pencil" d="m29 32 8-8 3 3-8 8-5 1Z"/>
+            </svg>
+          </span>
+        </div>
+        <div class="journey-card-copy">
+          <h2 class="journey-reveal journey-reveal--title">Şikayetinizi yazın</h2>
+          <p class="journey-reveal journey-reveal--description">Deneyiminizi kendi sözlerinizle paylaşın.</p>
+        </div>
+        <div class="journey-card-action journey-reveal journey-reveal--action">
+          <a class="journey-cta journey-cta--primary" href="{% url 'complaints:create' %}">Şikayet Yaz <span aria-hidden="true">→</span></a>
+        </div>
+      </article>
+
+      <article class="journey-card journey-card--review is-after" data-journey-card aria-hidden="true">
+        <div class="journey-card-top">
+          <span class="journey-step journey-reveal journey-reveal--step">02 / 05</span>
+          <span class="journey-icon journey-reveal journey-reveal--icon" aria-hidden="true">
+            <svg viewBox="0 0 48 48">
+              <path d="M14 7h16l6 6v28H14Z"/>
+              <path d="M30 7v7h6M19 21h12M19 27h8"/>
+              <circle class="journey-icon-accent" cx="33" cy="32" r="7"/>
+              <path class="journey-icon-check journey-review-check" pathLength="1" d="m30 32 2 2 4-5"/>
+              <path class="journey-scan-line" d="M17 18h17"/>
+            </svg>
+          </span>
+        </div>
+        <div class="journey-card-copy">
+          <h2 class="journey-reveal journey-reveal--title">İncelemeye alındı</h2>
+          <p class="journey-reveal journey-reveal--description">İçeriğiniz yayınlanmadan önce kontrol edilir.</p>
+        </div>
+        <div class="journey-card-action journey-reveal journey-reveal--action">
+          <span class="journey-status"><i aria-hidden="true"></i> İnceleniyor</span>
+        </div>
+      </article>
+
+      <article class="journey-card journey-card--publish is-after" data-journey-card aria-hidden="true">
+        <div class="journey-card-top">
+          <span class="journey-step journey-reveal journey-reveal--step">03 / 05</span>
+          <span class="journey-icon journey-reveal journey-reveal--icon" aria-hidden="true">
+            <svg viewBox="0 0 48 48">
+              <path d="M9 21v8h8l17 8V13l-17 8Z"/>
+              <path d="M17 29v9h7l-3-8"/>
+              <path class="journey-sound-wave journey-sound-wave--one" d="M39 20c1 2 1 6 0 8"/>
+              <path class="journey-sound-wave journey-sound-wave--two" d="M43 16c3 4 3 12 0 16"/>
+              <path class="journey-icon-accent" d="M8 17v16"/>
+            </svg>
+          </span>
+        </div>
+        <div class="journey-card-copy">
+          <h2 class="journey-reveal journey-reveal--title">Şikayetiniz yayında</h2>
+          <p class="journey-reveal journey-reveal--description">Onaylanan deneyiminiz herkes tarafından görülebilir.</p>
+        </div>
+        <div class="journey-card-action journey-reveal journey-reveal--action">
+          <a class="journey-cta journey-cta--secondary" href="{% url 'complaints:public_list' %}">Yayınlananları İncele <span aria-hidden="true">→</span></a>
+        </div>
+      </article>
+
+      <article class="journey-card journey-card--company is-after" data-journey-card aria-hidden="true">
+        <div class="journey-card-top">
+          <span class="journey-step journey-reveal journey-reveal--step">04 / 05</span>
+          <span class="journey-icon journey-reveal journey-reveal--icon" aria-hidden="true">
+            <svg viewBox="0 0 48 48">
+              <path d="M9 40V14l15-7 15 7v26M6 40h36M16 19h4M28 19h4M16 26h4M28 26h4M21 40v-7h6v7"/>
+              <circle class="journey-notification-dot" cx="38" cy="10" r="5"/>
+            </svg>
+          </span>
+        </div>
+        <div class="journey-card-copy">
+          <h2 class="journey-reveal journey-reveal--title">Şirket haberdar</h2>
+          <p class="journey-reveal journey-reveal--description">Doğru muhatap deneyiminizden haberdar olur.</p>
+        </div>
+        <div class="journey-card-action journey-reveal journey-reveal--action">
+          <a class="journey-cta journey-cta--secondary" href="{% url 'companies_public:company_list' %}">Şirketleri Gör <span aria-hidden="true">→</span></a>
+        </div>
+      </article>
+
+      <article class="journey-card journey-card--resolve is-after" data-journey-card aria-hidden="true">
+        <div class="journey-card-top">
+          <span class="journey-step journey-reveal journey-reveal--step">05 / 05</span>
+          <span class="journey-icon journey-reveal journey-reveal--icon" aria-hidden="true">
+            <svg viewBox="0 0 48 48">
+              <circle class="journey-completion-ring" pathLength="1" cx="24" cy="24" r="17"/>
+              <path class="journey-icon-check journey-completion-check" pathLength="1" d="m15 24 6 6 13-14"/>
+            </svg>
+          </span>
+        </div>
+        <div class="journey-card-copy">
+          <h2 class="journey-reveal journey-reveal--title">Çözüme doğru</h2>
+          <p class="journey-reveal journey-reveal--description">Güncel durumu hesabınızdan takip edin.</p>
+        </div>
+        <div class="journey-card-action journey-reveal journey-reveal--action">
+          {% if request.user.is_authenticated and request.user.user_type == 'USER' %}
+            <a class="journey-cta journey-cta--secondary" href="{% url 'complaints:list' %}">Süreci Takip Et <span aria-hidden="true">→</span></a>
+          {% elif request.user.is_authenticated %}
+            <a class="journey-cta journey-cta--secondary" href="{% url 'accounts:entry' %}">Süreci Takip Et <span aria-hidden="true">→</span></a>
+          {% else %}
+            <a class="journey-cta journey-cta--secondary" href="{% url 'accounts:login' %}">Süreci Takip Et <span aria-hidden="true">→</span></a>
+          {% endif %}
+        </div>
+      </article>
+    </div>
+  </div>
+
+  <div class="journey-progress" aria-label="Beş aşamalı süreç ilerlemesi">
+    <span class="journey-progress-line" aria-hidden="true"><i></i></span>
+    <ol>
+      {% for label in '12345' %}
+        <li data-journey-dot{% if forloop.first %} class="is-complete is-current"{% endif %}><span>{{ forloop.counter }}</span></li>
+      {% endfor %}
+    </ol>
+  </div>
+
+  <div class="journey-marquee" aria-label="DertDerman’a hoş geldiniz. Sesinizi duyurun. Süreci takip edin. Çözüme ulaşın.">
+    <div class="journey-marquee-track" aria-hidden="true">
+      <span>{% for message in hero_brand_messages %}{{ message }} <b>•</b> {% endfor %} Sesinizi duyurun <b>•</b> Süreci takip edin <b>•</b> Çözüme ulaşın <b>•</b></span>
+      <span>{% for message in hero_brand_messages %}{{ message }} <b>•</b> {% endfor %} Sesinizi duyurun <b>•</b> Süreci takip edin <b>•</b> Çözüme ulaşın <b>•</b></span>
+    </div>
+  </div>
 </div>
