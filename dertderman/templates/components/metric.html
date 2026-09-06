@@ -1,0 +1,5 @@
+{% load l10n %}
+<div class="stat-item">
+  <span class="metric-value"><span class="metric-final">{{ value }}</span><span class="metric-animated" data-count="{{ value|unlocalize }}" aria-hidden="true"></span></span>
+  <p>{{ label }}</p>
+</div>

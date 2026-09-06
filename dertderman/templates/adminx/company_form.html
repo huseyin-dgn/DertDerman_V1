@@ -1,0 +1,4 @@
+{% extends 'adminx/content_base.html' %}
+{% block title %}Şirket Düzenle | Yönetim{% endblock %}
+{% block content_heading %}<h1>{{ company.name }}</h1><p>Şirketin tanıtım ve iletişim bilgileri.</p>{% endblock %}
+{% block management_content %}<form method="post" class="account-form management-form">{% csrf_token %}{% if form.non_field_errors %}<div class="form-alert" role="alert">{{ form.non_field_errors }}</div>{% endif %}{% for field in form %}{% include 'components/field.html' %}{% endfor %}<div class="account-form-actions"><button class="primary-action" type="submit">Değişiklikleri Kaydet</button><a class="secondary-action" href="{% url 'adminx:company_list' %}">Şirketlere Dön</a></div></form>{% endblock %}

@@ -1,0 +1,4 @@
+<header class="identity-header">
+    {% if company.logo %}<img class="company-logo large" src="{{ company.logo.url }}" alt="{{ company.name }} logosu" width="80" height="80">{% else %}<span class="company-avatar large" aria-hidden="true">{{ company.name|first }}</span>{% endif %}
+    <div><p class="section-kicker">{% if company.category %}{{ company.category.name }}{% else %}Şirket{% endif %}</p><h1>{{ company.name }}</h1>{% if company.is_verified %}<span class="status-badge complaint-status-resolved">Doğrulanmış şirket</span>{% endif %}</div>
+</header>

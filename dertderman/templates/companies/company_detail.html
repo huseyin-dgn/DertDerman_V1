@@ -1,20 +1,14 @@
 {% extends "base.html" %}
-
 {% block title %}{{ company.name }} | DertDerman{% endblock %}
-
 {% block content %}
-    <main class="content-section">
-        <div class="section-inner">
-            <div class="section-heading">
-                <h1>{{ company.name }}</h1>
-                {% if company.category %}
-                    <p>Kategori: {{ company.category.name }}</p>
-                {% endif %}
-            </div>
-            <p>{{ company.description }}</p>
-            <p>Web sitesi: {{ company.website }}</p>
-            <p>Email: {{ company.email }}</p>
-            <p>Telefon: {{ company.phone }}</p>
-        </div>
-    </main>
+<main class="content-section" id="main-content"><div class="section-inner account-shell"><article class="account-card">
+    <a class="auth-back" href="{% url 'companies_public:company_list' %}">{% include 'components/icon.html' with name='back' %} Şirketlere Dön</a>
+    {% include 'components/company_identity.html' %}
+    <section class="complaint-description"><h2>Şirket hakkında</h2><p>{{ company.description|default:'Şirket açıklaması henüz eklenmemiş.' }}</p></section>
+    <dl class="account-details"><div><dt>Web sitesi</dt><dd>{{ company.website|default:'Belirtilmemiş' }}</dd></div><div><dt>E-posta</dt><dd>{{ company.email|default:'Belirtilmemiş' }}</dd></div><div><dt>Telefon</dt><dd>{{ company.phone|default:'Belirtilmemiş' }}</dd></div></dl>
+    <section class="company-activity" aria-labelledby="activity-title"><h2 id="activity-title">Son Hareketler</h2><p>Şirkete ait, şu anda yayında olan son şikayetler.</p>
+        <ol>{% for complaint in recent_public_complaints %}<li><span class="activity-node" aria-hidden="true"></span><div><span class="activity-kind">Yayındaki şikayet</span><h3><a href="{% url 'complaints:public_detail' complaint.pk %}">{{ complaint.title }}</a></h3><p>Oluşturulma: <time datetime="{{ complaint.created_at|date:'c' }}">{{ complaint.created_at|date:'d.m.Y' }}</time></p></div></li>{% empty %}<li class="activity-empty">Henüz herkese açık bir şikayet bulunmuyor.</li>{% endfor %}</ol>
+    </section>
+    <a class="secondary-action" href="{% url 'complaints:public_list' %}">Yayınlanan Şikayetleri İncele {% include 'components/icon.html' %}</a>
+</article></div></main>
 {% endblock %}

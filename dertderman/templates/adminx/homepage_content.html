@@ -1,0 +1,4 @@
+{% extends 'adminx/content_base.html' %}
+{% block title %}Ana Sayfa İçerikleri | Yönetim{% endblock %}
+{% block content_heading %}<h1>Ana Sayfa İçerikleri</h1><p>Hero alanında kullanılan güncel marka mesajları. Bu ilk sürümde önizleme sunulur; metin düzenleme henüz açık değildir.</p>{% endblock %}
+{% block management_content %}<ol class="management-list">{% for message in hero_brand_messages %}<li>{{ message }}</li>{% endfor %}</ol><a class="text-action" href="{% url 'core:home' %}">Ana sayfayı görüntüle</a>{% endblock %}

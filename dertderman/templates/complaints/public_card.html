@@ -1,0 +1,6 @@
+<article class="public-complaint-card">
+    <div class="card-identity"><p class="complaint-company">{{ complaint.company.name }}</p>{% include "complaints/status_badge.html" with complaint=complaint only %}</div>
+    <h3 class="complaint-card-title"><a href="{% url 'complaints:public_detail' complaint.pk %}">{{ complaint.title }}</a></h3>
+    <p class="complaint-preview">{{ complaint.description|truncatechars:180 }}</p>
+    <div class="public-complaint-meta"><time datetime="{{ complaint.created_at|date:'c' }}">{{ complaint.created_at|date:"d.m.Y" }}</time><a class="text-action" href="{% url 'complaints:public_detail' complaint.pk %}">Detayı Gör<span class="visually-hidden">: {{ complaint.title }}</span>{% include 'components/icon.html' %}</a></div>
+</article>

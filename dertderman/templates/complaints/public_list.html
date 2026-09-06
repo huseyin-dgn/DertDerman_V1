@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}Şikayetler | DertDerman{% endblock %}
+
+{% block content %}
+    <main class="content-section section-muted" id="main-content">
+        <section class="section-inner" aria-labelledby="public-complaints-title">
+            <header class="section-heading">
+                <p class="section-kicker">Paylaşılan deneyimler</p><h1 id="public-complaints-title">Şikayetler</h1>
+                <p>Yayınlanan şikayetleri en yeniden en eskiye inceleyin.</p>
+            </header>
+            {% if page_obj %}
+                <div class="public-complaint-grid">
+                    {% for complaint in page_obj %}
+                        {% include "complaints/public_card.html" with complaint=complaint only %}
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state"><p>Henüz yayınlanmış şikayet bulunmuyor.</p></div>
+            {% endif %}
+            {% if page_obj.has_other_pages %}
+                <nav class="complaint-pagination" aria-label="Şikayet sayfaları">
+                    {% if page_obj.has_previous %}
+                        <a class="secondary-action" href="?page={{ page_obj.previous_page_number }}" rel="prev">Önceki</a>
+                    {% endif %}
+                    <span aria-current="page">Sayfa {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+                    {% if page_obj.has_next %}
+                        <a class="secondary-action" href="?page={{ page_obj.next_page_number }}" rel="next">Sonraki</a>
+                    {% endif %}
+                </nav>
+            {% endif %}
+        </section>
+    </main>
+{% endblock %}

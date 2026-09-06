@@ -84,7 +84,8 @@ class AuthenticationSecurityTests(TestCase):
             with self.subTest(url=url):
                 response = self.client.get(url)
                 self.assertEqual(response.status_code, 302)
-                self.assertIn(reverse("accounts:login"), response["Location"])
+                login_route = "adminx:login" if url.startswith("/yonetim/") else "accounts:login"
+                self.assertIn(reverse(login_route), response["Location"])
 
     def test_authenticated_user_cannot_view_login_or_register_forms(self):
         user = self.create_user("already-auth", User.UserType.USER)

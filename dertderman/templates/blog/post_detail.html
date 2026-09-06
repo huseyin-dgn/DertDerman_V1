@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block title %}{{ post.title }} | DertDerman Blog{% endblock %}
+{% block extra_head %}<meta name="description" content="{{ post.excerpt }}">{% endblock %}
+{% block content %}<main class="content-section" id="main-content"><article class="blog-article section-inner">
+    <a class="auth-back" href="{% url 'blog:list' %}">{% include 'components/icon.html' with name='back' %} Bloga Dön</a>
+    <header><p class="section-kicker">DertDerman Blog</p><h1>{{ post.title }}</h1><p class="blog-lead">{{ post.excerpt }}</p><time datetime="{{ post.published_at|date:'c' }}">{{ post.published_at|date:'d.m.Y' }}</time></header>
+    {% if post.cover_image %}<img class="blog-cover" src="{{ post.cover_image.url }}" alt="{{ post.title }}" width="800" height="450" loading="lazy" decoding="async">{% endif %}
+    <div class="blog-content">{{ post.content }}</div>
+    <a class="secondary-action" href="{% url 'blog:list' %}">Tüm Yazılara Dön</a>
+</article></main>{% endblock %}

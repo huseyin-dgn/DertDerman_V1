@@ -1,0 +1,18 @@
+<nav class="workspace-nav section-inner" aria-label="Çalışma alanı">
+{% if request.user.user_type == 'USER' %}
+    <span class="workspace-label">Kişisel alanınız</span>
+    <a href="{% url 'dashboard:home' %}" {% if request.resolver_match.namespace == 'dashboard' %}aria-current="page"{% endif %}>Genel Bakış</a>
+    <a href="{% url 'complaints:list' %}" {% if request.resolver_match.namespace == 'complaints' %}aria-current="page"{% endif %}>Şikayetlerim</a>
+    <a href="{% url 'accounts:profile' %}" {% if request.resolver_match.namespace == 'accounts' %}aria-current="page"{% endif %}>Hesabım</a>
+{% elif request.user.user_type == 'COMPANY' %}
+    <span class="workspace-label">Şirket çalışma alanı</span><a href="{% url 'companies:company_panel' %}">Şirketlerim</a>
+{% elif request.user.user_type == 'ADMIN' %}
+    <span class="workspace-label">DertDerman / Yönetim</span>
+    <a href="{% url 'adminx:home' %}" {% if request.resolver_match.url_name == 'home' %}aria-current="page"{% endif %}>Genel Bakış</a>
+    <a href="{% url 'adminx:complaint_list' %}" {% if request.resolver_match.url_name == 'complaint_list' or request.resolver_match.url_name == 'complaint_detail' %}aria-current="page"{% endif %}>Moderasyon</a>
+    <a href="{% url 'adminx:blog_list' %}" {% if 'blog' in request.resolver_match.url_name %}aria-current="page"{% endif %}>Blog Yazıları</a>
+    <a href="{% url 'adminx:company_list' %}" {% if request.resolver_match.url_name == 'company_list' or request.resolver_match.url_name == 'company_edit' %}aria-current="page"{% endif %}>Şirketler</a>
+    <a href="{% url 'adminx:user_list' %}" {% if request.resolver_match.url_name == 'user_list' %}aria-current="page"{% endif %}>Kullanıcılar</a>
+    <a href="{% url 'adminx:homepage_content' %}" {% if request.resolver_match.url_name == 'homepage_content' %}aria-current="page"{% endif %}>Ana Sayfa İçerikleri</a>
+{% endif %}
+</nav>

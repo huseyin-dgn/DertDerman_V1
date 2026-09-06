@@ -1,0 +1,4 @@
+{% extends 'adminx/content_base.html' %}
+{% block title %}Kullanıcılar | Yönetim{% endblock %}
+{% block content_heading %}<h1>Kullanıcılar</h1><p>Hesapları, rollerini ve aktiflik durumlarını görüntüleyin. Bu alan salt okunurdur.</p>{% endblock %}
+{% block management_content %}<ul class="management-list">{% for account in page_obj %}<li><div><h2>{{ account.username }}</h2><p>{{ account.email }}</p></div><div><strong>{{ account.get_user_type_display }}</strong><p>{% if account.is_active %}Aktif{% else %}Pasif{% endif %}</p></div></li>{% empty %}<li>Henüz kullanıcı kaydı yok.</li>{% endfor %}</ul>{% include 'adminx/content_pagination.html' %}{% endblock %}

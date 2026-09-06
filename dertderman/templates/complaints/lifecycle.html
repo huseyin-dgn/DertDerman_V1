@@ -1,0 +1,12 @@
+<section class="complaint-lifecycle" aria-label="Şikayet süreci" data-motion-region>
+  <h2>Şikayetinizin yolu</h2>
+  <ol class="lifecycle-steps">
+    <li class="lifecycle-step is-complete"><span class="lifecycle-node" aria-hidden="true">✓</span><strong>Gönderildi</strong><time datetime="{{ complaint.created_at|date:'c' }}">{{ complaint.created_at|date:'d.m.Y' }}</time></li>
+    <li class="lifecycle-step is-current {% if complaint.status == 'REJECTED' %}is-rejected{% elif complaint.status == 'RESOLVED' %}is-complete{% endif %}" aria-current="step">
+      <span class="lifecycle-node" aria-hidden="true">{% if complaint.status == 'RESOLVED' %}✓{% elif complaint.status == 'REJECTED' %}×{% else %}•{% endif %}</span>
+      <strong>{{ complaint.get_status_display }}</strong><span>Güncel durum</span>
+    </li>
+    {% if complaint.status == 'PENDING' or complaint.status == 'PUBLISHED' %}<li class="lifecycle-step"><span class="lifecycle-node" aria-hidden="true">○</span><strong>{% if complaint.status == 'PENDING' %}Değerlendirme sonucu{% else %}Çözüm sonucu{% endif %}</strong><span>Bekleniyor</span></li>{% endif %}
+  </ol>
+  {% if complaint.status == 'REJECTED' %}<p class="lifecycle-note">Şikayetiniz yayınlanmak üzere onaylanmadı.</p>{% elif complaint.status == 'RESOLVED' %}<p class="lifecycle-note">Şikayetiniz çözüldü olarak işaretlendi.</p>{% endif %}
+</section>

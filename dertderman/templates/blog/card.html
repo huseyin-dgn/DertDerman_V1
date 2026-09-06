@@ -1,0 +1,5 @@
+<article class="blog-card">
+    {% if post.cover_image %}<img class="blog-cover" src="{{ post.cover_image.url }}" alt="{{ post.title }}" width="640" height="360" loading="lazy" decoding="async">
+    {% else %}<div class="blog-placeholder" aria-hidden="true"><span>Dert<span class="blog-connection"></span>Derman</span></div>{% endif %}
+    <div class="blog-card-body"><time datetime="{{ post.published_at|date:'c' }}">{{ post.published_at|date:'d.m.Y' }}</time><h2><a href="{% url 'blog:detail' post.slug %}">{{ post.title }}</a></h2><p>{{ post.excerpt }}</p><a class="text-action" href="{% url 'blog:detail' post.slug %}">Yazıyı Oku<span class="visually-hidden">: {{ post.title }}</span>{% include 'components/icon.html' %}</a></div>
+</article>

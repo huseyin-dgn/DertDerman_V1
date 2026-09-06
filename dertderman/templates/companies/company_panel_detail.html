@@ -1,17 +1,12 @@
-<!doctype html>
-<html lang="tr">
-<head>
-    <meta charset="utf-8">
-    <title>Şirket Paneli</title>
-</head>
-<body>
-    <main>
-        <h1>Şirket Paneli</h1>
-        <h2>{{ company.name }}</h2>
-        <p>Rol: {{ membership.role }}</p>
-        <p>Email: {{ company.email }}</p>
-        <p>Telefon: {{ company.phone }}</p>
-        <p>Doğrulandı mı? {{ company.is_verified }}</p>
-    </main>
-</body>
-</html>
+{% extends "base.html" %}
+{% block title %}Şirket Paneli | DertDerman{% endblock %}
+{% block content %}
+<main class="content-section" id="main-content">
+    {% include 'components/workspace_nav.html' %}
+    <div class="section-inner account-shell"><article class="account-card company-workspace">
+        <p class="section-kicker">Şirket Paneli</p>{% include 'components/company_identity.html' %}
+        <dl class="account-details"><div><dt>Üyelik rolünüz</dt><dd>{{ membership.get_role_display }}</dd></div><div><dt>Üyelik durumu</dt><dd>Aktif</dd></div><div><dt>E-posta</dt><dd>{{ company.email|default:'Belirtilmemiş' }}</dd></div><div><dt>Telefon</dt><dd>{{ company.phone|default:'Belirtilmemiş' }}</dd></div></dl>
+        <div class="hero-actions"><a class="primary-action" href="{% url 'companies_public:company_detail' company.slug %}">Şirket Sayfasını Gör {% include 'components/icon.html' %}</a><a class="secondary-action" href="{% url 'companies:company_panel' %}">Şirketlerime Dön</a></div>
+    </article></div>
+</main>
+{% endblock %}

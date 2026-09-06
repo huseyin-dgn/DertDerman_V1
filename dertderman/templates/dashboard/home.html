@@ -1,95 +1,19 @@
 {% extends "complaints/private_base.html" %}
-
 {% block title %}Kullanıcı Paneli | DertDerman{% endblock %}
-
 {% block content %}
-    <main class="content-section section-muted">
-        <section class="section-inner dashboard-panel" aria-labelledby="dashboard-title">
-            <div class="dashboard-card">
-                <span class="status-badge">Hesabınız aktif.</span>
-                <h1 id="dashboard-title">
-                    Hoş geldin,
-                    {% if request.user.first_name %}
-                        {{ request.user.first_name }}
-                    {% else %}
-                        {{ request.user.username }}
-                    {% endif %}
-                </h1>
-
-                <dl class="dashboard-details">
-                    <div>
-                        <dt>Kullanıcı adı</dt>
-                        <dd>{{ request.user.username }}</dd>
-                    </div>
-                    <div>
-                        <dt>E-posta</dt>
-                        <dd>{{ request.user.email }}</dd>
-                    </div>
-                    <div>
-                        <dt>Telefon</dt>
-                        <dd>
-                            {% if request.user.phone %}
-                                {{ request.user.phone }}
-                            {% else %}
-                                Belirtilmemiş
-                            {% endif %}
-                        </dd>
-                    </div>
-                    <div>
-                        <dt>Rol</dt>
-                        <dd>Kullanıcı</dd>
-                    </div>
-                </dl>
-
-                <div class="dashboard-actions">
-                    <a class="secondary-action" href="{% url 'accounts:profile' %}">Profilimi Gör</a>
-                    <a class="secondary-action" href="{% url 'accounts:profile_edit' %}">Profilimi Düzenle</a>
-                    <a class="secondary-action" href="{% url 'accounts:password_change' %}">Şifremi Değiştir</a>
-                    <a class="secondary-action" href="{% url 'complaints:create' %}">Şikayet Yaz</a>
-                    <a class="secondary-action" href="{% url 'core:home' %}">Ana Sayfaya Dön</a>
-                    <form method="post" action="{% url 'accounts:logout' %}">
-                        {% csrf_token %}
-                        <button type="submit" class="auth-submit compact-submit">Çıkış Yap</button>
-                    </form>
-                </div>
-
-                <section class="user-complaints" aria-labelledby="user-complaints-title">
-                    <div class="panel-section-heading">
-                        <h2 id="user-complaints-title">Şikayetlerim</h2>
-                        <p>Son oluşturduğunuz şikayetler.</p>
-                    </div>
-
-                    {% if recent_complaints %}
-                        <div class="complaint-mini-list">
-                            {% for complaint in recent_complaints %}
-                                <article class="complaint-mini-card">
-                                    <div>
-                                        <p class="complaint-company">{{ complaint.company.name }}</p>
-                                        <h3><a href="{% url 'complaints:detail' complaint.pk %}">{{ complaint.title }}</a></h3>
-                                    </div>
-                                    <dl>
-                                        <div>
-                                            <dt>Durum</dt>
-                                            <dd>{% include "complaints/status_badge.html" %}</dd>
-                                        </div>
-                                        <div>
-                                            <dt>Tarih</dt>
-                                            <dd>{{ complaint.created_at|date:"d.m.Y H:i" }}</dd>
-                                        </div>
-                                    </dl>
-                                </article>
-                            {% endfor %}
-                        </div>
-                    {% else %}
-                        <div class="empty-state compact-empty">
-                            <p>Henüz şikayet oluşturmadınız.</p>
-                        </div>
-                    {% endif %}
-                    <div class="hero-actions">
-                        <a class="secondary-action" href="{% url 'complaints:list' %}">Tüm Şikayetlerimi Gör</a>
-                    </div>
-                </section>
-            </div>
+<main class="content-section" id="main-content">
+    {% include 'components/workspace_nav.html' %}
+    <section class="section-inner dashboard-panel" aria-labelledby="dashboard-title"><div class="dashboard-card">
+        <header class="dashboard-header"><div><p class="section-kicker">Sizin alanınız</p><h1 id="dashboard-title">Merhaba, {% if request.user.first_name %}{{ request.user.first_name }}{% else %}{{ request.user.username }}{% endif %}.</h1><p>Şikayetlerinizi ve hesap bilgilerinizi buradan takip edebilirsiniz.</p></div><span class="status-badge">Hesabınız aktif.</span></header>
+        <div class="task-grid">
+            <a class="task-card task-card-featured" href="{% url 'complaints:create' %}">{% include 'components/icon.html' with name='write' %}<strong>Yeni Şikayet</strong><span>Yaşadığınız sorunu kendi sözlerinizle anlatın.</span></a>
+            <a class="task-card" href="{% url 'complaints:list' %}">{% include 'components/icon.html' with name='list' %}<strong>Şikayetlerim</strong><span>Başvurularınızı ve güncel durumlarını takip edin.</span></a>
+            <a class="task-card" href="{% url 'accounts:profile' %}">{% include 'components/icon.html' with name='user' %}<strong>Profilim</strong><span>Hesap bilgilerinizi görüntüleyin ve düzenleyin.</span></a>
+        </div>
+        <section class="user-complaints" aria-labelledby="user-complaints-title"><header class="panel-section-heading section-heading-row"><div><h2 id="user-complaints-title">Son şikayetleriniz</h2><p>Her başvurunun güncel durumu, tek bir yerde.</p></div><a class="text-action" href="{% url 'complaints:list' %}">Tüm Şikayetlerimi Gör {% include 'components/icon.html' %}</a></header>
+            <div class="complaint-mini-list">{% for complaint in recent_complaints %}<article class="complaint-mini-card"><div><p class="complaint-company">{{ complaint.company.name }}</p><h3><a href="{% url 'complaints:detail' complaint.pk %}">{{ complaint.title }}</a></h3></div><dl><div><dt>Durum</dt><dd>{% include 'complaints/status_badge.html' %}</dd></div><div><dt>Tarih</dt><dd>{{ complaint.created_at|date:"d.m.Y H:i" }}</dd></div></dl></article>
+            {% empty %}<div class="empty-state"><p>Henüz şikayet oluşturmadınız.</p><a class="text-action" href="{% url 'complaints:create' %}">İlk şikayetinizi yazın {% include 'components/icon.html' %}</a></div>{% endfor %}</div>
         </section>
-    </main>
+    </div></section>
+</main>
 {% endblock %}

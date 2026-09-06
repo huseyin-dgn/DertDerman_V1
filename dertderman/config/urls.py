@@ -1,19 +1,30 @@
 from django.conf import settings
 from django.conf.urls.static import static
-from django.contrib import admin
 from django.urls import include, path
+
+from core.views import custom_404
 
 
 urlpatterns = [
     path("", include("core.urls")),
+    path("blog/", include("blog.urls")),
     path("", include("complaints.urls")),
     path("hesap/", include("accounts.urls")),
     path("panel/", include("dashboard.urls")),
     path("sirket-panel/", include("companies.urls")),
     path("sirketler/", include("companies.public_urls")),
     path("yonetim/", include("adminx.urls")),
-    path("django-admin/", admin.site.urls),
 ]
 
 if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(
+        settings.MEDIA_URL,
+        document_root=settings.MEDIA_ROOT,
+    )
+
+handler404 = "core.views.custom_404"
+
+
+urlpatterns += [
+    path("<path:unmatched_path>", custom_404, name="custom_404"),
+]

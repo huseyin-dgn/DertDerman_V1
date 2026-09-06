@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}404 | DertDerman{% endblock %}
+{% block content %}<main class="content-section" id="main-content"><section class="error-shell">
+{% include 'components/error_visual.html' with code='404' %}
+<p class="error-code">404</p><h1>Aradığınız sayfayı bulamadık.</h1><p>Bağlantı değişmiş, kaldırılmış veya yanlış yazılmış olabilir.</p><div class="hero-actions error-actions"><a class="primary-action" href="{% url 'core:home' %}">Ana Sayfaya Dön</a><a class="secondary-action" href="{% url 'complaints:public_list' %}">Şikayetleri İncele</a></div>
+</section></main>{% endblock %}

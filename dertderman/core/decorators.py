@@ -7,15 +7,15 @@ from django.shortcuts import resolve_url
 from django.views.decorators.cache import never_cache
 
 
-def role_required(*allowed_roles):
+def role_required(*allowed_roles, login_url=None):
     allowed_roles = set(allowed_roles)
 
     def decorator(view_func):
         @wraps(view_func)
         def wrapped(request, *args, **kwargs):
             if not request.user.is_authenticated:
-                login_url = resolve_url(settings.LOGIN_URL)
-                return redirect_to_login(request.get_full_path(), login_url)
+                destination = resolve_url(login_url or settings.LOGIN_URL)
+                return redirect_to_login(request.get_full_path(), destination)
 
             if getattr(request.user, "user_type", None) not in allowed_roles:
                 raise PermissionDenied

@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Şikayet İncele | DertDerman{% endblock %}
+
+{% block content %}
+    <main class="content-section section-muted" id="main-content">
+        {% include 'components/workspace_nav.html' %}
+        <article class="section-inner account-shell" aria-labelledby="complaint-title">
+            <div class="account-card moderation-content">
+                <header class="account-header">
+                    <p class="complaint-company">{{ complaint.company.name }}</p>
+                    <h1 id="complaint-title">{{ complaint.title }}</h1>
+                </header>
+                {% if moderation_error %}
+                    <p class="form-alert" role="alert">{{ moderation_error }}</p>
+                {% endif %}
+                <dl class="account-details">
+                    <div><dt>Kullanıcı</dt><dd>{{ complaint.user.username }}</dd></div>
+                    <div>
+                        <dt>Durum</dt>
+                        <dd>{% include "complaints/status_badge.html" with complaint=complaint only %}</dd>
+                    </div>
+                    <div>
+                        <dt>Oluşturulma tarihi</dt>
+                        <dd><time datetime="{{ complaint.created_at|date:'c' }}">{{ complaint.created_at|date:"d.m.Y H:i" }}</time></dd>
+                    </div>
+                    <div>
+                        <dt>Son güncelleme</dt>
+                        <dd><time datetime="{{ complaint.updated_at|date:'c' }}">{{ complaint.updated_at|date:"d.m.Y H:i" }}</time></dd>
+                    </div>
+                </dl>
+                <section class="complaint-description" aria-labelledby="description-title">
+                    <h2 id="description-title">Açıklama</h2>
+                    <p>{{ complaint.description }}</p>
+                </section>
+                {% if complaint.status == "PENDING" %}
+                    <div class="moderation-actions">
+                        <form method="post" action="{% url 'adminx:complaint_publish' complaint.pk %}">
+                            {% csrf_token %}
+                            <button class="primary-action" type="submit">Yayınla</button>
+                        </form>
+                        <form method="post" action="{% url 'adminx:complaint_reject' complaint.pk %}">
+                            {% csrf_token %}
+                            <button class="danger-action" type="submit">Reddet</button>
+                        </form>
+                    </div>
+                {% else %}
+                    <p class="complaint-pending-note">Bu şikayet için bekleyen moderasyon işlemi yok.</p>
+                {% endif %}
+                <div class="hero-actions">
+                    <a class="secondary-action" href="{% url 'adminx:complaint_list' %}">Bekleyen Şikayetlere Dön</a>
+                </div>
+            </div>
+        </article>
+    </main>
+{% endblock %}

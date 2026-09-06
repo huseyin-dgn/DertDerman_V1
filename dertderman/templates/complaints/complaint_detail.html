@@ -3,7 +3,8 @@
 {% block title %}Şikayet Detayı | DertDerman{% endblock %}
 
 {% block content %}
-    <main class="content-section section-muted">
+    <main class="content-section section-muted" id="main-content">
+        {% include 'components/workspace_nav.html' %}
         <article class="section-inner account-shell" aria-labelledby="complaint-title">
             <div class="account-card private-complaints">
                 <header class="account-header">
@@ -24,6 +25,7 @@
                         <dd><time datetime="{{ complaint.updated_at|date:'c' }}">{{ complaint.updated_at|date:"d.m.Y H:i" }}</time></dd>
                     </div>
                 </dl>
+                {% include 'complaints/lifecycle.html' %}
                 {% if complaint.status == "PENDING" %}
                     <p class="complaint-pending-note">Şikayetiniz incelemede. Henüz yayınlanmadı.</p>
                 {% endif %}

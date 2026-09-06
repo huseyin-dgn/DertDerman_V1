@@ -1,25 +1,8 @@
 {% extends "base.html" %}
-
 {% block title %}Şirketler | DertDerman{% endblock %}
-
 {% block content %}
-    <main class="content-section">
-        <div class="section-inner">
-            <div class="section-heading">
-                <h1>Şirketler</h1>
-                <p>Aktif şirket kayıtları.</p>
-            </div>
-        <ul>
-            {% for company in companies %}
-                <li>
-                    <a href="{% url 'companies_public:company_detail' company.slug %}">
-                        {{ company.name }}
-                    </a>
-                </li>
-            {% empty %}
-                <li>Henüz şirket yok.</li>
-            {% endfor %}
-        </ul>
-        </div>
-    </main>
+<main class="content-section" id="main-content"><section class="section-inner">
+    <header class="section-heading"><p class="section-kicker">Şirket rehberi</p><h1>Doğru şirketi bulun.</h1><p>Şirketler hakkında bilgi edinin, deneyiminizi doğru muhatapla paylaşın.</p></header>
+    <div class="company-grid">{% for company in companies %}{% include 'components/company_card.html' with company=company only %}{% empty %}<div class="empty-state"><p>Henüz şirket yok.</p></div>{% endfor %}</div>
+</section></main>
 {% endblock %}

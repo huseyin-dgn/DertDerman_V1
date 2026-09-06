@@ -1,54 +1,20 @@
 {% extends "base.html" %}
-
 {% block title %}Giriş Yap | DertDerman{% endblock %}
-{% block body_class %}auth-page{% endblock %}
-{% block navbar %}{% endblock %}
-{% block footer %}{% endblock %}
-
+{% block body_class %}auth-page login-page{% endblock %}
+{% block navbar %}{% endblock %}{% block footer %}{% endblock %}
 {% block content %}
-    <main class="auth-shell">
-        <section class="auth-card" aria-labelledby="login-title">
-            <div class="auth-brand">
-                <p class="brand-name">DertDerman</p>
-                <p class="brand-tagline">Sorununuzu paylaşın, çözümü birlikte takip edin.</p>
-            </div>
-
-            <div class="auth-heading">
-                <h1 id="login-title">Giriş Yap</h1>
-                <p>Hesabınıza güvenli şekilde giriş yapın.</p>
-            </div>
-
-            <form method="post" class="auth-form">
+<main class="auth-shell" id="main-content">
+    {% include 'components/auth_story.html' %}
+    <div class="auth-form-area"><section class="auth-card" aria-labelledby="auth-title">
+        <a class="auth-back" href="{% url 'core:home' %}">{% include 'components/icon.html' with name='back' %} Ana Sayfaya Dön</a>
+        <header class="auth-heading"><p class="section-kicker">Giriş Yap</p><h1 id="auth-title">Tekrar hoş geldiniz.</h1><p>Hesabınıza giriş yapın, kaldığınız yerden devam edin.</p></header>
+        <form method="post" class="auth-form">
             {% csrf_token %}
-                {% if form.non_field_errors %}
-                    <div class="form-alert" role="alert">
-                        {{ form.non_field_errors }}
-                    </div>
-                {% endif %}
-
-                <div class="auth-field">
-                    {{ form.username.label_tag }}
-                    {{ form.username }}
-                    {% if form.username.errors %}
-                        <div class="field-error" role="alert">{{ form.username.errors }}</div>
-                    {% endif %}
-                </div>
-
-                <div class="auth-field">
-                    {{ form.password.label_tag }}
-                    {{ form.password }}
-                    {% if form.password.errors %}
-                        <div class="field-error" role="alert">{{ form.password.errors }}</div>
-                    {% endif %}
-                </div>
-
-                <button type="submit" class="auth-submit">Giriş Yap</button>
-            </form>
-
-            <p class="auth-footer">
-                Hesabınız yok mu?
-                <a href="{% url 'accounts:register' %}">Kayıt olun</a>
-            </p>
-        </section>
-    </main>
+            {% if form.non_field_errors %}<div class="form-alert" role="alert">Giriş bilgileriniz doğrulanamadı. Kullanıcı adınızı ve şifrenizi kontrol edin.</div>{% endif %}
+            {% include 'components/field.html' with field=form.username label='Kullanıcı adı' %}{% include 'components/field.html' with field=form.password label='Şifre' %}
+            <button type="submit" class="auth-submit">Giriş Yap {% include 'components/icon.html' %}</button>
+        </form>
+        <p class="auth-footer">Hesabınız yok mu? <a href="{% url 'accounts:register' %}">Kayıt Ol</a></p>
+    </section></div>
+</main>
 {% endblock %}

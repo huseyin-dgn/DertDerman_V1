@@ -3,7 +3,8 @@
 {% block title %}Şikayetlerim | DertDerman{% endblock %}
 
 {% block content %}
-    <main class="content-section section-muted">
+    <main class="content-section section-muted" id="main-content">
+        {% include 'components/workspace_nav.html' %}
         <section class="section-inner account-shell" aria-labelledby="complaints-title">
             <div class="account-card private-complaints">
                 <header class="account-header">

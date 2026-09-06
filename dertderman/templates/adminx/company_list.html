@@ -1,0 +1,4 @@
+{% extends 'adminx/content_base.html' %}
+{% block title %}Şirketler | Yönetim{% endblock %}
+{% block content_heading %}<h1>Şirketler</h1><p>Şirketlerin tanıtım ve iletişim bilgilerini düzenleyin.</p>{% endblock %}
+{% block management_content %}<ul class="management-list">{% for company in page_obj %}<li><div><h2>{{ company.name }}</h2><p>{% if company.is_active %}Aktif{% else %}Pasif{% endif %}</p></div><a class="secondary-action" href="{% url 'adminx:company_edit' company.pk %}" aria-label="{{ company.name }} bilgilerini düzenle">Düzenle</a></li>{% empty %}<li>Henüz şirket kaydı yok.</li>{% endfor %}</ul>{% include 'adminx/content_pagination.html' %}{% endblock %}

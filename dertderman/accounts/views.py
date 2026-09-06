@@ -1,12 +1,13 @@
 from django.contrib.auth import login
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib import messages
 from django.contrib.auth.views import LoginView, LogoutView, PasswordChangeView
 from django.shortcuts import redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from django.views.generic.edit import FormView
+
+from core.decorators import role_required
 
 from .forms import ProfileUpdateForm, RegisterForm
 from .models import User
@@ -47,19 +48,18 @@ class SecureLoginView(LoginView):
         return role_redirect_url(self.request.user)
 
 
-@never_cache
-@login_required
+@role_required(User.UserType.USER)
 def profile(request):
     return render(request, "accounts/profile.html")
 
 
-@never_cache
-@login_required
+@role_required(User.UserType.USER)
 def profile_edit(request):
     if request.method == "POST":
         form = ProfileUpdateForm(request.POST, instance=request.user)
         if form.is_valid():
             form.save()
+            messages.success(request, "Profil bilgileriniz güncellendi.")
             return redirect("accounts:profile")
     else:
         form = ProfileUpdateForm(instance=request.user)
@@ -67,15 +67,28 @@ def profile_edit(request):
     return render(request, "accounts/profile_edit.html", {"form": form})
 
 
-@method_decorator(never_cache, name="dispatch")
-class SecurePasswordChangeView(LoginRequiredMixin, PasswordChangeView):
+@method_decorator(role_required(User.UserType.USER), name="dispatch")
+class SecurePasswordChangeView(PasswordChangeView):
     template_name = "accounts/password_change.html"
     success_url = reverse_lazy("accounts:profile")
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, "Şifreniz başarıyla güncellendi.")
+        return response
 
 
 @method_decorator(never_cache, name="dispatch")
 class SecureLogoutView(LogoutView):
     next_page = reverse_lazy("core:home")
+
+    def get_success_url(self):
+        return reverse("core:home")
+
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+        messages.info(request, "Oturumunuz güvenli şekilde kapatıldı.")
+        return response
 
 
 @never_cache

@@ -1,0 +1,8 @@
+{% extends 'base.html' %}
+{% block title %}Blog Yazıları | DertDerman Yönetim{% endblock %}
+{% block content %}<main class="content-section" id="main-content">{% include 'components/workspace_nav.html' %}
+<section class="section-inner"><header class="section-heading section-heading-row"><div><p class="section-kicker">İçerik yönetimi</p><h1>Blog Yazıları</h1><p>Taslaklarınızı hazırlayın, hazır olduğunda yayınlayın.</p></div><a class="primary-action" href="{% url 'adminx:blog_create' %}">Yeni Yazı Oluştur</a></header>
+<div class="complaint-mini-list">{% for post in page_obj %}<article class="complaint-mini-card"><div>{% include 'blog/status_badge.html' %}<h2 class="complaint-card-title">{{ post.title }}</h2><a class="text-action" href="{% url 'adminx:blog_edit' post.pk %}">Düzenle {% include 'components/icon.html' %}</a></div>
+<dl><div><dt>Oluşturulma</dt><dd>{{ post.created_at|date:'d.m.Y H:i' }}</dd></div><div><dt>Son güncelleme</dt><dd>{{ post.updated_at|date:'d.m.Y H:i' }}</dd></div><div><dt>Yayın tarihi</dt><dd>{{ post.published_at|date:'d.m.Y H:i'|default:'Henüz yayınlanmadı' }}</dd></div></dl></article>
+{% empty %}<div class="empty-state"><p>Henüz blog yazısı yok.</p></div>{% endfor %}</div>{% include 'components/pagination.html' %}
+</section></main>{% endblock %}

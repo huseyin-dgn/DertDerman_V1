@@ -3,6 +3,7 @@ from django.shortcuts import get_object_or_404, render
 
 from accounts.models import User
 from core.decorators import role_required
+from complaints.selectors import public_complaints
 
 from .models import Company
 from .services import active_company_memberships_for, get_accessible_company_membership
@@ -52,5 +53,5 @@ def public_company_detail(request, slug):
     return render(
         request,
         "companies/company_detail.html",
-        {"company": company},
+        {"company": company, "recent_public_complaints": public_complaints().filter(company=company).defer("description")[:5]},
     )

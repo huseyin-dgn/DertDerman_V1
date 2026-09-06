@@ -1,0 +1,7 @@
+{% if messages %}<div class="feedback-stack" aria-label="İşlem bildirimleri">
+{% for message in messages %}
+    <div class="feedback feedback-{{ message.level_tag }}" data-feedback="{{ message.level_tag }}" {% if message.level_tag == 'error' %}role="alert" aria-live="assertive"{% else %}role="status" aria-live="polite"{% endif %}>
+        <span class="feedback-symbol" aria-hidden="true">{% if message.level_tag == 'success' %}✓{% elif message.level_tag == 'error' or message.level_tag == 'warning' %}!{% else %}i{% endif %}</span>
+        <p>{{ message }}</p><button type="button" class="feedback-close" aria-label="Bildirimi kapat" hidden>×</button>
+    </div>
+{% endfor %}</div>{% endif %}

@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}403 | DertDerman{% endblock %}
+{% block content %}<main class="content-section" id="main-content"><section class="error-shell">
+{% include 'components/error_visual.html' with code='403' %}
+<p class="error-code">403</p><h1>İşleminizin süresi dolmuş olabilir.</h1><p>Sayfayı yenileyip tekrar deneyin.</p><div class="hero-actions error-actions"><a class="primary-action" href="{% url 'core:home' %}">Ana Sayfaya Dön</a></div>
+</section></main>{% endblock %}

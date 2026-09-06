@@ -1,0 +1,14 @@
+<div class="cover-upload">
+    {% if widget.is_initial %}
+        <div class="cover-current">
+            <a href="{{ widget.value.url }}">Mevcut görseli görüntüle</a>
+            {% if not widget.required %}
+                <label class="cover-clear" for="{{ widget.checkbox_id }}">
+                    <input type="checkbox" name="{{ widget.checkbox_name }}" id="{{ widget.checkbox_id }}"{% if widget.attrs.disabled %} disabled{% endif %}{% if widget.attrs.checked %} checked{% endif %}>
+                    Görseli kaldır
+                </label>
+            {% endif %}
+        </div>
+    {% endif %}
+    {% include "django/forms/widgets/input.html" %}
+</div>

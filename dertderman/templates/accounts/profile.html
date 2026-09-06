@@ -3,10 +3,11 @@
 {% block title %}Profilim | DertDerman{% endblock %}
 
 {% block content %}
-    <main class="content-section section-muted">
+    <main class="content-section section-muted" id="main-content">
+        {% include 'components/workspace_nav.html' %}
         <section class="section-inner account-shell" aria-labelledby="profile-title">
             <div class="account-card">
-                <div class="account-header">
+                <div class="identity-header"><span class="identity-avatar" aria-hidden="true">{{ request.user.username|first|upper }}</span><div><p class="section-kicker">Hesabınız</p><h1 id="profile-title">Profilim</h1><p>{{ request.user.username }}</p></div></div><div class="account-header">
                     <span class="status-badge">
                         {% if request.user.is_active %}
                             Hesabınız aktif.
@@ -14,8 +15,7 @@
                             Hesabınız pasif.
                         {% endif %}
                     </span>
-                    <h1 id="profile-title">Profilim</h1>
-                </div>
+                    </div>
 
                 <dl class="account-details">
                     <div>

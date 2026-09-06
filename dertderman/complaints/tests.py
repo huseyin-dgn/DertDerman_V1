@@ -128,7 +128,7 @@ class PrivateComplaintTests(TestCase):
                 directives = {part.strip() for part in response["Cache-Control"].split(",")}
                 self.assertTrue({"no-store", "no-cache", "private", "max-age=0", "must-revalidate"} <= directives)
                 self.assertIn("Expires", response.headers)
-                self.assertContains(response, 'src="/static/js/private-page.js"')
+                self.assertNotContains(response, "js/private-page.js")
 
     def test_logout_blocks_both_private_urls(self):
         for url in [self.list_url, self.detail_url]:
@@ -158,6 +158,184 @@ class PrivateComplaintTests(TestCase):
             self.assertContains(response, reverse("complaints:detail", args=[complaint.pk]))
         self.assertNotContains(response, self.owned[0].title)
         self.assertNotContains(response, escape(self.foreign.title))
+
+
+class PublicComplaintTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.owner = User.objects.create_user(
+            username="secret-public-owner", email="secret-owner@example.com",
+            phone="+905559876543", first_name="PrivateFirstName",
+            last_name="PrivateLastName", user_type=User.UserType.USER,
+        )
+        cls.company = Company.objects.create(name="Public Company")
+        cls.complaints = {
+            status: Complaint.objects.create(
+                user=cls.owner, company=cls.company, status=status,
+                title=f"Unique complaint {status}",
+                description=f"Unique description {status}. " + "Long preview text. " * 30,
+            )
+            for status in Complaint.Status.values
+        }
+        cls.published = cls.complaints[Complaint.Status.PUBLISHED]
+
+    def setUp(self):
+        self.list_url = reverse("complaints:public_list")
+        self.detail_url = reverse("complaints:public_detail", args=[self.published.pk])
+        self.home_url = reverse("core:home")
+
+    def test_anonymous_list_and_home_only_show_published(self):
+        for url in [self.list_url, self.home_url]:
+            with self.subTest(url=url):
+                response = self.client.get(url)
+                self.assertContains(response, self.published.title)
+                self.assertContains(response, self.detail_url)
+                self.assertContains(response, self.company.name)
+                self.assertContains(response, self.published.get_status_display())
+                self.assertContains(response, self.published.description[:100])
+                self.assertNotContains(response, self.published.description)
+                for status in [Complaint.Status.PENDING, Complaint.Status.REJECTED,
+                               Complaint.Status.RESOLVED]:
+                    self.assertNotContains(response, self.complaints[status].title)
+                    self.assertNotContains(response, self.complaints[status].description[:100])
+
+    def test_detail_content_and_real_company_link_with_optional_logo(self):
+        for logo in ["", "companies/logos/public-company.png"]:
+            with self.subTest(logo=logo):
+                self.company.logo = logo
+                self.company.save()
+                response = self.client.get(self.detail_url)
+                for content in [self.published.title, self.published.description,
+                                self.company.name, "Yayında", "Oluşturulma tarihi",
+                                "Son güncelleme", "Şirkete Git", "Şikayetlere Dön"]:
+                    self.assertContains(response, content)
+                company_url = reverse("companies_public:company_detail", args=[self.company.slug])
+                self.assertContains(response, f'href="{company_url}"')
+                self.assertEqual(self.client.get(company_url).status_code, 200)
+                if logo:
+                    self.assertContains(response, f'src="{self.company.logo.url}"')
+
+    def test_known_nonpublic_ids_return_404_even_for_owner(self):
+        for logged_in in [False, True]:
+            if logged_in:
+                self.client.force_login(self.owner)
+            for status in [Complaint.Status.PENDING, Complaint.Status.REJECTED,
+                           Complaint.Status.RESOLVED]:
+                complaint = self.complaints[status]
+                with self.subTest(logged_in=logged_in, status=status):
+                    response = self.client.get(
+                        reverse("complaints:public_detail", args=[complaint.pk])
+                    )
+                    self.assertEqual(response.status_code, 404)
+                    self.assertNotContains(response, complaint.title, status_code=404)
+                    self.assertNotContains(response, complaint.description, status_code=404)
+        self.assertEqual(self.client.get(
+            reverse("complaints:public_detail", args=[999999])
+        ).status_code, 404)
+
+    def test_inactive_company_is_hidden_across_public_surfaces(self):
+        self.company.is_active = False
+        self.company.save()
+        for url in [self.list_url, self.home_url]:
+            response = self.client.get(url)
+            self.assertNotContains(response, self.published.title)
+        self.assertEqual(self.client.get(self.detail_url).status_code, 404)
+        self.client.force_login(self.owner)
+        self.assertContains(self.client.get(
+            reverse("complaints:detail", args=[self.published.pk])
+        ), self.published.title)
+
+    def test_public_responses_do_not_expose_owner_profile(self):
+        for url in [self.list_url, self.detail_url, self.home_url]:
+            with self.subTest(url=url):
+                response = self.client.get(url)
+                for value in [self.owner.email, self.owner.phone, self.owner.username,
+                              self.owner.first_name, self.owner.last_name]:
+                    self.assertNotContains(response, value)
+                if url == self.detail_url:
+                    objects = [response.context["complaint"]]
+                elif url == self.list_url:
+                    objects = response.context["page_obj"]
+                else:
+                    objects = response.context["recent_complaints"]
+                for complaint in objects:
+                    self.assertNotIn("user", complaint._state.fields_cache)
+
+    def test_public_user_content_is_escaped(self):
+        self.published.title = '<script>alert(1)</script>'
+        self.published.description = '<img src=x onerror="alert(2)">\n<script>alert(3)</script>'
+        self.published.save()
+        for url in [self.list_url, self.detail_url, self.home_url]:
+            with self.subTest(url=url):
+                response = self.client.get(url)
+                for value in [self.published.title, self.published.description]:
+                    self.assertContains(response, escape(value))
+                    self.assertNotContains(response, value)
+
+    def test_pagination_is_newest_first_with_stable_ties_and_safe_fallbacks(self):
+        from django.utils import timezone
+
+        # Tied timestamps exercise the secondary ordering by primary key.
+        extra = [Complaint.objects.create(
+            user=self.owner, company=self.company, status=Complaint.Status.PUBLISHED,
+            title=f"Paginated complaint {index:02d}", description="Pagination description.",
+        ) for index in range(25)]
+        Complaint.objects.filter(pk__in=[c.pk for c in extra]).update(created_at=timezone.now())
+        expected = list(reversed(extra)) + [self.published]
+        seen = []
+        for page, count in [(1, 12), (2, 12), (3, 2)]:
+            response = self.client.get(self.list_url, {"page": page})
+            self.assertEqual(response.status_code, 200)
+            objects = list(response.context["page_obj"])
+            self.assertEqual(len(objects), count)
+            seen.extend(objects)
+            if page > 1:
+                self.assertContains(response, f'href="?page={page - 1}"')
+            if page < 3:
+                self.assertContains(response, f'href="?page={page + 1}"')
+        self.assertEqual(seen, expected)
+        for value, expected_page in [("abc", 1), ("-1", 3), ("999999", 3), ("0", 3)]:
+            with self.subTest(page=value):
+                response = self.client.get(self.list_url, {"page": value})
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.context["page_obj"].number, expected_page)
+        home = self.client.get(self.home_url)
+        self.assertEqual(list(home.context["recent_complaints"]), expected[:6])
+        for complaint in expected[6:]:
+            self.assertNotContains(home, complaint.title)
+
+    def test_empty_states_and_empty_pagination(self):
+        self.published.status = Complaint.Status.PENDING
+        self.published.save()
+        for url in [self.list_url, self.home_url]:
+            response = self.client.get(url, {"page": "999999"})
+            self.assertContains(response, "Henüz yayınlanmış şikayet bulunmuyor.")
+
+    def test_navbar_and_public_access_for_all_roles_without_private_cache_policy(self):
+        self.assertEqual(self.list_url, "/sikayetler/")
+        self.assertEqual(self.detail_url, f"/sikayetler/{self.published.pk}/")
+        self.assertEqual(reverse("complaints:list"), "/sikayetlerim/")
+        for role in [None, *User.UserType.values]:
+            if role is not None:
+                user = User.objects.create_user(
+                    username=f"public-viewer-{role}", email=f"viewer-{role}@example.com",
+                    user_type=role,
+                )
+                self.client.force_login(user)
+            for url in [self.list_url, self.detail_url, self.home_url]:
+                with self.subTest(role=role, url=url):
+                    response = self.client.get(url)
+                    self.assertContains(response, '<a href="/sikayetler/">Şikayetler</a>', html=True)
+                    self.assertNotIn("no-store", response.headers.get("Cache-Control", ""))
+
+    def test_public_views_are_read_only(self):
+        for url in [self.list_url, self.detail_url]:
+            self.assertEqual(self.client.head(url).status_code, 200)
+            for method in ["post", "put", "patch", "delete"]:
+                with self.subTest(url=url, method=method):
+                    self.assertEqual(getattr(self.client, method)(url).status_code, 405)
+        self.published.refresh_from_db()
+        self.assertEqual(self.published.status, Complaint.Status.PUBLISHED)
 
 
 class ComplaintCreateTests(TestCase):

@@ -1,0 +1,7 @@
+<svg class="error-visual" width="240" height="96" viewBox="0 0 240 96" aria-hidden="true">
+    <path d="M12 48h68q16 0 16-16V20m16 44v12q0 12 16 12h60" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="4 6"/>
+    <circle cx="18" cy="48" r="7" fill="currentColor"/><circle cx="184" cy="48" r="34" fill="none" stroke="currentColor" stroke-width="2"/>
+    {% if code == '403' %}<rect x="173" y="44" width="22" height="18" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M177 44v-5a7 7 0 0 1 14 0v5" fill="none" stroke="currentColor" stroke-width="2"/>
+    {% elif code == '404' %}<path d="M177 40a8 8 0 1 1 11 7q-4 2-4 6m0 6v1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    {% else %}<path d="M184 34v18m0 9v1" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>{% endif %}
+</svg>

@@ -3,7 +3,8 @@
 {% block title %}Profili Düzenle | DertDerman{% endblock %}
 
 {% block content %}
-    <main class="content-section section-muted">
+    <main class="content-section section-muted" id="main-content">
+        {% include 'components/workspace_nav.html' %}
         <section class="section-inner account-shell" aria-labelledby="profile-edit-title">
             <div class="account-card account-form-card">
                 <div class="account-header">
@@ -11,52 +12,15 @@
                     <p>Ad, soyad, e-posta ve telefon bilgilerinizi güncelleyin.</p>
                 </div>
 
-                <form method="post" class="account-form">
-                    {% csrf_token %}
-
-                    {% if form.non_field_errors %}
-                        <div class="form-alert" role="alert">
-                            {{ form.non_field_errors }}
-                        </div>
-                    {% endif %}
-
-                    <div class="account-field">
-                        <label for="{{ form.first_name.id_for_label }}">Ad</label>
-                        {{ form.first_name }}
-                        {% if form.first_name.errors %}
-                            <div class="field-error" role="alert">{{ form.first_name.errors }}</div>
-                        {% endif %}
-                    </div>
-
-                    <div class="account-field">
-                        <label for="{{ form.last_name.id_for_label }}">Soyad</label>
-                        {{ form.last_name }}
-                        {% if form.last_name.errors %}
-                            <div class="field-error" role="alert">{{ form.last_name.errors }}</div>
-                        {% endif %}
-                    </div>
-
-                    <div class="account-field">
-                        <label for="{{ form.email.id_for_label }}">E-posta</label>
-                        {{ form.email }}
-                        {% if form.email.errors %}
-                            <div class="field-error" role="alert">{{ form.email.errors }}</div>
-                        {% endif %}
-                    </div>
-
-                    <div class="account-field">
-                        <label for="{{ form.phone.id_for_label }}">Telefon</label>
-                        {{ form.phone }}
-                        {% if form.phone.errors %}
-                            <div class="field-error" role="alert">{{ form.phone.errors }}</div>
-                        {% endif %}
-                    </div>
-
-                    <div class="account-form-actions">
-                        <button type="submit" class="auth-submit compact-submit">Değişiklikleri Kaydet</button>
-                        <a class="secondary-action" href="{% url 'accounts:profile' %}">Profile Dön</a>
-                    </div>
-                </form>
+<form method="post" class="account-form">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="form-alert" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+    {% include 'components/field.html' with field=form.first_name label='Ad' %}
+{% include 'components/field.html' with field=form.last_name label='Soyad' %}
+{% include 'components/field.html' with field=form.email label='E-posta' %}
+{% include 'components/field.html' with field=form.phone label='Telefon' %}
+    <div class="account-form-actions"><button type="submit" class="auth-submit">Değişiklikleri Kaydet</button><a class="secondary-action" href="{% url 'accounts:profile' %}">Profile Dön</a></div>
+    </form>
             </div>
         </section>
     </main>

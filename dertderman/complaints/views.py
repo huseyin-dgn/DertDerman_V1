@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_safe
 
@@ -7,6 +8,19 @@ from core.decorators import role_required
 
 from .forms import ComplaintCreateForm
 from .models import Complaint
+from .selectors import public_complaints
+
+
+@require_safe
+def public_complaint_list(request):
+    page_obj = Paginator(public_complaints(), 12).get_page(request.GET.get("page"))
+    return render(request, "complaints/public_list.html", {"page_obj": page_obj})
+
+
+@require_safe
+def public_complaint_detail(request, pk):
+    complaint = get_object_or_404(public_complaints(), pk=pk)
+    return render(request, "complaints/public_detail.html", {"complaint": complaint})
 
 
 @role_required(User.UserType.USER)
@@ -40,7 +54,7 @@ def complaint_create(request):
             complaint.save()
             messages.success(
                 request,
-                "Şikayetiniz alındı. İncelendikten sonra yayınlanacaktır.",
+                "Şikayetiniz incelemeye alındı. Yayınlanmadan önce değerlendirilecektir.",
             )
             return redirect("dashboard:home")
     else:

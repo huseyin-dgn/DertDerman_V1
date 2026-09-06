@@ -1,22 +1,12 @@
-<!doctype html>
-<html lang="tr">
-<head>
-    <meta charset="utf-8">
-    <title>Şirket Paneli</title>
-</head>
-<body>
-    <main>
-        <h1>Şirket Paneli</h1>
-        <ul>
-            {% for membership in memberships %}
-                <li>
-                    <a href="{% url 'companies:company_panel_detail' membership.company.slug %}">
-                        {{ membership.company.name }}
-                    </a>
-                    - {{ membership.role }}
-                </li>
-            {% endfor %}
-        </ul>
-    </main>
-</body>
-</html>
+{% extends "base.html" %}
+{% block title %}Şirket Paneli | DertDerman{% endblock %}
+{% block content %}
+<main class="content-section" id="main-content">
+    {% include 'components/workspace_nav.html' %}
+    <section class="section-inner"><header class="section-heading"><p class="section-kicker">Kurumsal çalışma alanınız</p><h1>Şirket Paneli</h1><p>Yetkili olduğunuz şirketleri görüntüleyin. Devam etmek için bir şirket seçin.</p></header>
+    <div class="company-grid">{% for membership in memberships %}<article class="company-card company-workspace">
+        {% if membership.company.logo %}<img class="company-logo" src="{{ membership.company.logo.url }}" alt="{{ membership.company.name }} logosu" width="52" height="52" loading="lazy" decoding="async">{% else %}<span class="company-avatar" aria-hidden="true">{{ membership.company.name|first }}</span>{% endif %}
+        <div><h3>{{ membership.company.name }}</h3><p>{{ membership.get_role_display }}</p><a class="text-action" href="{% url 'companies:company_panel_detail' membership.company.slug %}">Şirket Alanına Git {% include 'components/icon.html' %}</a></div>
+    </article>{% endfor %}</div></section>
+</main>
+{% endblock %}

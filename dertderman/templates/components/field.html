@@ -1,0 +1,11 @@
+<div class="account-field">
+    <label for="{{ field.id_for_label }}">{% if label %}{{ label }}{% else %}{{ field.label }}{% endif %}</label>
+    {% if field.field.widget.input_type == 'password' %}
+    <div class="password-control">
+        {{ field }}
+        <button type="button" data-password-toggle aria-controls="{{ field.id_for_label }}" aria-label="{{ field.label }}: göster" aria-pressed="false" hidden>Göster</button>
+    </div>
+    {% else %}{{ field }}{% endif %}
+    {% if field.help_text %}<div class="field-help" id="{{ field.auto_id }}_helptext">{{ field.help_text }}</div>{% endif %}
+    {% if field.errors %}<div class="field-error" id="{{ field.auto_id }}_error" role="alert">{{ field.errors }}</div>{% endif %}
+</div>

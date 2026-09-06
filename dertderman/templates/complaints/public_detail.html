@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}{{ complaint.title }} | DertDerman{% endblock %}
+
+{% block content %}
+    <main class="content-section section-muted" id="main-content">
+        <article class="section-inner account-shell" aria-labelledby="complaint-title">
+            <div class="account-card public-complaint-detail">
+                <header class="account-header">
+                    <div class="public-complaint-company">
+                        {% if complaint.company.logo %}
+                            <img src="{{ complaint.company.logo.url }}" alt="{{ complaint.company.name }} logosu" width="64" height="64">
+                        {% endif %}
+                        <p class="complaint-company">{{ complaint.company.name }}</p>
+                    </div>
+                    <h1 id="complaint-title">{{ complaint.title }}</h1>
+                </header>
+                <dl class="account-details">
+                    <div>
+                        <dt>Durum</dt>
+                        <dd>{% include "complaints/status_badge.html" with complaint=complaint only %}</dd>
+                    </div>
+                    <div>
+                        <dt>Oluşturulma tarihi</dt>
+                        <dd><time datetime="{{ complaint.created_at|date:'c' }}">{{ complaint.created_at|date:"d.m.Y H:i" }}</time></dd>
+                    </div>
+                    <div>
+                        <dt>Son güncelleme</dt>
+                        <dd><time datetime="{{ complaint.updated_at|date:'c' }}">{{ complaint.updated_at|date:"d.m.Y H:i" }}</time></dd>
+                    </div>
+                </dl>
+                <section class="complaint-description" aria-labelledby="description-title">
+                    <h2 id="description-title">Açıklama</h2>
+                    <p>{{ complaint.description }}</p>
+                </section>
+                <div class="hero-actions">
+                    <a class="primary-action" href="{% url 'companies_public:company_detail' complaint.company.slug %}">Şirkete Git</a>
+                    <a class="secondary-action" href="{% url 'complaints:public_list' %}">Şikayetlere Dön</a>
+                </div>
+            </div>
+        </article>
+    </main>
+{% endblock %}
