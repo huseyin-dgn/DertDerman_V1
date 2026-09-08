@@ -34,6 +34,18 @@
     ];
 
 
+    const cycleBar =
+      journeySlider.querySelector(
+        "[data-journey-cycle]"
+      );
+
+
+    const reducedCarouselMotion =
+      window.matchMedia(
+        "(prefers-reduced-motion: reduce)"
+      );
+
+
     if (
       cards.length !== 5 ||
       dots.length !== 5
@@ -48,17 +60,117 @@
 
     let currentIndex = 0;
 
+    let pointerInside = false;
+
+    let focusInside = false;
+
+    let transitioning = false;
+
+    let dwellTimer = 0;
+
+    let transitionTimer = 0;
+
+    let scheduleNext = () => {};
+
+    const WAIT_MS = 3500;
+
+    const TRANSITION_MS = 900;
+
+    const isPaused = () =>
+      pointerInside ||
+      focusInside ||
+      document.hidden;
+
+
+    const restartCycle = () => {
+
+      if (!cycleBar) {
+        return;
+      }
+
+
+      cycleBar.classList.remove(
+        "is-running"
+      );
+
+
+      void cycleBar.offsetWidth;
+
+
+      if (
+        !reducedCarouselMotion.matches
+      ) {
+
+        cycleBar.classList.add(
+          "is-running"
+        );
+
+      }
+
+    };
+
+
+    const syncInteraction = () => {
+      journeySlider.classList.toggle(
+        "is-interaction-paused",
+        pointerInside || focusInside
+      );
+
+
+      window.clearTimeout(
+        dwellTimer
+      );
+
+
+      if (
+        !isPaused() &&
+        !transitioning
+      ) {
+        scheduleNext();
+      }
+
+    };
+
 
     const updateSlider = (
-      nextIndex,
-      previousIndex = -1
+      nextIndex
     ) => {
 
-      currentIndex = nextIndex;
+      currentIndex =
+        Number.isInteger(nextIndex)
+          ? (
+              (nextIndex % cards.length) +
+              cards.length
+            ) % cards.length
+          : 0;
+
+
+      const previousIndex =
+        (
+          currentIndex - 1 +
+          cards.length
+        ) %
+        cards.length;
+
+
+      const followingIndex =
+        (
+          currentIndex + 1
+        ) %
+        cards.length;
 
 
       cards.forEach(
         (card, index) => {
+
+          card.classList.remove(
+            "is-active",
+            "is-prev",
+            "is-next",
+            "is-hidden",
+            "is-exiting",
+            "is-entering"
+          );
 
           const isActive =
             index === currentIndex;
@@ -71,15 +183,22 @@
 
 
           card.classList.toggle(
-            "is-before",
+            "is-prev",
             index === previousIndex
           );
 
 
           card.classList.toggle(
-            "is-after",
+            "is-next",
+            index === followingIndex
+          );
+
+
+          card.classList.toggle(
+            "is-hidden",
             !isActive &&
-            index !== previousIndex
+            index !== previousIndex &&
+            index !== followingIndex
           );
 
 
@@ -87,6 +206,10 @@
             "aria-hidden",
             String(!isActive)
           );
+
+
+          card.inert =
+            !isActive;
 
 
           card.querySelectorAll(
@@ -130,6 +253,24 @@
             index === currentIndex
           );
 
+
+          if (
+            index === currentIndex
+          ) {
+
+            dot.setAttribute(
+              "aria-current",
+              "step"
+            );
+
+          } else {
+
+            dot.removeAttribute(
+              "aria-current"
+            );
+
+          }
+
         }
       );
 
@@ -154,26 +295,149 @@
     };
 
 
-    updateSlider(0);
+    scheduleNext = () => {
+
+      window.clearTimeout(
+        dwellTimer
+      );
 
 
-    window.setInterval(
-      () => {
+      if (
+        isPaused() ||
+        transitioning
+      ) {
+        return;
+      }
 
-        const previousIndex =
-          currentIndex;
+
+      restartCycle();
 
 
-        updateSlider(
-          (currentIndex + 1) %
-          cards.length,
+      dwellTimer =
+        window.setTimeout(
+          () => {
 
-          previousIndex
+            if (transitioning) {
+              return;
+            }
+
+
+            transitioning = true;
+
+            cycleBar?.classList.remove(
+              "is-running"
+            );
+
+
+            updateSlider(
+              (currentIndex + 1) % cards.length
+            );
+
+
+            window.clearTimeout(
+              transitionTimer
+            );
+
+
+            transitionTimer =
+              window.setTimeout(
+                () => {
+
+                  transitioning = false;
+
+
+                  if (!isPaused()) {
+                    scheduleNext();
+                  }
+
+                },
+                TRANSITION_MS + 80
+              );
+
+          },
+          WAIT_MS
         );
 
-      },
+    };
 
-      5000
+
+    updateSlider(0);
+
+    scheduleNext();
+
+
+    journeySlider.addEventListener(
+      "mouseenter",
+      () => {
+
+        pointerInside = true;
+
+        syncInteraction();
+
+      }
+    );
+
+
+    journeySlider.addEventListener(
+      "mouseleave",
+      () => {
+
+        pointerInside = false;
+
+        syncInteraction();
+
+      }
+    );
+
+
+    journeySlider.addEventListener(
+      "focusin",
+      () => {
+
+        focusInside = true;
+
+        syncInteraction();
+
+      }
+    );
+
+
+    journeySlider.addEventListener(
+      "focusout",
+      (event) => {
+
+        focusInside =
+          journeySlider.contains(
+            event.relatedTarget
+          );
+
+
+        syncInteraction();
+
+      }
+    );
+
+
+    document.addEventListener(
+      "visibilitychange",
+      () => {
+
+        if (
+          document.hidden
+        ) {
+
+          window.clearTimeout(
+            dwellTimer
+          );
+
+          return;
+
+        }
+
+
+        syncInteraction();
+
+      }
     );
 
   };
@@ -988,59 +1252,6 @@
 
       }
     );
-
-  }
-
-
-  /* ===================================================== */
-  /* BRAND INTRO                                           */
-  /* ===================================================== */
-
-  const intro =
-    document.querySelector(
-      "[data-brand-intro]"
-    );
-
-
-  if (intro) {
-
-    try {
-
-      const reduced =
-        window.matchMedia(
-          "(prefers-reduced-motion: reduce)"
-        ).matches;
-
-
-      if (
-        !reduced &&
-        !window.sessionStorage.getItem(
-          "dd-brand-intro-seen"
-        )
-      ) {
-
-        intro.classList.add(
-          "intro-play"
-        );
-
-
-        window.sessionStorage.setItem(
-          "dd-brand-intro-seen",
-          "1"
-        );
-
-      }
-
-    } catch (_) {
-
-      /*
-      Storage unavailable.
-
-      Site yine çalışmaya
-      devam eder.
-      */
-
-    }
 
   }
 

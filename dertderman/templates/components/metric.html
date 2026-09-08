@@ -1,5 +1,12 @@
 {% load l10n %}
 <div class="stat-item">
+  <span class="metric-visual metric-visual--{{ visual }}" aria-hidden="true">
+    {% if visual == 'complaint' %}<svg viewBox="0 0 40 40"><path d="M8 9h24v17H18l-7 6v-6H8Z"/><path d="M14 15h12M14 20h8"/><circle class="metric-dot metric-dot--one" cx="30" cy="7" r="2"/><circle class="metric-dot metric-dot--two" cx="35" cy="12" r="1.5"/></svg>
+    {% elif visual == 'published' %}<svg viewBox="0 0 40 40"><path d="M8 17v8h7l14 6V11l-14 6Z"/><path class="metric-wave" d="M33 15c3 3 3 7 0 10"/><path class="metric-wave metric-wave--outer" d="M36 11c5 5 5 13 0 18"/></svg>
+    {% elif visual == 'resolved' %}<svg viewBox="0 0 40 40"><circle class="metric-ring" cx="20" cy="20" r="13"/><path class="metric-check" d="m13 20 5 5 10-11"/></svg>
+    {% elif visual == 'company' %}<svg viewBox="0 0 40 40"><path d="M9 33V12l11-5 11 5v21M6 33h28M14 17h3M23 17h3M14 23h3M23 23h3M17 33v-5h6v5"/><circle class="metric-pulse" cx="31" cy="9" r="3"/></svg>
+    {% else %}<svg viewBox="0 0 40 40"><circle cx="16" cy="15" r="5"/><circle cx="27" cy="17" r="4"/><path d="M7 32c1-7 5-10 9-10s8 3 9 10M23 24c5 0 8 3 9 8"/></svg>{% endif %}
+  </span>
   <span class="metric-value"><span class="metric-final">{{ value }}</span><span class="metric-animated" data-count="{{ value|unlocalize }}" aria-hidden="true"></span></span>
   <p>{{ label }}</p>
 </div>

@@ -1,9 +1,47 @@
 {% extends "base.html" %}
+{% block pre_paint %}
+<style>
+    html.dd-intro-pending { background: #f5f9ff; }
+    html.dd-intro-pending body {
+        visibility: hidden;
+        animation: dd-intro-fail-open 0s 1500ms forwards;
+    }
+    @keyframes dd-intro-fail-open { to { visibility: visible; } }
+</style>
+<script>
+    (() => {
+        const root = document.documentElement;
+        try {
+            try {
+                if (sessionStorage.getItem("dd_intro_returning") === "1") {
+                    sessionStorage.removeItem("dd_intro_returning");
+                    return;
+                }
+            } catch (_) { /* Storage may be blocked; referrer still handles the return. */ }
+            const navigation = performance.getEntriesByType("navigation")[0];
+            const isReload = navigation?.type === "reload";
+            if (isReload) return;
+            if (document.referrer && new URL(document.referrer).origin === location.origin) return;
+            // Hide only during a redirect; recover if navigation is cancelled or fails.
+            window.setTimeout(() => root.classList.remove("dd-intro-pending"), 1500);
+            window.addEventListener("pageshow", (event) => {
+                if (event.persisted) root.classList.remove("dd-intro-pending");
+            });
+            root.classList.add("dd-intro-pending");
+            window.location.replace("{% url 'core:intro' %}");
+        } catch (_) {
+            root.classList.remove("dd-intro-pending");
+        }
+    })();
+</script>
+{% endblock %}
 {% block title %}DertDerman | Derdinizi Anlatın, Süreci Takip Edin{% endblock %}
 {% block body_class %}public-site home-public{% endblock %}
 {% block content %}
 <main id="main-content">
-    <section class="hero-section"><div class="section-inner hero-inner" data-brand-intro>
+    <section class="hero-section">
+        <div class="hero-atmosphere" aria-hidden="true"><span></span><span></span><span></span></div>
+        <div class="section-inner hero-inner">
         <div class="hero-copy">
             <p class="eyebrow">Tüketici deneyimleri platformu</p>
             <h1>Derdinizi duyurun.<br><span>Çözüm yolunu görün.</span></h1>
@@ -16,16 +54,17 @@
             <span class="cta-note">Her şikayet yayınlanmadan önce incelenir.</span>
         </div>
         {% include 'components/hero_brand.html' %}
-    </div></section>
+        </div>
+    </section>
 
     <section class="stats-section" aria-labelledby="stats-title"><div class="section-inner stats-layout">
         <header><p class="section-index">01</p><div><p class="section-kicker">Platformun bugünkü görünümü</p><h2 id="stats-title">Rakamların söylediği.</h2></div><p class="stats-note">Yalnızca sistemdeki güncel ve gerçek kayıtlar.</p></header>
-        <div class="stats-grid" data-count-region>
-            {% include 'components/metric.html' with value=stats.total_complaints label='Toplam Şikayet' %}
-            {% include 'components/metric.html' with value=stats.published label='Yayınlanan' %}
-            {% include 'components/metric.html' with value=stats.resolved label='Çözülen' %}
-            {% include 'components/metric.html' with value=stats.companies label='Kayıtlı Şirket' %}
-            {% include 'components/metric.html' with value=stats.users label='Kullanıcı' %}
+        <div class="stats-grid" data-count-region data-motion-region>
+            {% include 'components/metric.html' with value=stats.total_complaints label='Toplam Şikayet' visual='complaint' %}
+            {% include 'components/metric.html' with value=stats.published label='Yayınlanan' visual='published' %}
+            {% include 'components/metric.html' with value=stats.resolved label='Çözülen' visual='resolved' %}
+            {% include 'components/metric.html' with value=stats.companies label='Kayıtlı Şirket' visual='company' %}
+            {% include 'components/metric.html' with value=stats.users label='Kullanıcı' visual='users' %}
         </div>
         <p class="stats-note stats-disclosure">Yayınlanan şikayet sayısı, aktif şirketlerdeki herkese açık kayıtları gösterir.</p>
     </div></section>
@@ -47,7 +86,7 @@
         <div class="reason-lines"><article><span>01</span><div><h3>Doğru muhatap</h3><p>Deneyiminizi sistemdeki şirket kaydıyla doğrudan ilişkilendirin.</p></div></article><article><span>02</span><div><h3>İncelenen yayın</h3><p>İçerikler herkese açılmadan önce yayın sürecinden geçer.</p></div></article><article><span>03</span><div><h3>Tek yerde takip</h3><p>Şikayetinizin güncel durumunu kişisel alanınızdan izleyin.</p></div></article></div>
     </div></section>
 
-    <section class="business-cta"><div class="section-inner business-cta-inner"><p class="business-mark" aria-hidden="true">DD / KURUM</p><div><p class="section-kicker">Şirketler için</p><h2>Müşteri deneyimine<br>doğru yerden yaklaşın.</h2></div><p>Şirket hesabınızla size yönelen deneyimleri düzenli bir çalışma alanından takip edin.</p><a class="secondary-action button-lg" href="{% url 'accounts:register' %}">Kurumsal hesap oluştur {% include 'components/icon.html' %}</a></div></section>
+    <section class="business-cta"><div class="section-inner business-cta-inner"><p class="business-mark" aria-hidden="true">DD / KURUM</p><div><p class="section-kicker">Şirketler için</p><h2>Müşteri deneyimine<br>doğru yerden yaklaşın.</h2></div><p>Şirket hesabınızla size yönelen deneyimleri düzenli bir çalışma alanından takip edin.</p><div class="business-cta-actions"><a class="business-primary button-lg" href="{% url 'company_auth:register' %}">Şirket Ağına Katıl {% include 'components/icon.html' %}</a><a class="business-secondary button-lg" href="{% url 'company_auth:login' %}">Şirket Girişi</a></div></div></section>
 
     {% if recent_posts %}<section class="content-section editorial-section"><div class="section-inner"><header class="section-heading section-heading-row"><div><p class="section-index">07</p><p class="section-kicker">Blog &amp; Rehber</p><h2>Bilgi, daha iyi bir<br>deneyimin başlangıcı.</h2></div><a class="text-action" href="{% url 'blog:list' %}">Tüm yazılar {% include 'components/icon.html' %}</a></header><div class="blog-grid editorial-grid">{% for post in recent_posts %}{% include 'blog/card.html' with post=post only %}{% endfor %}</div></div></section>{% endif %}
 

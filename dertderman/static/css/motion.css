@@ -1,10 +1,13 @@
 /* Content starts visible. All motion is a non-blocking visual enhancement. */
-@keyframes dd-pulse { from { transform: translateX(0); opacity: .3; } to { transform: translateX(50px); opacity: 1; } }
 @keyframes dd-arrive { from { transform: translateY(5px); opacity: .65; } to { transform: none; opacity: 1; } }
-@keyframes dd-visual { from { opacity: .55; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-.intro-play .intro-pulse { animation: dd-pulse 780ms ease-out 1; }
-.intro-play .intro-word { animation: dd-arrive 780ms ease-out 1; }
-.intro-play .hero-visual .solution-visual { animation: dd-visual 780ms ease-out 1; }
+@keyframes dd-metric-enter { from { opacity: 0; transform: translate3d(0,10px,0); } to { opacity: 1; transform: translate3d(0,0,0); } }
+@keyframes dd-metric-float { 0%,100% { opacity: .9; transform: translate3d(0,0,0); } 50% { opacity: 1; transform: translate3d(0,-3px,0); } }
+@keyframes dd-metric-pulse { 0%,70%,100% { opacity: .65; transform: scale(.9); } 82% { opacity: 1; transform: scale(1.08); } }
+@keyframes dd-metric-wave { 0%,65%,100% { opacity: .45; transform: scale(.94); } 78% { opacity: 1; transform: scale(1.04); } }
+@keyframes dd-metric-dot-hop { 0%,55%,100% { opacity: .45; transform: translate3d(0,0,0); } 68% { opacity: 1; transform: translate3d(0,-3px,0); } 80% { transform: translate3d(0,1px,0); } }
+@keyframes dd-metric-ring-draw { 0%,18% { stroke-dashoffset: 82; opacity: .55; } 48%,82% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: -82; opacity: .55; } }
+@keyframes dd-metric-check { 0%,55%,100% { transform: scale(1); } 70% { transform: scale(1.08); } }
+@keyframes dd-metric-people { 0%,100% { transform: translate3d(0,0,0); opacity: .82; } 48% { transform: translate3d(1px,-2px,0); opacity: 1; } }
 .auth-story .brand-mark { animation: dd-arrive 320ms ease-out 1; }
 @keyframes dd-route-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
 /* Points sampled from the inline SVG curve; transform avoids per-frame motion-path layout. */
@@ -38,6 +41,23 @@
 }
 @keyframes dd-strip { to { transform: translateX(-50%); } }
 @keyframes dd-current { 0%,100% { opacity: 1; } 50% { opacity: .55; } }
+.home-public .stats-grid.motion-seen .stat-item { animation: dd-metric-enter 580ms cubic-bezier(.22,.61,.36,1) both; }
+.home-public .stats-grid.motion-seen .stat-item:nth-child(2) { animation-delay: 70ms; }
+.home-public .stats-grid.motion-seen .stat-item:nth-child(3) { animation-delay: 140ms; }
+.home-public .stats-grid.motion-seen .stat-item:nth-child(4) { animation-delay: 210ms; }
+.home-public .stats-grid.motion-seen .stat-item:nth-child(5) { animation-delay: 280ms; }
+.home-public .stats-grid.motion-running .metric-visual { animation: dd-metric-float 5.5s ease-in-out infinite; transition: transform 220ms ease; }
+.home-public .stats-grid.motion-running .stat-item:nth-child(2) .metric-visual { animation-delay: -1.1s; }
+.home-public .stats-grid.motion-running .stat-item:nth-child(3) .metric-visual { animation-delay: -2.2s; }
+.home-public .stats-grid.motion-running .stat-item:nth-child(4) .metric-visual { animation-delay: -3.3s; }
+.home-public .stats-grid.motion-running .stat-item:nth-child(5) .metric-visual { animation: dd-metric-people 4.8s ease-in-out -1.7s infinite; }
+.home-public .stats-grid.motion-running .metric-pulse { transform-box: fill-box; transform-origin: center; animation: dd-metric-pulse 4.6s ease-in-out -2.1s infinite; }
+.home-public .stats-grid.motion-running .metric-dot { transform-box: fill-box; transform-origin: center; animation: dd-metric-dot-hop 3.8s ease-in-out infinite; }
+.home-public .stats-grid.motion-running .metric-dot--two { animation-delay: .32s; }
+.home-public .stats-grid.motion-running .metric-wave { animation: dd-metric-wave 5.2s ease-in-out infinite; }
+.home-public .stats-grid.motion-running .metric-wave--outer { animation-delay: -1.1s; }
+.home-public .stats-grid.motion-running .metric-ring { stroke-dasharray: 82; animation: dd-metric-ring-draw 5s ease-in-out infinite; }
+.home-public .stats-grid.motion-running .metric-check { transform-box: fill-box; transform-origin: center; animation: dd-metric-check 4.4s ease-in-out -1.2s infinite; }
 .motion-seen .solution-path-line,.motion-seen .auth-route-ink { stroke-dasharray: 1; animation: dd-route-draw 1000ms ease-out both paused; }
 .motion-running .solution-path-line,.motion-running .auth-route-ink { animation-play-state: running; }
 .motion-seen .is-current:not(.is-complete):not(.is-rejected) .lifecycle-node { animation: dd-current 1200ms ease-in-out 1 paused; }

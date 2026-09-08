@@ -5,14 +5,16 @@ from .models import Company, CompanyMembership
 
 
 def active_company_memberships_for(user):
-    if not user.is_authenticated:
+    if not user.is_authenticated or not user.is_active or user.user_type != "COMPANY":
         return CompanyMembership.objects.none()
 
     return (
         CompanyMembership.objects.filter(
             user=user,
             is_active=True,
+            role__in=CompanyMembership.Role.values,
             company__is_active=True,
+            company__is_verified=True,
             company__approval_status=Company.ApprovalStatus.APPROVED,
         )
         .select_related("company", "company__category")
@@ -51,11 +53,18 @@ def decide_company_application(company_id, target_status):
         if not owner_membership.is_active:
             owner_membership.is_active = True
             owner_membership.save(update_fields=["is_active"])
+        if not owner_membership.user.is_active:
+            owner_membership.user.is_active = True
+            owner_membership.user.save(update_fields=["is_active"])
         company.is_active = True
+        company.is_verified = True
     else:
         memberships.update(is_active=False)
         company.is_active = False
+        company.is_verified = False
 
     company.approval_status = target_status
-    company.save(update_fields=["approval_status", "is_active", "updated_at"])
+    company.save(
+        update_fields=["approval_status", "is_active", "is_verified", "updated_at"]
+    )
     return company, True

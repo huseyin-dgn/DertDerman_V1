@@ -19,6 +19,11 @@ from .services import active_company_memberships_for
 @require_http_methods(["GET", "HEAD", "POST"])
 def company_register(request):
     if request.user.is_authenticated:
+        if (
+            request.user.user_type == User.UserType.COMPANY
+            and active_company_memberships_for(request.user).exists()
+        ):
+            return redirect("companies:company_panel")
         raise PermissionDenied
 
     form = CompanyRegistrationForm(request.POST or None)

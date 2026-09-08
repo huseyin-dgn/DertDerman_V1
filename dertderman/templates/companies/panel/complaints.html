@@ -1,0 +1,8 @@
+{% extends 'companies/panel/base.html' %}
+{% block title %}Şikayetler{% endblock %}
+{% block panel_content %}
+<header class="cp-page-heading"><div><p class="cp-kicker">DENEYİMLERİ TAKİP EDİN</p><h1>Şikayetler</h1><p>Şirketinize yöneltilen şikayetleri inceleyin, süreci birlikte ilerletin.</p></div><span class="cp-total">{{ page_obj.paginator.count }} kayıt</span></header>
+<form class="cp-card cp-filters" method="get" aria-label="Şikayet filtreleri">{{ filter_form.non_field_errors }}{% for field in filter_form %}<div class="cp-field {% if field.name == 'q' %}cp-search-field{% endif %}"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{{ field.errors }}</div>{% endfor %}<button class="cp-button" type="submit">Filtrele</button><a class="cp-reset" href="{% url 'companies:complaint_list' %}">Temizle</a></form>
+<section class="cp-card cp-feed" aria-label="Şikayet sonuçları">{% for complaint in page_obj %}{% include 'companies/panel/complaint_row.html' %}{% empty %}{% include 'companies/panel/empty.html' with icon='complaint' heading='Burada henüz bir kayıt yok' description='Yeni şikayetler bu alanda görünecek. Filtre kullandıysanız tüm kayıtları görüntüleyebilirsiniz.' cta='Tüm şikayetleri göster' route='companies:complaint_list' %}{% endfor %}</section>
+{% include 'companies/panel/pagination.html' %}
+{% endblock %}

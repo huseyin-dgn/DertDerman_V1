@@ -20,7 +20,12 @@ def public_complaint_list(request):
 @require_safe
 def public_complaint_detail(request, pk):
     complaint = get_object_or_404(public_complaints(), pk=pk)
-    return render(request, "complaints/public_detail.html", {"complaint": complaint})
+    from companies.panel_selectors import company_responses
+    responses = company_responses(complaint.company).filter(complaint=complaint)
+    return render(request, "complaints/public_detail.html", {
+        "complaint": complaint,
+        "company_response_page": Paginator(responses, 10).get_page(request.GET.get("response_page")),
+    })
 
 
 @role_required(User.UserType.USER)

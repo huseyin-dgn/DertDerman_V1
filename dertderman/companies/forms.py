@@ -1,5 +1,8 @@
+import uuid
+
 from django import forms
-from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
+from django.contrib.auth import authenticate
+from django.contrib.auth.forms import UserCreationForm
 from django.core.exceptions import ValidationError
 from django.db import transaction
 
@@ -9,15 +12,16 @@ from .models import Company, CompanyMembership
 
 
 COMPANY_LOGIN_ERROR = "Kurumsal giriş bilgileri doğrulanamadı."
-COMPANY_PENDING_ERROR = "Şirket hesabınız henüz onaylanmadı."
-COMPANY_REJECTED_ERROR = "Şirket hesabınız kurumsal erişime uygun değil."
 
 
 class CompanyRegistrationForm(UserCreationForm):
     company_name = forms.CharField(label="Şirket adı", max_length=255)
     first_name = forms.CharField(label="Yetkili adı", max_length=150)
     last_name = forms.CharField(label="Yetkili soyadı", max_length=150)
-    email = forms.EmailField(label="Kurumsal e-posta")
+    email = forms.EmailField(
+        label="Kurumsal e-posta",
+        widget=forms.EmailInput(attrs={"autocomplete": "email"}),
+    )
     phone = forms.CharField(label="Telefon", max_length=20)
     website = forms.URLField(label="Web sitesi", required=False)
 
@@ -28,7 +32,6 @@ class CompanyRegistrationForm(UserCreationForm):
         "email",
         "phone",
         "website",
-        "username",
         "password1",
         "password2",
     )
@@ -36,7 +39,6 @@ class CompanyRegistrationForm(UserCreationForm):
     class Meta:
         model = User
         fields = (
-            "username",
             "first_name",
             "last_name",
             "email",
@@ -49,8 +51,18 @@ class CompanyRegistrationForm(UserCreationForm):
             "last_name": "Yetkili soyadı",
             "email": "Kurumsal e-posta",
             "phone": "Telefon",
-            "username": "Kullanıcı adı",
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["password1"].widget.attrs["autocomplete"] = "new-password"
+        self.fields["password2"].widget.attrs["autocomplete"] = "new-password"
+
+    def clean_email(self):
+        email = User.objects.normalize_email(self.cleaned_data["email"].strip()).lower()
+        if User.objects.filter(email__iexact=email).exists():
+            raise ValidationError("Bu e-posta adresiyle daha önce bir hesap oluşturulmuş.")
+        return email
 
     @transaction.atomic
     def save(self, commit=True):
@@ -58,8 +70,9 @@ class CompanyRegistrationForm(UserCreationForm):
             raise ValueError("Şirket başvurusu ilişkili kayıtlarıyla birlikte kaydedilmelidir.")
 
         user = super().save(commit=False)
+        user.username = f"company_{uuid.uuid4().hex}"
         user.user_type = User.UserType.COMPANY
-        user.email = User.objects.normalize_email(user.email)
+        user.email = self.cleaned_data["email"]
         user.is_active = True
         user.is_staff = False
         user.is_superuser = False
@@ -84,29 +97,60 @@ class CompanyRegistrationForm(UserCreationForm):
         return user
 
 
-class CompanyAuthenticationForm(AuthenticationForm):
-    error_messages = {
-        "invalid_login": COMPANY_LOGIN_ERROR,
-        "inactive": COMPANY_LOGIN_ERROR,
-    }
+class CompanyAuthenticationForm(forms.Form):
+    email = forms.EmailField(
+        label="E-posta",
+        widget=forms.EmailInput(attrs={"autocomplete": "email", "autofocus": True}),
+    )
+    password = forms.CharField(
+        label="Şifre",
+        strip=False,
+        widget=forms.PasswordInput(attrs={"autocomplete": "current-password"}),
+    )
 
-    def confirm_login_allowed(self, user):
-        super().confirm_login_allowed(user)
-        if user.user_type != User.UserType.COMPANY:
-            raise ValidationError(COMPANY_LOGIN_ERROR, code="invalid_login")
+    def __init__(self, request=None, *args, **kwargs):
+        self.request = request
+        self.user_cache = None
+        super().__init__(*args, **kwargs)
 
-        memberships = CompanyMembership.objects.filter(user=user).select_related("company")
-        if memberships.filter(
-            is_active=True,
-            company__is_active=True,
-            company__approval_status=Company.ApprovalStatus.APPROVED,
-        ).exists():
-            return
-        if memberships.filter(company__approval_status=Company.ApprovalStatus.PENDING).exists():
-            raise ValidationError(COMPANY_PENDING_ERROR, code="company_pending")
-        if memberships.filter(company__approval_status=Company.ApprovalStatus.REJECTED).exists():
-            raise ValidationError(COMPANY_REJECTED_ERROR, code="company_rejected")
-        raise ValidationError(COMPANY_LOGIN_ERROR, code="invalid_login")
+    def clean(self):
+        cleaned_data = super().clean()
+        email = cleaned_data.get("email")
+        password = cleaned_data.get("password")
+        if email and password:
+            email = User.objects.normalize_email(email.strip()).lower()
+            cleaned_data["email"] = email
+            company_user = (
+                User.objects.filter(
+                    email__iexact=email,
+                    user_type=User.UserType.COMPANY,
+                )
+                .order_by("pk")
+                .first()
+            )
+            username = company_user.username if company_user else f"missing_{uuid.uuid4().hex}"
+            authenticated_user = authenticate(
+                self.request,
+                username=username,
+                password=password,
+            )
+            if authenticated_user is None or authenticated_user != company_user:
+                raise ValidationError(COMPANY_LOGIN_ERROR, code="invalid_login")
+
+            can_login = CompanyMembership.objects.filter(
+                user=authenticated_user,
+                is_active=True,
+                company__approval_status=Company.ApprovalStatus.APPROVED,
+                company__is_active=True,
+                company__is_verified=True,
+            ).exists()
+            if not can_login:
+                raise ValidationError(COMPANY_LOGIN_ERROR, code="invalid_login")
+            self.user_cache = authenticated_user
+        return cleaned_data
+
+    def get_user(self):
+        return self.user_cache
 
 
 class CompanyForm(forms.ModelForm):

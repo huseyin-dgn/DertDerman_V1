@@ -1,0 +1,239 @@
+{% load static %}
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f5f9ff" />
+    <noscript>
+      <meta http-equiv="refresh" content="3.5;url={% url 'core:home' %}" />
+    </noscript>
+    <title>DertDerman'a Hoş Geldiniz</title>
+    <link rel="stylesheet" href="{% static 'css/intro.css' %}?v=12" />
+  </head>
+  <body
+    class="intro-page{% if intro_debug_motion %} intro-debug-motion{% endif %}"
+    data-home-url="{% url 'core:home' %}"
+    data-preview="{% if intro_preview %}true{% else %}false{% endif %}"
+    data-full-motion="{{ intro_full_motion|yesno:'true,false' }}"
+  >
+    <main class="intro-stage" aria-label="DertDerman açılışı">
+      <svg class="intro-backdrop" viewBox="0 0 1200 800" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M-80 590C180 410 310 690 575 510S965 250 1280 390" />
+        <path d="M-40 645C235 465 365 740 640 555S1015 330 1240 445" />
+      </svg>
+
+      <div class="intro-falling" aria-hidden="true">
+        <svg class="intro-symbol-defs" width="0" height="0" focusable="false">
+          <defs>
+            <symbol id="intro-icon-phone" viewBox="0 0 24 24"><path d="m8 3 2 5-3 2a14 14 0 0 0 7 7l2-3 5 2v3a2 2 0 0 1-2 2A18 18 0 0 1 3 5a2 2 0 0 1 2-2Z"/></symbol>
+            <symbol id="intro-icon-alert" viewBox="0 0 24 24"><path d="m12 3 10 18H2Z"/><path d="M12 9v5M12 17h.01"/></symbol>
+            <symbol id="intro-icon-message" viewBox="0 0 24 24"><path d="M5 4h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-8l-6 4v-4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/><path d="M7 9h10M7 13h6"/></symbol>
+            <symbol id="intro-icon-building" viewBox="0 0 24 24"><path d="M5 21V4l14-2v19M3 21h18M10 21v-5h4v5M9 7h1m4 0h1M9 11h1m4 0h1"/></symbol>
+            <symbol id="intro-icon-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol>
+            <symbol id="intro-icon-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 8.5a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4M12 16h.01"/></symbol>
+            <symbol id="intro-icon-headset" viewBox="0 0 24 24"><path d="M4 13V11a8 8 0 0 1 16 0v6a4 4 0 0 1-4 4h-4"/><rect x="3" y="11" width="4" height="7" rx="2"/><rect x="17" y="11" width="4" height="7" rx="2"/></symbol>
+            <symbol id="intro-icon-person" viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2M8 21h8"/></symbol>
+            <symbol id="intro-icon-document" viewBox="0 0 24 24"><path d="M14 3H5v18h14V8Zm0 0v5h5M8 12h8M8 16h6"/></symbol>
+            <symbol id="intro-icon-bell" viewBox="0 0 24 24"><path d="M5 10a7 7 0 0 1 14 0c0 6 2 7 2 7H3s2-1 2-7ZM10 21h4M12 3V1"/></symbol>
+            <symbol id="intro-icon-star" viewBox="0 0 24 24"><path d="m12 3 2.8 5.7 6.3.9-4.6 4.5 1.1 6.3-5.6-3-5.6 3 1.1-6.3L3 9.6l6.2-.9Z"/></symbol>
+            <symbol id="intro-icon-bubble" viewBox="0 0 24 24"><path d="M21 11a9 8 0 0 1-9 8H7l-5 3 2-6a8 8 0 0 1-1-5 9 8 0 0 1 18 0Z"/><path d="M8 11h.01M12 11h.01M16 11h.01"/></symbol>
+            <symbol id="intro-icon-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></symbol>
+            <symbol id="intro-icon-megaphone" viewBox="0 0 24 24"><path d="m4 9 16-5v16L4 15ZM4 9H2v6h2M7 16l2 5h4l-2-4M20 9h2v6h-2"/></symbol>
+            <symbol id="intro-icon-shield" viewBox="0 0 24 24"><path d="m12 2 8 3v6c0 5-4 9-8 11-4-2-8-6-8-11V5Z"/><path d="m8 11 3 3 5-6"/></symbol>
+            <symbol id="intro-icon-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="7.5"/><path d="m16 16 5 5"/></symbol>
+            <symbol id="intro-icon-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/></symbol>
+            <symbol id="intro-icon-thumbs-up" viewBox="0 0 24 24"><path d="M7 10H3v11h4Zm0 0 5-8a3 3 0 0 1 2 4l-1 4h6a2 2 0 0 1 2 2l-2 7a3 3 0 0 1-3 2H7Z"/></symbol>
+            <symbol id="intro-icon-location" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></symbol>
+            <symbol id="intro-icon-settings" viewBox="0 0 24 24"><path d="m10 2-.5 3-2 .9L5 4.5 2.5 9l2.3 1.6v2.8L2.5 15 5 19.5l2.5-1.4 2 .9.5 3h4l.5-3 2-.9 2.5 1.4 2.5-4.5-2.3-1.6v-2.8L21.5 9 19 4.5l-2.5 1.4-2-.9L14 2Z"/><circle cx="12" cy="12" r="3"/></symbol>
+          </defs>
+        </svg>
+        <div class="intro-particles">
+          <span class="intro-particle">
+            <svg class="intro-symbol intro-symbol--phone" viewBox="0 0 24 24" focusable="false"><use href="#intro-icon-phone"/></svg>
+          </span>
+          <span class="intro-particle">
+            <svg class="intro-symbol intro-symbol--alert" viewBox="0 0 24 24" focusable="false"><use href="#intro-icon-alert"/></svg>
+          </span>
+          <span class="intro-particle">
+            <svg class="intro-symbol intro-symbol--message" viewBox="0 0 24 24" focusable="false"><use href="#intro-icon-message"/></svg>
+          </span>
+          <span class="intro-particle">
+            <svg class="intro-symbol intro-symbol--building" viewBox="0 0 24 24" focusable="false"><use href="#intro-icon-building"/></svg>
+          </span>
+          <span class="intro-particle">
+            <svg class="intro-symbol intro-symbol--check" viewBox="0 0 24 24" focusable="false"><use href="#intro-icon-check"/></svg>
+          </span>
+          <span class="intro-particle">
+            <svg class="intro-symbol intro-symbol--help" viewBox="0 0 24 24" focusable="false"><use href="#intro-icon-help"/></svg>
+          </span>
+          <span class="intro-particle">
+            <svg class="intro-symbol intro-symbol--headset" viewBox="0 0 24 24" focusable="false"><use href="#intro-icon-headset"/></svg>
+          </span>
+          <span class="intro-particle">
+            <svg class="intro-symbol intro-symbol--person" viewBox="0 0 24 24" focusable="false"><use href="#intro-icon-person"/></svg>
+          </span>
+          <span class="intro-particle">
+            <svg class="intro-symbol intro-symbol--document" viewBox="0 0 24 24" focusable="false"><use href="#intro-icon-document"/></svg>
+          </span>
+          <span class="intro-particle">
+            <svg class="intro-symbol intro-symbol--bell" viewBox="0 0 24 24" focusable="false"><use href="#intro-icon-bell"/></svg>
+          </span>
+          <span class="intro-particle">
+            <svg class="intro-symbol intro-symbol--star" viewBox="0 0 24 24" focusable="false"><use href="#intro-icon-star"/></svg>
+          </span>
+          <span class="intro-particle">
+            <svg class="intro-symbol intro-symbol--bubble" viewBox="0 0 24 24" focusable="false"><use href="#intro-icon-bubble"/></svg>
+          </span>
+          <span class="intro-particle">
+            <svg class="intro-symbol intro-symbol--mail" viewBox="0 0 24 24" focusable="false"><use href="#intro-icon-mail"/></svg>
+          </span>
+          <span class="intro-particle">
+            <svg class="intro-symbol intro-symbol--megaphone" viewBox="0 0 24 24" focusable="false"><use href="#intro-icon-megaphone"/></svg>
+          </span>
+          <span class="intro-particle">
+            <svg class="intro-symbol intro-symbol--shield" viewBox="0 0 24 24" focusable="false"><use href="#intro-icon-shield"/></svg>
+          </span>
+          <span class="intro-particle">
+            <svg class="intro-symbol intro-symbol--search" viewBox="0 0 24 24" focusable="false"><use href="#intro-icon-search"/></svg>
+          </span>
+          <span class="intro-particle">
+            <svg class="intro-symbol intro-symbol--clock" viewBox="0 0 24 24" focusable="false"><use href="#intro-icon-clock"/></svg>
+          </span>
+          <span class="intro-particle">
+            <svg class="intro-symbol intro-symbol--thumbs-up" viewBox="0 0 24 24" focusable="false"><use href="#intro-icon-thumbs-up"/></svg>
+          </span>
+          <span class="intro-particle">
+            <svg class="intro-symbol intro-symbol--location" viewBox="0 0 24 24" focusable="false"><use href="#intro-icon-location"/></svg>
+          </span>
+          <span class="intro-particle">
+            <svg class="intro-symbol intro-symbol--settings" viewBox="0 0 24 24" focusable="false"><use href="#intro-icon-settings"/></svg>
+          </span>
+          <span class="intro-particle">
+            <svg class="intro-symbol intro-symbol--phone" viewBox="0 0 24 24" focusable="false"><use href="#intro-icon-phone"/></svg>
+          </span>
+          <span class="intro-particle">
+            <svg class="intro-symbol intro-symbol--message" viewBox="0 0 24 24" focusable="false"><use href="#intro-icon-message"/></svg>
+          </span>
+          <span class="intro-particle">
+            <svg class="intro-symbol intro-symbol--alert" viewBox="0 0 24 24" focusable="false"><use href="#intro-icon-alert"/></svg>
+          </span>
+          <span class="intro-particle">
+            <svg class="intro-symbol intro-symbol--building" viewBox="0 0 24 24" focusable="false"><use href="#intro-icon-building"/></svg>
+          </span>
+          <span class="intro-particle">
+            <svg class="intro-symbol intro-symbol--check" viewBox="0 0 24 24" focusable="false"><use href="#intro-icon-check"/></svg>
+          </span>
+          <span class="intro-particle">
+            <svg class="intro-symbol intro-symbol--headset" viewBox="0 0 24 24" focusable="false"><use href="#intro-icon-headset"/></svg>
+          </span>
+          <span class="intro-particle">
+            <svg class="intro-symbol intro-symbol--mail" viewBox="0 0 24 24" focusable="false"><use href="#intro-icon-mail"/></svg>
+          </span>
+          <span class="intro-particle">
+            <svg class="intro-symbol intro-symbol--bubble" viewBox="0 0 24 24" focusable="false"><use href="#intro-icon-bubble"/></svg>
+          </span>
+          <span class="intro-particle">
+            <svg class="intro-symbol intro-symbol--shield" viewBox="0 0 24 24" focusable="false"><use href="#intro-icon-shield"/></svg>
+          </span>
+          <span class="intro-particle">
+            <svg class="intro-symbol intro-symbol--help" viewBox="0 0 24 24" focusable="false"><use href="#intro-icon-help"/></svg>
+          </span>
+        </div>
+      </div>
+
+      <div class="intro-composition">
+        <p class="intro-welcome">DertDerman'a Hoş Geldiniz</p>
+
+        <div class="intro-orbit">
+          <svg class="intro-ring-svg" viewBox="0 0 100 100" aria-hidden="true">
+            <defs>
+              <linearGradient id="intro-ring-gradient" x1="10" y1="8" x2="90" y2="92" gradientUnits="userSpaceOnUse">
+                <stop offset="0" stop-color="#102a43" />
+                <stop offset=".25" stop-color="#1d5fa7" />
+                <stop offset=".5" stop-color="#38b9cf" />
+                <stop offset=".72" stop-color="#b8e4f2" />
+                <stop offset=".88" stop-color="#7e75c7" />
+                <stop offset="1" stop-color="#287fc1" />
+              </linearGradient>
+              <filter id="intro-soft-glow" x="-30%" y="-30%" width="160%" height="160%">
+                <feGaussianBlur stdDeviation="1.15" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+            <circle class="intro-ring__track" cx="50" cy="50" r="45" />
+            <g class="intro-ring__rotor">
+              <circle class="intro-ring__color" cx="50" cy="50" r="45" />
+              <circle class="intro-ring__arc" cx="50" cy="50" r="48" />
+            </g>
+          </svg>
+
+          <svg class="intro-decor intro-decor--orbit" viewBox="0 0 100 100" aria-hidden="true">
+            <circle cx="50" cy="3.5" r="1.15" />
+            <circle cx="50" cy="96.5" r="0.7" />
+          </svg>
+
+          <svg class="intro-decor intro-decor--sparkle" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 2.5c.7 5.1 2.8 7.2 7.9 7.9-5.1.7-7.2 2.8-7.9 7.9-.7-5.1-2.8-7.2-7.9-7.9C9.2 9.7 11.3 7.6 12 2.5Z" />
+            <circle cx="19.3" cy="4.7" r="1.2" />
+          </svg>
+
+          <svg class="intro-decor intro-decor--nodes" viewBox="0 0 90 48" aria-hidden="true">
+            <path d="M8 35 34 14l24 18 24-22" />
+            <circle cx="8" cy="35" r="3" />
+            <circle cx="34" cy="14" r="3" />
+            <circle cx="58" cy="32" r="3" />
+            <circle cx="82" cy="10" r="3" />
+          </svg>
+
+          <svg class="intro-decor intro-decor--bubble" viewBox="0 0 56 52" aria-hidden="true">
+            <path d="M11 8h31a7 7 0 0 1 7 7v17a7 7 0 0 1-7 7H26L15 47l2-8h-6a7 7 0 0 1-7-7V15a7 7 0 0 1 7-7Z" />
+            <circle cx="20" cy="24" r="2" />
+            <circle cx="28" cy="24" r="2" />
+            <circle cx="36" cy="24" r="2" />
+          </svg>
+
+          <h1 class="intro-wordmark" aria-label="Dert Derman">
+            <span class="intro-wordmark__dert">DERT</span>
+            <span class="intro-wordmark__derman">DERMAN</span>
+          </h1>
+        </div>
+      </div>
+
+      <noscript>
+        <style>
+          .intro-welcome, .intro-ring-svg, .intro-wordmark { opacity: 1; }
+        </style>
+        <a href="{% url 'core:home' %}">Ana sayfaya geç</a>
+      </noscript>
+    </main>
+    <script>
+      (() => {
+        "use strict";
+
+        const INTRO_DURATION = 3500;
+        const REDUCED_MOTION_DURATION = 250;
+        const fullMotion = document.body.dataset.fullMotion === "true";
+        const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+        const duration = fullMotion || !reducedMotion.matches
+          ? INTRO_DURATION
+          : REDUCED_MOTION_DURATION;
+
+        // Start the visual timeline and its only redirect timer together,
+        // after the stylesheet and intro markup are ready for painting.
+        window.requestAnimationFrame(() => {
+          document.body.dataset.introStarted = "true";
+          window.setTimeout(() => {
+            try {
+              sessionStorage.setItem("dd_intro_returning", "1");
+            } catch (_) { /* Same-origin referrer also prevents a return loop. */ }
+            window.location.replace("/");
+          }, duration);
+        });
+      })();
+    </script>
+  </body>
+</html>

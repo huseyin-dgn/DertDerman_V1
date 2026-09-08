@@ -480,7 +480,7 @@ class AuthenticationSecurityTests(TestCase):
 
     def test_role_protected_company_and_admin_pages_have_no_store_cache_headers(self):
         company_user = self.create_user("cache-company-user", User.UserType.COMPANY)
-        company = Company.objects.create(name="Cache Company", is_active=True)
+        company = Company.objects.create(name="Cache Company", is_active=True, is_verified=True)
         CompanyMembership.objects.create(
             user=company_user,
             company=company,

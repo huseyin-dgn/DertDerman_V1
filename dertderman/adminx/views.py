@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST, require_safe
@@ -48,10 +49,9 @@ def complaint_detail(request, pk):
     return render(request, "adminx/complaint_detail.html", {"complaint": complaint})
 
 
+@transaction.atomic
 def _moderate(request, pk, target_status):
     get_object_or_404(Complaint.objects.only("pk"), pk=pk)
-    # A single conditional UPDATE prevents a stale review or double submit
-    # from overwriting another moderation decision, including on SQLite.
     changed = Complaint.objects.filter(pk=pk, status=Complaint.Status.PENDING).update(
         status=target_status, updated_at=timezone.now()
     )
@@ -61,6 +61,11 @@ def _moderate(request, pk, target_status):
             "complaint": complaint,
             "moderation_error": "Bu şikayet artık incelemede değil. Karar uygulanmadı.",
         }, status=409)
+    from companies.models import CompanyNotification
+    from companies.panel_events import record_complaint_notification
+    complaint = Complaint.objects.only("company_id").get(pk=pk)
+    record_complaint_notification(complaint,
+        CompanyNotification.Kind.PUBLISHED if target_status == Complaint.Status.PUBLISHED else CompanyNotification.Kind.ADMIN)
     messages.success(request, (
         "Şikayet yayınlandı." if target_status == Complaint.Status.PUBLISHED
         else "Şikayet reddedildi."

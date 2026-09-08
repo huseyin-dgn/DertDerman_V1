@@ -1,0 +1,5 @@
+<article class="cp-complaint-row">
+  <div class="cp-row-icon">{% include 'companies/panel/icon.html' with name='complaint' %}</div>
+  <div class="cp-row-content"><div class="cp-row-meta"><span>#{{ complaint.pk }}</span><time datetime="{{ complaint.created_at|date:'c' }}">{{ complaint.created_at|date:'d M Y' }}</time>{% include 'complaints/status_badge.html' %}</div><h3><a href="{% url 'companies:complaint_detail' complaint.pk %}">{{ complaint.title }}</a></h3><p>{{ complaint.description|truncatechars:125 }}</p><div class="cp-row-bottom"><span>{{ complaint.user.username|truncatechars:24 }} · Kullanıcı</span><span class="cp-response-state {% if complaint.has_response %}is-answered{% endif %}">{% if complaint.has_response %}Cevap verildi{% else %}Henüz cevap yok{% endif %}</span></div><small class="cp-last-activity">Son hareket: {{ complaint.last_activity|date:'d.m.Y H:i' }}</small></div>
+  <a class="cp-row-cta" href="{% url 'companies:complaint_detail' complaint.pk %}">İncele <span aria-hidden="true">↗</span><span class="visually-hidden">: {{ complaint.title }}</span></a>
+</article>

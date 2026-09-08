@@ -1,0 +1,7 @@
+{% extends 'companies/panel/base.html' %}
+{% block title %}Cevaplar{% endblock %}
+{% block panel_content %}
+<header class="cp-page-heading"><div><p class="cp-kicker">ŞİRKETİNİZİN SESİ</p><h1>Cevaplar</h1><p>Kullanıcı deneyimlerine verdiğiniz cevaplar ve devam eden diyaloglar.</p></div><span class="cp-total">{{ page_obj.paginator.count }} cevap</span></header>
+<div class="cp-response-grid">{% for response in page_obj %}<article class="cp-card cp-response-card"><div class="cp-row-meta"><span class="cp-tag">Şirket cevabı</span><time>{{ response.created_at|date:'d.m.Y H:i' }}</time></div><h2>{{ response.complaint.title }}</h2><p class="cp-prose">{{ response.body|truncatechars:260 }}</p><div class="cp-card-bottom">{% include 'complaints/status_badge.html' with complaint=response.complaint only %}<a href="{% url 'companies:complaint_detail' response.complaint_id %}">Şikayeti aç →</a></div></article>{% empty %}<section class="cp-card cp-span-all">{% include 'companies/panel/empty.html' with icon='reply' heading='İlk cevabınız burada yer alacak' description='Bir şikayeti inceleyip çözüm önerinizi paylaştığınızda, cevabınızı buradan takip edebilirsiniz.' route='companies:complaint_list' cta='Şikayetleri incele' %}</section>{% endfor %}</div>
+{% include 'companies/panel/pagination.html' %}
+{% endblock %}

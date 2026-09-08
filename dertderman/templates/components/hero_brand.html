@@ -1,4 +1,4 @@
-<div class="hero-brand" data-journey-slider data-active-step="1" data-current-slide="1" aria-label="DertDerman’da bir şikayetin yolculuğu">
+<div class="hero-brand" data-journey-slider data-motion-region data-active-step="1" data-current-slide="1" aria-label="DertDerman’da bir şikayetin yolculuğu">
   <header class="journey-head">
     <span>CANLI SÜREÇ</span>
     <p>Dertten dermana, adım adım.</p>
@@ -18,7 +18,7 @@
           </span>
         </div>
         <div class="journey-card-copy">
-          <h2 class="journey-reveal journey-reveal--title">Şikayetinizi yazın</h2>
+          <h2 class="journey-reveal journey-reveal--title">Şikayetinizi yazdınız</h2>
           <p class="journey-reveal journey-reveal--description">Deneyiminizi kendi sözlerinizle paylaşın.</p>
         </div>
         <div class="journey-card-action journey-reveal journey-reveal--action">
@@ -26,7 +26,7 @@
         </div>
       </article>
 
-      <article class="journey-card journey-card--review is-after" data-journey-card aria-hidden="true">
+      <article class="journey-card journey-card--review is-next" data-journey-card aria-hidden="true">
         <div class="journey-card-top">
           <span class="journey-step journey-reveal journey-reveal--step">02 / 05</span>
           <span class="journey-icon journey-reveal journey-reveal--icon" aria-hidden="true">
@@ -48,7 +48,7 @@
         </div>
       </article>
 
-      <article class="journey-card journey-card--publish is-after" data-journey-card aria-hidden="true">
+      <article class="journey-card journey-card--publish is-hidden" data-journey-card aria-hidden="true">
         <div class="journey-card-top">
           <span class="journey-step journey-reveal journey-reveal--step">03 / 05</span>
           <span class="journey-icon journey-reveal journey-reveal--icon" aria-hidden="true">
@@ -66,11 +66,11 @@
           <p class="journey-reveal journey-reveal--description">Onaylanan deneyiminiz herkes tarafından görülebilir.</p>
         </div>
         <div class="journey-card-action journey-reveal journey-reveal--action">
-          <a class="journey-cta journey-cta--secondary" href="{% url 'complaints:public_list' %}">Yayınlananları İncele <span aria-hidden="true">→</span></a>
+          <a class="journey-cta journey-cta--secondary" href="{% url 'complaints:public_list' %}" tabindex="-1">Yayınlananları İncele <span aria-hidden="true">→</span></a>
         </div>
       </article>
 
-      <article class="journey-card journey-card--company is-after" data-journey-card aria-hidden="true">
+      <article class="journey-card journey-card--company is-hidden" data-journey-card aria-hidden="true">
         <div class="journey-card-top">
           <span class="journey-step journey-reveal journey-reveal--step">04 / 05</span>
           <span class="journey-icon journey-reveal journey-reveal--icon" aria-hidden="true">
@@ -85,11 +85,11 @@
           <p class="journey-reveal journey-reveal--description">Doğru muhatap deneyiminizden haberdar olur.</p>
         </div>
         <div class="journey-card-action journey-reveal journey-reveal--action">
-          <a class="journey-cta journey-cta--secondary" href="{% url 'companies_public:company_list' %}">Şirketleri Gör <span aria-hidden="true">→</span></a>
+          <a class="journey-cta journey-cta--secondary" href="{% url 'companies_public:company_list' %}" tabindex="-1">Şirketleri Gör <span aria-hidden="true">→</span></a>
         </div>
       </article>
 
-      <article class="journey-card journey-card--resolve is-after" data-journey-card aria-hidden="true">
+      <article class="journey-card journey-card--resolve is-prev" data-journey-card aria-hidden="true">
         <div class="journey-card-top">
           <span class="journey-step journey-reveal journey-reveal--step">05 / 05</span>
           <span class="journey-icon journey-reveal journey-reveal--icon" aria-hidden="true">
@@ -105,11 +105,11 @@
         </div>
         <div class="journey-card-action journey-reveal journey-reveal--action">
           {% if request.user.is_authenticated and request.user.user_type == 'USER' %}
-            <a class="journey-cta journey-cta--secondary" href="{% url 'complaints:list' %}">Süreci Takip Et <span aria-hidden="true">→</span></a>
+            <a class="journey-cta journey-cta--secondary" href="{% url 'complaints:list' %}" tabindex="-1">Süreci Takip Et <span aria-hidden="true">→</span></a>
           {% elif request.user.is_authenticated %}
-            <a class="journey-cta journey-cta--secondary" href="{% url 'accounts:entry' %}">Süreci Takip Et <span aria-hidden="true">→</span></a>
+            <a class="journey-cta journey-cta--secondary" href="{% url 'accounts:entry' %}" tabindex="-1">Süreci Takip Et <span aria-hidden="true">→</span></a>
           {% else %}
-            <a class="journey-cta journey-cta--secondary" href="{% url 'accounts:login' %}">Süreci Takip Et <span aria-hidden="true">→</span></a>
+            <a class="journey-cta journey-cta--secondary" href="{% url 'accounts:login' %}" tabindex="-1">Süreci Takip Et <span aria-hidden="true">→</span></a>
           {% endif %}
         </div>
       </article>
@@ -118,9 +118,10 @@
 
   <div class="journey-progress" aria-label="Beş aşamalı süreç ilerlemesi">
     <span class="journey-progress-line" aria-hidden="true"><i></i></span>
+    <span class="journey-cycle" aria-hidden="true"><i data-journey-cycle></i></span>
     <ol>
       {% for label in '12345' %}
-        <li data-journey-dot{% if forloop.first %} class="is-complete is-current"{% endif %}><span>{{ forloop.counter }}</span></li>
+        <li data-journey-dot{% if forloop.first %} class="is-complete is-current" aria-current="step"{% endif %}><span>{{ forloop.counter|stringformat:'02d' }}</span></li>
       {% endfor %}
     </ol>
   </div>

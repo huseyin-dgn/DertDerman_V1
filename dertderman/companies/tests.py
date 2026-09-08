@@ -27,6 +27,7 @@ class CompanyDomainTests(TestCase):
             email=f"{name.lower()}@example.com",
             phone="5551234567",
             category=category,
+            is_verified=True,
         )
 
     def test_company_category_can_be_created(self):

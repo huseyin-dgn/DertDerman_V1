@@ -20,7 +20,7 @@ class RouteAccessTests(TestCase):
                 password=cls.password, user_type=role,
             ) for role in [*User.UserType.values, "UNKNOWN"]
         }
-        cls.company = Company.objects.create(name="Owned route company")
+        cls.company = Company.objects.create(name="Owned route company", is_verified=True)
         cls.foreign_company = Company.objects.create(name="Secret foreign company")
         cls.membership = CompanyMembership.objects.create(
             user=cls.users["COMPANY"], company=cls.company,

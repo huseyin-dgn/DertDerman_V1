@@ -37,6 +37,19 @@
                     <a class="primary-action" href="{% url 'companies_public:company_detail' complaint.company.slug %}">Şirkete Git</a>
                     <a class="secondary-action" href="{% url 'complaints:public_list' %}">Şikayetlere Dön</a>
                 </div>
+                {% if company_response_page %}
+                <section aria-labelledby="company-responses-title">
+                    <h2 id="company-responses-title">Şirket cevapları</h2>
+                    {% for response in company_response_page %}
+                    <article class="account-card">
+                        <h3>{{ complaint.company.name }}</h3>
+                        <p><time datetime="{{ response.created_at|date:'c' }}">{{ response.created_at|date:'d.m.Y H:i' }}</time></p>
+                        <p>{{ response.body|linebreaksbr }}</p>
+                    </article>
+                    {% endfor %}
+                    {% if company_response_page.has_other_pages %}<nav aria-label="Şirket cevabı sayfaları">{% if company_response_page.has_previous %}<a href="?response_page={{ company_response_page.previous_page_number }}">Önceki</a>{% endif %} <span>{{ company_response_page.number }} / {{ company_response_page.paginator.num_pages }}</span> {% if company_response_page.has_next %}<a href="?response_page={{ company_response_page.next_page_number }}">Sonraki</a>{% endif %}</nav>{% endif %}
+                </section>
+                {% endif %}
             </div>
         </article>
     </main>

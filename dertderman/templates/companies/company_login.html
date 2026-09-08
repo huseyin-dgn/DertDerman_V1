@@ -11,7 +11,7 @@
         <form method="post" class="auth-form">
             {% csrf_token %}
             {% if form.non_field_errors %}<div class="form-alert" role="alert">{{ form.non_field_errors }}</div>{% endif %}
-            {% include 'components/field.html' with field=form.username label='Kullanıcı adı' %}
+            {% include 'components/field.html' with field=form.email label='E-posta' %}
             {% include 'components/field.html' with field=form.password label='Şifre' %}
             <button type="submit" class="auth-submit">Şirket Girişi {% include 'components/icon.html' %}</button>
         </form>
