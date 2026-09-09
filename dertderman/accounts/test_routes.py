@@ -148,11 +148,17 @@ class RouteAccessTests(TestCase):
                     session["pre_login"] = "session rotation check"
                     session.save()
                     old_key = session.session_key
-                    response = client.post("/hesap/giris/?next=/yonetim/", {
-                        "username": user.username, "password": self.password, "next": next_url,
+                    route = {"COMPANY": "/kurumsal/giris/", "ADMIN": "/yonetim/giris/"}.get(role, "/hesap/giris/")
+                    identifier = {"email": user.email} if role == "COMPANY" else {"username": user.username}
+                    response = client.post(route + "?next=/yonetim/", {
+                        **identifier, "password": self.password, "next": next_url,
                     })
-                    self.assertRedirects(response, self.destinations[role])
-                    self.assertNotEqual(client.session.session_key, old_key)
+                    if role == "UNKNOWN":
+                        self.assertEqual(response.status_code, 200)
+                        self.assertNotIn("_auth_user_id", client.session)
+                    else:
+                        self.assertRedirects(response, self.destinations[role])
+                        self.assertNotEqual(client.session.session_key, old_key)
 
     def test_logout_ignores_next_and_invalidates_replayed_session_for_all_private_urls(self):
         for role in ["USER", "COMPANY", "ADMIN"]:
@@ -218,8 +224,10 @@ class RouteAccessTests(TestCase):
         self.assertRedirects(client.get("/sikayetlerim/"), "/hesap/giris/?next=/sikayetlerim/")
         for role in ["COMPANY", "ADMIN"]:
             client = Client()
-            self.assertRedirects(client.post("/hesap/giris/", {
-                "username": self.users[role].username, "password": self.password,
+            route = "/kurumsal/giris/" if role == "COMPANY" else "/yonetim/giris/"
+            identifier = {"email": self.users[role].email} if role == "COMPANY" else {"username": self.users[role].username}
+            self.assertRedirects(client.post(route, {
+                **identifier, "password": self.password,
             }), self.destinations[role])
             if role == "COMPANY":
                 self.assertEqual(client.get(f"/sirket-panel/{self.company.slug}/").status_code, 200)

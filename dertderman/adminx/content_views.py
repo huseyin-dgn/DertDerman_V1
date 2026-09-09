@@ -1,22 +1,27 @@
 from django.contrib import messages
 from django.core.exceptions import ValidationError
-from django.core.paginator import Paginator
+from django.db.models import Count, OuterRef, Subquery
 from django.shortcuts import get_object_or_404, redirect, render
-from django.views.decorators.http import require_http_methods, require_safe
+from django.views.decorators.http import require_http_methods, require_POST, require_safe
 
 from accounts.models import User
-from companies.models import Company
+from companies.models import Company, CompanyMembership
+from core.pagination import paginate
+from .filters import ApplicationFilters, CompanyFilters, UserFilters, list_context
 from companies.services import decide_company_application
 from .decorators import admin_required
 from core.presentation import HERO_BRAND_MESSAGES
 from .forms import CompanyApprovalActionForm, CompanyContentForm
+from .services import archive_company
 
 
 @admin_required
 @require_safe
 def company_list(request):
-    page_obj = Paginator(Company.objects.only("name", "slug", "is_active").order_by("name", "pk"), 20).get_page(request.GET.get("page"))
-    return render(request, "adminx/company_list.html", {"page_obj": page_obj})
+    companies = Company.objects.select_related("category").annotate(complaint_count=Count("complaints"))
+    context = list_context(request, companies, CompanyFilters, search_fields=("name", "email"),
+        fields={"status": "approval_status", "category": "category", "verified": "is_verified", "active": "is_active"})
+    return render(request, "adminx/company_list.html", context)
 
 
 @admin_required
@@ -35,22 +40,19 @@ def company_edit(request, pk):
 @admin_required
 @require_safe
 def company_application_list(request):
-    applications = (
-        Company.objects.prefetch_related("memberships__user")
-        .order_by("approval_status", "-created_at", "-pk")
-    )
-    return render(
-        request,
-        "adminx/company_application_list.html",
-        {"applications": applications},
-    )
+    applicant = CompanyMembership.objects.filter(company_id=OuterRef("pk")).order_by("created_at", "pk")
+    applications = Company.objects.select_related("category").annotate(
+        applicant_name=Subquery(applicant.values("user__username")[:1]))
+    context = list_context(request, applications, ApplicationFilters, search_fields=("name", "email", "applicant_name"), fields={"status": "approval_status"})
+    context["applications"] = context["page_obj"]
+    return render(request, "adminx/company_application_list.html", context)
 
 
 @admin_required
 @require_http_methods(["GET", "HEAD", "POST"])
 def company_application_detail(request, pk):
     company = get_object_or_404(
-        Company.objects.prefetch_related("memberships__user"),
+        Company.objects.select_related("category"),
         pk=pk,
     )
     form = CompanyApprovalActionForm(request.POST if request.method == "POST" else None)
@@ -80,7 +82,8 @@ def company_application_detail(request, pk):
     return render(
         request,
         "adminx/company_application_detail.html",
-        {"company": company, "form": form, "decision_error": decision_error},
+        {"company": company, "form": form, "decision_error": decision_error,
+         "member_page": paginate(request, company.memberships.select_related("user").order_by("-created_at", "-pk"), "admin", page_param="member_page")},
         status=409 if decision_error else 200,
     )
 
@@ -88,11 +91,35 @@ def company_application_detail(request, pk):
 @admin_required
 @require_safe
 def user_list(request):
-    users = User.objects.only("username", "email", "user_type", "is_active").order_by("username", "pk")
-    return render(request, "adminx/user_list.html", {"page_obj": Paginator(users, 20).get_page(request.GET.get("page"))})
+    users = _users()
+    context = list_context(request, users, UserFilters,
+        search_fields=("username", "first_name", "last_name", "email"),
+        fields={"role": "user_type", "active": "is_active"}, ordering=("-date_joined", "-pk"))
+    return render(request, "adminx/user_list.html", context)
+
+
+def _users():
+    return User.objects.only("username", "first_name", "last_name", "email", "date_joined", "user_type", "is_active")
+
+
+@admin_required
+@require_safe
+def user_detail(request, pk):
+    return render(request, "adminx/user_detail.html", {"account": get_object_or_404(_users(), pk=pk)})
 
 
 @admin_required
 @require_safe
 def homepage_content(request):
     return render(request, "adminx/homepage_content.html", {"hero_brand_messages": HERO_BRAND_MESSAGES})
+
+
+@admin_required
+@require_POST
+def company_archive(request, pk):
+    changed = archive_company(pk=pk, actor=request.user)
+    if changed:
+        messages.success(request, "Şirket arşivlendi. Public görünürlüğü ve bu şirkete erişim kapatıldı.")
+    else:
+        messages.info(request, "Bu şirket daha önce arşivlenmiş.")
+    return redirect("adminx:company_edit", pk=pk)

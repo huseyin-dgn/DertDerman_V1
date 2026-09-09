@@ -1,26 +1,41 @@
-{% extends "base.html" %}
-{% block title %}Şirket Kaydı | DertDerman{% endblock %}
-{% block body_class %}auth-page register-page company-register-page{% endblock %}
-{% block navbar %}{% endblock %}{% block footer %}{% endblock %}
+{% extends 'layouts/auth_base.html' %}
+{% block title %}Şirket Başvurusu | DertDerman{% endblock %}
+{% block auth_variant %}ax-company-register{% endblock %}
 {% block content %}
-<main class="auth-shell" id="main-content">
-    {% include 'components/auth_story.html' %}
-    <div class="auth-form-area"><section class="auth-card" aria-labelledby="auth-title">
-        <a class="auth-back" href="{% url 'core:home' %}">{% include 'components/icon.html' with name='back' %} Ana Sayfaya Dön</a>
-        <header class="auth-heading"><p class="section-kicker">Kurumsal Başvuru</p><h1 id="auth-title">Şirket hesabınızı oluşturun.</h1><p>Başvurunuz yönetim ekibinin onayından sonra kurumsal erişime açılır.</p></header>
-        <form method="post" class="auth-form">
-            {% csrf_token %}
-            {% if form.non_field_errors %}<div class="form-alert" role="alert">{{ form.non_field_errors }}</div>{% endif %}
-            {% include 'components/field.html' with field=form.company_name %}
-            <div class="field-pair">{% include 'components/field.html' with field=form.first_name %}{% include 'components/field.html' with field=form.last_name %}</div>
-            {% include 'components/field.html' with field=form.email %}
-            {% include 'components/field.html' with field=form.phone %}
-            {% include 'components/field.html' with field=form.website %}
-            {% include 'components/field.html' with field=form.password1 label='Şifre' %}
-            {% include 'components/field.html' with field=form.password2 label='Şifre tekrar' %}
-            <button type="submit" class="auth-submit">Başvuruyu Gönder {% include 'components/icon.html' %}</button>
-        </form>
-        <p class="auth-footer">Başvurunuz var mı? <a href="{% url 'company_auth:login' %}">Şirket Girişi</a></p>
-    </section></div>
+<main class="ax-layout" id="main-content">
+  <aside class="ax-story ax-business-story" aria-labelledby="business-story-title"><div class="ax-story-inner">
+    <p class="ax-eyebrow">KURUMSAL İLETİŞİMİNİZ İÇİN</p><h2 id="business-story-title">Güven, iyi bir<br><span>yanıtla başlar.</span></h2><p class="ax-story-lead">Müşterilerinizi dinleyin. Şirketiniz adına doğrudan iletişim kurun.</p>
+    {% include 'auth/company_registration_visual.html' %}
+    <div class="ax-business-features">
+      <div>{% include 'companies/panel/icon.html' with name='bell' %}<span>Yeni şikayetleri takip edin</span></div>
+      <div>{% include 'companies/panel/icon.html' with name='reply' %}<span>Şikayetlere doğrudan yanıt verin</span></div>
+      <div>{% include 'companies/panel/icon.html' with name='clock' %}<span>Çözüm süreçlerini yönetin</span></div>
+      <div>{% include 'companies/panel/icon.html' with name='shield' %}<span>Doğrulanmış şirket profili oluşturun</span></div>
+      <div>{% include 'companies/panel/icon.html' with name='users' %}<span>Müşteri iletişimini tek panelde yönetin</span></div>
+    </div><p class="ax-business-foot">Başvuru → Yönetim incelemesi → Şirket erişimi</p>
+  </div></aside>
+  <div class="ax-form-area"><section class="ax-card" aria-labelledby="auth-title">
+    {% include 'auth/messages.html' %}
+    <header class="ax-heading"><span class="ax-role">Kurumsal başvuru</span><h1 id="auth-title">DertDerman'da<br>Şirketinizi Temsil Edin</h1><p>Müşteri geri bildirimlerini takip edin, şikayetlere doğrudan yanıt verin ve çözüm süreçlerini profesyonel biçimde yönetin.</p></header>
+    <form method="post" class="ax-form" data-auth-form>
+      {% csrf_token %}{% include 'auth/form_errors.html' %}
+      <fieldset class="ax-fieldset"><legend><span>01</span> Şirket bilgileri</legend>
+        {% include 'auth/field.html' with field=form.company_name %}
+        {% include 'auth/field.html' with field=form.website label='Web sitesi (isteğe bağlı)' %}
+      </fieldset>
+      <fieldset class="ax-fieldset"><legend><span>02</span> Şirket yetkilisi</legend>
+        <div class="ax-pair">{% include 'auth/field.html' with field=form.first_name %}{% include 'auth/field.html' with field=form.last_name %}</div>
+        <div class="ax-pair">{% include 'auth/field.html' with field=form.email %}{% include 'auth/field.html' with field=form.phone %}</div>
+      </fieldset>
+      <fieldset class="ax-fieldset"><legend><span>03</span> Hesap güvenliği</legend>
+        {% include 'auth/field.html' with field=form.password1 label='Şifre' %}
+        {% include 'auth/field.html' with field=form.password2 label='Şifre tekrar' %}
+      </fieldset>
+      <p class="ax-review-note">{% include 'companies/panel/icon.html' with name='shield' %}<span>Başvurunuz yönetim ekibi tarafından incelenir. Onayın ardından e-posta adresiniz ve şifrenizle giriş yapabilirsiniz.</span></p>
+      <button type="submit" class="ax-submit" data-submit-label="Başvurunuz gönderiliyor…"><span>Başvuruyu Gönder</span>{% include 'components/icon.html' %}</button>
+    </form>
+    <div class="ax-alternative"><span>Başvurunuz var mı?</span><a href="{% url 'company_auth:login' %}">Şirket Girişi {% include 'components/icon.html' %}</a></div>
+    <p class="ax-crosslink">Bireysel hesap için <a href="{% url 'accounts:register' %}">Kullanıcı Kaydı</a></p>
+  </section></div>
 </main>
 {% endblock %}

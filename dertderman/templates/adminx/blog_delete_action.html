@@ -1,0 +1,6 @@
+{% if post.status != 'ARCHIVED' %}
+<form method="post" action="{% url 'adminx:blog_delete' post.pk %}" class="ad-inline-action">
+  {% csrf_token %}
+  <button class="danger-action" type="submit" data-confirm="Bu blog yazısını silmek istediğinize emin misiniz? Yazı yayından kaldırılacak ve arşivde saklanacaktır." data-confirm-title="Blog yazısını sil" data-confirm-action="Evet, yazıyı sil" aria-label="{{ post.title }} yazısını sil">Sil</button>
+</form>
+{% endif %}

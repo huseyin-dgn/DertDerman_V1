@@ -1,0 +1,3 @@
+{% if form.errors %}<div class="ax-error-summary" role="alert" tabindex="-1" data-auth-errors>
+{% if form.non_field_errors %}{{ form.non_field_errors }}{% else %}<p>İşaretli alanları kontrol ederek tekrar deneyin.</p>{% endif %}
+</div>{% endif %}

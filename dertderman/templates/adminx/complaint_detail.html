@@ -1,10 +1,10 @@
-{% extends "base.html" %}
+{% extends "layouts/admin_base.html" %}
 
 {% block title %}Şikayet İncele | DertDerman{% endblock %}
 
 {% block content %}
     <main class="content-section section-muted" id="main-content">
-        {% include 'components/workspace_nav.html' %}
+
         <article class="section-inner account-shell" aria-labelledby="complaint-title">
             <div class="account-card moderation-content">
                 <header class="account-header">
@@ -41,7 +41,7 @@
                         </form>
                         <form method="post" action="{% url 'adminx:complaint_reject' complaint.pk %}">
                             {% csrf_token %}
-                            <button class="danger-action" type="submit">Reddet</button>
+                            <button class="danger-action" type="submit" data-confirm="Bu şikayeti reddetmek inceleme sürecini sonlandırır. Devam etmek istiyor musunuz?">Reddet</button>
                         </form>
                     </div>
                 {% else %}

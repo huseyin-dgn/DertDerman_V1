@@ -1,13 +1,6 @@
-{% extends 'adminx/content_base.html' %}
-{% block title %}Şirket Başvuruları | Yönetim{% endblock %}
-{% block content_heading %}<h1>Şirket Başvuruları</h1><p>Kurumsal hesap başvurularını inceleyin ve sonuçlandırın.</p>{% endblock %}
-{% block management_content %}
-<ul class="management-list">
-{% for company in applications %}
-<li>
-    <div><h2>{{ company.name }}</h2><p>{{ company.get_approval_status_display }} · {{ company.email }} · {{ company.created_at|date:'d.m.Y H:i' }}</p></div>
-    <a class="secondary-action" href="{% url 'adminx:company_application_detail' company.pk %}" aria-label="{{ company.name }} başvurusunu incele">İncele</a>
-</li>
-{% empty %}<li>Henüz şirket başvurusu yok.</li>{% endfor %}
-</ul>
-{% endblock %}
+{% extends 'adminx/table_base.html' %}
+{% block title %}Şirket Başvuruları | DertDerman Yönetim{% endblock %}
+{% block content_heading %}<p class="ad-kicker">YÖNETİM MERKEZİ</p><h1>Şirket Başvuruları</h1><p>Şirket başvurularını inceleyin ve doğrulama süreçlerini yönetin.</p>{% endblock %}
+{% block table_head %}<th scope="col">Şirket</th><th scope="col">Kategori</th><th scope="col">Başvuran</th><th scope="col">E-posta</th><th scope="col">Başvuru tarihi</th><th scope="col">Durum</th><th scope="col">Aksiyon</th>{% endblock %}
+{% block table_rows %}{% for company in page_obj %}<tr><td class="ad-title-cell">{{ company.name }}</td><td>{{ company.category.name|default:'—' }}</td><td>{{ company.applicant_name|default:'—' }}</td><td>{{ company.email|default:'—' }}</td><td>{{ company.created_at|date:'d.m.Y H:i' }}</td><td>{% include 'components/badge.html' with status=company.approval_status label=company.get_approval_status_display %}</td><td><a class="ad-row-action" href="{% url 'adminx:company_application_detail' company.pk %}" aria-label="{{ company.name }} başvurusunu incele">İncele ↗</a></td></tr>{% endfor %}{% endblock %}
+{% block table_empty %}{% include 'components/empty_state.html' with heading='Gösterilecek şirket başvurusu bulunmuyor.' route='adminx:company_application_list' %}{% endblock %}

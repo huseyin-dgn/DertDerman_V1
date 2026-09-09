@@ -65,7 +65,7 @@ class ComplaintModerationTests(TestCase):
         for status in [Complaint.Status.PUBLISHED, Complaint.Status.REJECTED, Complaint.Status.RESOLVED]:
             self.assertNotContains(response, self.records[status].title)
         home = self.client.get(self.home_url)
-        self.assertContains(home, "Bekleyen Şikayetler: 2")
+        self.assertEqual(home.context["pending_count"], 2)
         self.assertContains(home, f'href="{self.list_url}"')
         for url in [self.list_url, self.detail_url]:
             response = self.client.get(url)
@@ -261,7 +261,7 @@ class ComplaintModerationTests(TestCase):
     def test_empty_moderation_list(self):
         self.client.post(self.action_url("reject"))
         self.assertContains(self.client.get(self.list_url), "İnceleme bekleyen şikayet bulunmuyor.")
-        self.assertContains(self.client.get(self.home_url), "Bekleyen Şikayetler: 0")
+        self.assertEqual(self.client.get(self.home_url).context["pending_count"], 0)
 
     def test_publish_preserves_existing_inactive_company_public_policy(self):
         self.company.is_active = False

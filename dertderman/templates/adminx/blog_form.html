@@ -1,6 +1,6 @@
-{% extends 'base.html' %}
+{% extends 'layouts/admin_base.html' %}
 {% block title %}{% if post %}Yazıyı Düzenle{% else %}Yeni Blog Yazısı{% endif %} | DertDerman{% endblock %}
-{% block content %}<main class="content-section" id="main-content">{% include 'components/workspace_nav.html' %}
+{% block content %}<main class="content-section" id="main-content">
 <section class="section-inner account-shell"><div class="account-card moderation-content">
 <header class="account-header"><p class="section-kicker">Blog yönetimi</p><h1>{% if post %}Yazıyı Düzenle{% else %}Yeni Blog Yazısı{% endif %}</h1><p>İçerik düz metin olarak yayınlanır. {% if post.status == 'PUBLISHED' %}Kaydedilen değişiklikler yayınlanan yazıya yansır.{% else %}Kaydetmek, taslağı yayınlamaz.{% endif %}</p>{% if post %}{% include 'blog/status_badge.html' %}{% endif %}</header>
 {% if publish_error %}<p class="form-alert" role="alert">{{ publish_error }}</p>{% endif %}
@@ -10,4 +10,5 @@
 <div class="account-form-actions"><button class="primary-action" type="submit">Kaydet</button><a class="secondary-action" href="{% url 'adminx:blog_list' %}">Yazılara Dön</a></div>
 </form>
 {% if post %}<section class="blog-publish-panel"><h2>Yayın durumu</h2>{% if post.status == 'DRAFT' %}<p>Kaydedilmiş taslağı herkesin okuyabileceği şekilde yayınlayın.</p><form method="post" action="{% url 'adminx:blog_publish' post.pk %}">{% csrf_token %}<button class="primary-action" type="submit">Yayınla</button></form>{% else %}<p>Bu yazı yayında. Kaydettiğiniz değişiklikler yayınlanan yazıya yansır.</p><a class="secondary-action" href="{% url 'blog:detail' post.slug %}">Yayınlanan Yazıyı Gör</a>{% endif %}</section>{% endif %}
+{% if post %}<section class="blog-publish-panel"><h2>Yazıyı kaldır</h2><p>Yazı public listeden ve okuma ekranlarından kaldırılır; içerik arşivde korunur.</p>{% include 'adminx/blog_delete_action.html' %}</section>{% endif %}
 </div></section></main>{% endblock %}

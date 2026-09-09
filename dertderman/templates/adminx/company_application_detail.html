@@ -14,14 +14,15 @@
     </dl>
     <h2>Yetkililer</h2>
     <ul class="management-list">
-        {% for membership in company.memberships.all %}<li><div><h3>{{ membership.user.get_full_name|default:membership.user.username }}</h3><p>{{ membership.user.email }} · {{ membership.get_role_display }} · {% if membership.is_active %}Aktif{% else %}Onay bekliyor{% endif %}</p></div></li>{% empty %}<li>Bağlı yetkili bulunamadı.</li>{% endfor %}
+        {% for membership in member_page %}<li><div><h3>{{ membership.user.get_full_name|default:membership.user.username }}</h3><p>{{ membership.user.email }} · {{ membership.get_role_display }} · {% if membership.is_active %}Aktif{% else %}Onay bekliyor{% endif %}</p></div></li>{% empty %}<li>Bağlı yetkili bulunamadı.</li>{% endfor %}
     </ul>
+    {% include 'components/pagination.html' with page_obj=member_page page_param='member_page' %}
     {% if decision_error %}<div class="form-alert" role="alert">{{ decision_error }}</div>{% endif %}
-    {% if company.approval_status == 'PENDING' %}
+    {% if company.approval_status == 'PENDING' and not company.archived_at %}
     <form method="post" class="account-form-actions">
         {% csrf_token %}
         <button class="primary-action" type="submit" name="action" value="approve">Onayla</button>
-        <button class="danger-action" type="submit" name="action" value="reject">Reddet</button>
+        <button class="danger-action" type="submit" name="action" value="reject" data-confirm="Bu şirket başvurusunu reddetmek inceleme sürecini sonlandırır. Devam etmek istiyor musunuz?">Reddet</button>
     </form>
     {% endif %}
     <p><a class="secondary-action" href="{% url 'adminx:company_application_list' %}">Başvurulara Dön</a></p>

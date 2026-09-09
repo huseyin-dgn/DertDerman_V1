@@ -38,6 +38,7 @@
                         <p>Henüz bir şikayetiniz bulunmuyor.</p>
                     </div>
                 {% endif %}
+                {% include 'components/pagination.html' %}
                 <div class="hero-actions">
                     <a class="primary-action" href="{% url 'complaints:create' %}">Şikayet Oluştur</a>
                     <a class="secondary-action" href="{% url 'dashboard:home' %}">Panelime Dön</a>

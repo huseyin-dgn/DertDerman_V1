@@ -9,7 +9,7 @@ from django.views.generic.edit import FormView
 
 from core.decorators import role_required
 
-from .forms import ProfileUpdateForm, RegisterForm
+from .forms import ProfileUpdateForm, RegisterForm, UserAuthenticationForm
 from .models import User
 
 
@@ -42,6 +42,7 @@ class RegisterView(FormView):
 @method_decorator(never_cache, name="dispatch")
 class SecureLoginView(LoginView):
     template_name = "accounts/login.html"
+    authentication_form = UserAuthenticationForm
     redirect_authenticated_user = True
 
     def get_success_url(self):

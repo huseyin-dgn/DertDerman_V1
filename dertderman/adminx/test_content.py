@@ -63,9 +63,9 @@ class ContentManagementTests(TestCase):
             self.assertEqual(self.client.post(url, {}).status_code, 405)
         Company.objects.bulk_create([Company(name=f"Page company {i}", slug=f"page-company-{i}") for i in range(22)])
         response = self.client.get(reverse("adminx:company_list"))
-        self.assertEqual(len(response.context["page_obj"]), 20)
+        self.assertEqual(len(response.context["page_obj"]), 5)
         self.assertEqual(response.context["page_obj"].paginator.count, 23)
-        self.assertEqual(len(self.client.get(reverse("adminx:company_list") + "?page=2").context["page_obj"]), 3)
+        self.assertEqual(len(self.client.get(reverse("adminx:company_list") + "?page=5").context["page_obj"]), 3)
         response = self.client.get(reverse("adminx:user_list"))
         self.assertNotContains(response, self.users["ADMIN"].password)
 

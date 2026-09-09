@@ -32,6 +32,7 @@ def company_register(request):
         messages.success(
             request,
             "Şirket başvurunuz alındı. Yönetim onayından sonra kurumsal hesabınız aktif olacaktır.",
+            extra_tags="company-application",
         )
         return redirect("company_auth:login")
     return render(request, "companies/company_register.html", {"form": form})

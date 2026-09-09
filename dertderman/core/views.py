@@ -17,7 +17,8 @@ def home(request):
 
     from companies.models import Company
 
-    popular_companies = Company.objects.filter(is_active=True).select_related("category").order_by("name")[:6]
+    from companies.selectors import public_companies
+    popular_companies = public_companies().order_by("name", "pk")[:6]
     counts = Complaint.objects.aggregate(
         total_complaints=Count("pk"),
         published=Count("pk", filter=Q(status=Complaint.Status.PUBLISHED, company__is_active=True)),

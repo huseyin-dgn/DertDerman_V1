@@ -14,6 +14,7 @@ def active_company_memberships_for(user):
             is_active=True,
             role__in=CompanyMembership.Role.values,
             company__is_active=True,
+            company__archived_at__isnull=True,
             company__is_verified=True,
             company__approval_status=Company.ApprovalStatus.APPROVED,
         )
@@ -38,6 +39,8 @@ def decide_company_application(company_id, target_status):
         raise ValueError("Geçersiz şirket başvurusu kararı.")
 
     company = Company.objects.select_for_update().get(pk=company_id)
+    if company.archived_at is not None:
+        raise ValidationError("Arşivlenmiş şirket başvurusu sonuçlandırılamaz.")
     if company.approval_status != Company.ApprovalStatus.PENDING:
         return company, False
 

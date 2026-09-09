@@ -1,0 +1,5 @@
+<div class="discovery-empty">
+  <span class="discovery-empty-icon">{% include 'components/icon.html' with name=icon|default:'list' %}</span>
+  <h2>{{ heading }}</h2><p>{{ description }}</p>
+  {% if route %}<a class="secondary-action" href="{% url route %}">{{ cta }}</a>{% endif %}
+</div>

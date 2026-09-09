@@ -1,7 +1,20 @@
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
+from django.core.exceptions import ValidationError
 from django.forms import ModelForm
 
 from .models import User
+
+
+USER_LOGIN_ERROR = "Giriş bilgileriniz doğrulanamadı. Kullanıcı adınızı ve şifrenizi kontrol edin."
+
+
+class UserAuthenticationForm(AuthenticationForm):
+    error_messages = {"invalid_login": USER_LOGIN_ERROR, "inactive": USER_LOGIN_ERROR}
+
+    def confirm_login_allowed(self, user):
+        super().confirm_login_allowed(user)
+        if user.user_type != User.UserType.USER:
+            raise ValidationError(USER_LOGIN_ERROR, code="invalid_login")
 
 
 class RegisterForm(UserCreationForm):

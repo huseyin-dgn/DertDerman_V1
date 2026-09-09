@@ -1,6 +1,6 @@
 from django.contrib import messages
 from django.core.exceptions import ValidationError
-from django.core.paginator import Paginator
+from core.pagination import PREVIEW_SIZE, paginate
 from django.db.models import Avg, Count, DurationField, ExpressionWrapper, F, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -10,7 +10,7 @@ from complaints.models import Complaint
 from .models import CompanyMembership, CompanyNotificationRead
 from .panel_forms import CompanyProfileForm, CompanyResponseForm, ComplaintFilterForm, InternalCompanyNoteForm
 from .panel_permissions import COMPANY_SESSION_KEY, PROFILE_ROLES, company_panel_required, require_profile_role
-from .panel_selectors import company_complaints, company_notes, company_notifications, company_responses
+from .panel_selectors import company_complaints, company_notes, company_notifications, company_responses, complaint_history
 from .panel_services import create_company_entry
 from .services import get_accessible_company_membership
 
@@ -43,7 +43,7 @@ def _dashboard(request):
         minutes = max(0, int(duration.total_seconds() / 60))
         average_label = "< 1 dk" if minutes < 1 else f"{minutes} dk" if minutes < 60 else f"{minutes / 60:.1f} sa"
     return render(request, "companies/panel/dashboard.html", panel_context(request, "overview",
-        metrics=metrics, average_label=average_label, recent_complaints=complaints[:6]))
+        metrics=metrics, average_label=average_label, recent_complaints=complaints[:PREVIEW_SIZE]))
 
 
 @company_panel_required
@@ -95,25 +95,19 @@ def complaint_list(request):
             complaints = complaints.filter(created_at__date__lte=data["end"])
     else:
         complaints = complaints.none()
-    query = request.GET.copy()
-    query.pop("page", None)
     return render(request, "companies/panel/complaints.html", panel_context(request, "complaints",
-        filter_form=form, page_obj=Paginator(complaints, 12).get_page(request.GET.get("page")), filter_query=query.urlencode()))
+        filter_form=form, page_obj=paginate(request, complaints, "company_complaints")))
 
 
 def _detail_context(request, complaint, response_form=None, note_form=None):
     responses = company_responses(request.company).filter(complaint=complaint)
     notes = company_notes(request.company).filter(complaint=complaint)
-    history = [{"at": complaint.created_at, "title": "Şikayet oluşturuldu"}]
-    history += [{"at": x.created_at, "title": "Şirket cevabı eklendi"} for x in responses[:10]]
-    history += [{"at": x.created_at, "title": "Dahili not eklendi"} for x in notes[:10]]
-    history += [{"at": x.created_at, "title": x.title} for x in company_notifications(request.company, request.user).filter(complaint=complaint).exclude(kind="NEW")[:10]]
     return panel_context(request, "complaints", complaint=complaint,
         response_form=response_form if response_form is not None else CompanyResponseForm(auto_id="response_%s"),
         note_form=note_form if note_form is not None else InternalCompanyNoteForm(auto_id="note_%s"),
-        response_page=Paginator(responses, 10).get_page(request.GET.get("response_page")),
-        note_page=Paginator(notes, 10).get_page(request.GET.get("note_page")),
-        history=sorted(history, key=lambda x: x["at"], reverse=True)[:15])
+        response_page=paginate(request, responses, "company_responses", page_param="response_page"),
+        note_page=paginate(request, notes, "activity", page_param="note_page"),
+        history=paginate(request, complaint_history(request.company, request.user, complaint), "activity", page_param="history_page"))
 
 
 @company_panel_required
@@ -155,7 +149,7 @@ def note_create(request, pk):
 @company_panel_required
 @require_safe
 def responses(request):
-    page = Paginator(company_responses(request.company), 12).get_page(request.GET.get("page"))
+    page = paginate(request, company_responses(request.company), "company_responses")
     return render(request, "companies/panel/responses.html", panel_context(request, "responses", page_obj=page))
 
 
@@ -179,14 +173,15 @@ def profile(request):
 @require_safe
 def members(request):
     require_profile_role(request.company_membership)
-    roster = CompanyMembership.objects.filter(company=request.company).select_related("user").order_by("-is_active", "created_at", "pk")
-    return render(request, "companies/panel/members.html", panel_context(request, "members", roster=roster))
+    roster = CompanyMembership.objects.filter(company=request.company).select_related("user").order_by("-created_at", "-pk")
+    page = paginate(request, roster, "company_complaints")
+    return render(request, "companies/panel/members.html", panel_context(request, "members", roster=page, page_obj=page))
 
 
 @company_panel_required
 @require_safe
 def notifications(request):
-    page = Paginator(company_notifications(request.company, request.user), 15).get_page(request.GET.get("page"))
+    page = paginate(request, company_notifications(request.company, request.user), "company_notifications")
     return render(request, "companies/panel/notifications.html", panel_context(request, "notifications", page_obj=page))
 
 
@@ -196,6 +191,28 @@ def notification_read(request, pk):
     notification = get_object_or_404(company_notifications(request.company, request.user), pk=pk)
     CompanyNotificationRead.objects.get_or_create(notification=notification, user=request.user)
     return redirect("companies:notifications")
+
+
+@company_panel_required
+@require_safe
+def notification_open(request, pk):
+    notification = get_object_or_404(company_notifications(request.company, request.user), pk=pk)
+    if notification.complaint_id:
+        return redirect('companies:complaint_detail', pk=notification.complaint_id)
+    return redirect('companies:profile')
+
+
+@company_panel_required
+@require_POST
+def notifications_read_all(request):
+    from itertools import batched
+    ids = company_notifications(request.company, request.user).filter(is_read=False).values_list('pk', flat=True)
+    # Batch inserts retain each member's independent read state.
+    for batch in batched(ids.iterator(chunk_size=500), 500):
+        CompanyNotificationRead.objects.bulk_create(
+            [CompanyNotificationRead(notification_id=pk, user=request.user) for pk in batch],
+            ignore_conflicts=True, batch_size=500)
+    return redirect('companies:notifications')
 
 
 @company_panel_required

@@ -1,0 +1,5 @@
+Operations to perform:
+  Apply all migrations: accounts, admin, auth, blog, companies, complaints, contenttypes, notifications, sessions
+Running migrations:
+  Applying companies.0005_companynotification_event_key_and_more... OK
+  Applying notifications.0001_initial... OK

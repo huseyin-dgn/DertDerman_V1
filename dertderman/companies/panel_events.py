@@ -1,15 +1,24 @@
 from django.db.models.signals import post_save, pre_save
+from django.db import transaction
+from uuid import uuid4
 from django.dispatch import receiver
 
 from complaints.models import Complaint
 from .models import Company, CompanyNotification
 
 
-def record_complaint_notification(complaint, kind):
-    return CompanyNotification.objects.create(
-        company_id=complaint.company_id, complaint=complaint,
-        kind=kind, title=CompanyNotification.Kind(kind).label,
-    )
+@transaction.atomic
+def record_complaint_notification(complaint, kind, event_key=None):
+    from notifications.services import complaint_event
+    # Timestamp identifies a transition, not a permanent object/status pair.
+    event_key = event_key or f'complaint:{complaint.pk}:{kind}:{complaint.updated_at.isoformat()}'
+    notification, _ = CompanyNotification.objects.get_or_create(event_key=event_key, defaults={
+        'company_id': complaint.company_id, 'complaint': complaint,
+        'kind': kind, 'title': CompanyNotification.Kind(kind).label,
+        'message': 'Şikayetle ilgili gelişmeyi çalışma alanınızdan inceleyebilirsiniz.',
+    })
+    complaint_event(complaint, kind, event_key)
+    return notification
 
 
 @receiver(pre_save, sender=Complaint)
@@ -23,6 +32,10 @@ def notify_company_of_complaint(sender, instance, created, raw=False, **kwargs):
     if raw:
         return
     previous = getattr(instance, "_company_panel_previous", None)
+    # Ignore unsaved changes on instances saved with update_fields.
+    fields = kwargs.get('update_fields')
+    if fields is not None:
+        instance = sender.objects.get(pk=instance.pk)
     kind = None
     if created:
         kind = CompanyNotification.Kind.NEW
@@ -34,7 +47,8 @@ def notify_company_of_complaint(sender, instance, created, raw=False, **kwargs):
     elif previous and any(previous[field] != getattr(instance, field) for field in ("title", "description")):
         kind = CompanyNotification.Kind.UPDATED
     if kind:
-        record_complaint_notification(instance, kind)
+        key = f'complaint:{instance.pk}:{kind}:{uuid4()}' if fields is not None and 'updated_at' not in fields else None
+        record_complaint_notification(instance, kind, event_key=key)
 
 
 @receiver(pre_save, sender=Company)
@@ -46,6 +60,13 @@ def capture_company_state(sender, instance, raw=False, **kwargs):
 @receiver(post_save, sender=Company)
 def notify_company_of_admin_action(sender, instance, created, raw=False, **kwargs):
     previous = getattr(instance, "_panel_approval_previous", None)
+    if not raw and not created and kwargs.get('update_fields') is not None:
+        instance = sender.objects.get(pk=instance.pk)
     if not raw and not created and previous and any(previous[key] != getattr(instance, key) for key in previous):
-        CompanyNotification.objects.create(company=instance, kind=CompanyNotification.Kind.ADMIN,
-            title="Şirketinizin onay veya doğrulama durumu güncellendi.")
+        title = 'Şirketinizin onay veya doğrulama durumu güncellendi.'
+        if previous['approval_status'] == 'PENDING' and instance.approval_status != 'PENDING':
+            title = 'Şirket başvurunuz onaylandı.' if instance.approval_status == 'APPROVED' else 'Şirket başvurunuz reddedildi.'
+        CompanyNotification.objects.get_or_create(
+            event_key=f'company:{instance.pk}:{uuid4()}',
+            defaults={'company': instance, 'kind': CompanyNotification.Kind.ADMIN,
+                      'title': title, 'message': 'Güncel şirket bilgilerinizi profilinizden inceleyebilirsiniz.'})

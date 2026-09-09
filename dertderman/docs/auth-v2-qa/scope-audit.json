@@ -1,0 +1,16 @@
+{
+  "protected_files_checked": 83,
+  "all_unchanged": true,
+  "changed_existing_files": [
+    "dertderman/accounts/forms.py",
+    "dertderman/accounts/test_routes.py",
+    "dertderman/accounts/tests.py",
+    "dertderman/accounts/views.py",
+    "dertderman/companies/auth_views.py",
+    "dertderman/templates/accounts/login.html",
+    "dertderman/templates/accounts/register.html",
+    "dertderman/templates/companies/company_list.html",
+    "dertderman/templates/companies/company_login.html",
+    "dertderman/templates/companies/company_register.html"
+  ]
+}

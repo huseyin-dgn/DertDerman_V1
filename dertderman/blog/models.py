@@ -1,6 +1,7 @@
 from uuid import uuid4
 
 from django.db import models
+from django.conf import settings
 from django.utils.text import slugify
 
 
@@ -13,8 +14,11 @@ class Post(models.Model):
     class Status(models.TextChoices):
         DRAFT = "DRAFT", "Taslak"
         PUBLISHED = "PUBLISHED", "Yayında"
+        ARCHIVED = "ARCHIVED", "Silindi / Arşivlendi"
 
     title = models.CharField("Başlık", max_length=180)
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
+                               on_delete=models.SET_NULL, related_name="blog_posts", editable=False)
     slug = models.SlugField(max_length=220, unique=True, editable=False)
     excerpt = models.CharField("Kısa açıklama", max_length=320)
     content = models.TextField("İçerik")

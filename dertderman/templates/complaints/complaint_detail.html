@@ -33,6 +33,7 @@
                     <h2 id="description-title">Açıklama</h2>
                     <p>{{ complaint.description }}</p>
                 </section>
+                {% if company_response_page %}<section class="complaint-description" aria-labelledby="company-response-title"><h2 id="company-response-title">Şirket yanıtları</h2>{% for response in company_response_page %}<article><time datetime="{{ response.created_at|date:'c' }}">{{ response.created_at|date:'d.m.Y H:i' }}</time><p>{{ response.body|linebreaksbr }}</p></article>{% endfor %}{% include 'components/pagination.html' with page_obj=company_response_page page_param='response_page' %}</section>{% endif %}
                 <a class="secondary-action" href="{% url 'complaints:list' %}">Şikayetlerime Dön</a>
             </div>
         </article>

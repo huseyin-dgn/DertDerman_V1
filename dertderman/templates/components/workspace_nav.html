@@ -1,6 +1,7 @@
 <nav class="workspace-nav section-inner" aria-label="Çalışma alanı">
 {% if request.user.user_type == 'USER' %}
     <span class="workspace-label">Kişisel alanınız</span>
+    <a href="{% url 'notifications:list' %}" {% if request.resolver_match.namespace == 'notifications' %}aria-current="page"{% endif %}>Bildirimler</a>
     <a href="{% url 'dashboard:home' %}" {% if request.resolver_match.namespace == 'dashboard' %}aria-current="page"{% endif %}>Genel Bakış</a>
     <a href="{% url 'complaints:list' %}" {% if request.resolver_match.namespace == 'complaints' %}aria-current="page"{% endif %}>Şikayetlerim</a>
     <a href="{% url 'accounts:profile' %}" {% if request.resolver_match.namespace == 'accounts' %}aria-current="page"{% endif %}>Hesabım</a>

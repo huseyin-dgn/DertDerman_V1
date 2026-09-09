@@ -1,0 +1,105 @@
+{
+  "passed": true,
+  "screens": [
+    {
+      "role": "USER",
+      "width": 375,
+      "overflow": false
+    },
+    {
+      "role": "USER",
+      "width": 430,
+      "overflow": false
+    },
+    {
+      "role": "USER",
+      "width": 768,
+      "overflow": false
+    },
+    {
+      "role": "USER",
+      "width": 1024,
+      "overflow": false
+    },
+    {
+      "role": "USER",
+      "width": 1366,
+      "overflow": false
+    },
+    {
+      "role": "USER",
+      "width": 1440,
+      "overflow": false
+    },
+    {
+      "role": "COMPANY",
+      "width": 375,
+      "overflow": false
+    },
+    {
+      "role": "COMPANY",
+      "width": 430,
+      "overflow": false
+    },
+    {
+      "role": "COMPANY",
+      "width": 768,
+      "overflow": false
+    },
+    {
+      "role": "COMPANY",
+      "width": 1024,
+      "overflow": false
+    },
+    {
+      "role": "COMPANY",
+      "width": 1366,
+      "overflow": false
+    },
+    {
+      "role": "COMPANY",
+      "width": 1440,
+      "overflow": false
+    },
+    {
+      "role": "ADMIN",
+      "width": 375,
+      "overflow": false
+    },
+    {
+      "role": "ADMIN",
+      "width": 430,
+      "overflow": false
+    },
+    {
+      "role": "ADMIN",
+      "width": 768,
+      "overflow": false
+    },
+    {
+      "role": "ADMIN",
+      "width": 1024,
+      "overflow": false
+    },
+    {
+      "role": "ADMIN",
+      "width": 1366,
+      "overflow": false
+    },
+    {
+      "role": "ADMIN",
+      "width": 1440,
+      "overflow": false
+    }
+  ],
+  "checks": [
+    "USER: page 2, single-read, mark-all and unread badge update",
+    "COMPANY: page 2, single-read, mark-all and unread badge update",
+    "ADMIN: page 2, single-read, mark-all and unread badge update",
+    "USER complaint published -> owner USER notification",
+    "COMPANY response -> owner USER notification -> own detail shows response",
+    "New company application -> ADMIN notification -> application detail"
+  ],
+  "js_errors": [],
+  "browser": "152.0.4191.66"
+}

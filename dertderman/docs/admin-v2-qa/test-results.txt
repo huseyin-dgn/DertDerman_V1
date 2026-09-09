@@ -1,0 +1,12 @@
+Found 207 test(s).
+System check identified no issues (0 silenced).
+Creating test database for alias 'default'...
+....................................................................................................................................................................................Not Found: /312
+Not Found: /olmayan-bir-url/
+Not Found: /django-admin/
+...........................
+----------------------------------------------------------------------
+Ran 207 tests in 43.745s
+
+OK
+Destroying test database for alias 'default'...

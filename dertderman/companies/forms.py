@@ -9,6 +9,7 @@ from django.db import transaction
 from accounts.models import User
 
 from .models import Company, CompanyMembership
+from .services import active_company_memberships_for
 
 
 COMPANY_LOGIN_ERROR = "Kurumsal giriş bilgileri doğrulanamadı."
@@ -137,13 +138,7 @@ class CompanyAuthenticationForm(forms.Form):
             if authenticated_user is None or authenticated_user != company_user:
                 raise ValidationError(COMPANY_LOGIN_ERROR, code="invalid_login")
 
-            can_login = CompanyMembership.objects.filter(
-                user=authenticated_user,
-                is_active=True,
-                company__approval_status=Company.ApprovalStatus.APPROVED,
-                company__is_active=True,
-                company__is_verified=True,
-            ).exists()
+            can_login = active_company_memberships_for(authenticated_user).exists()
             if not can_login:
                 raise ValidationError(COMPANY_LOGIN_ERROR, code="invalid_login")
             self.user_cache = authenticated_user

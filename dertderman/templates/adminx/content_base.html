@@ -1,5 +1,2 @@
-{% extends 'base.html' %}
-{% block content %}<main class="content-section" id="main-content">
-{% include 'components/workspace_nav.html' %}
-<section class="section-inner admin-content"><header class="section-heading"><p class="section-kicker">DertDerman / Yönetim</p>{% block content_heading %}{% endblock %}</header>{% block management_content %}{% endblock %}</section>
-</main>{% endblock %}
+{% extends 'layouts/admin_base.html' %}
+{% block content %}<main id="main-content" class="ad-main"><header class="ad-page-heading"><div>{% block content_heading %}{% endblock %}</div>{% block heading_actions %}{% endblock %}</header>{% block management_content %}{% endblock %}</main>{% endblock %}

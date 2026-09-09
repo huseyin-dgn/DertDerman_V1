@@ -1,0 +1,6 @@
+{% if not company.archived_at %}
+<form method="post" action="{% url 'adminx:company_archive' company.pk %}" class="ad-inline-action">
+  {% csrf_token %}
+  <button class="danger-action" type="submit" data-confirm="Bu şirketi arşivlemek istediğinize emin misiniz? Şirket public listeden kaldırılacak ve bu şirkete ait hesap erişimi kapatılacaktır. Geçmiş şikayet ve cevaplar korunacaktır." data-confirm-title="Şirketi arşivle" data-confirm-action="Evet, şirketi arşivle" aria-label="{{ company.name }} şirketini arşivle">Şirketi Arşivle</button>
+</form>
+{% endif %}

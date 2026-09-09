@@ -1,0 +1,73 @@
+{
+  "changed_existing_files": [
+    "dertderman/core/pagination.py",
+    "dertderman/templates/layouts/admin_base.html",
+    "dertderman/templates/layouts/company_base.html",
+    "dertderman/templates/layouts/user_base.html",
+    "dertderman/adminx/urls.py",
+    "dertderman/adminx/views.py",
+    "dertderman/companies/models.py",
+    "dertderman/companies/panel_events.py",
+    "dertderman/companies/panel_selectors.py",
+    "dertderman/companies/panel_services.py",
+    "dertderman/companies/panel_views.py",
+    "dertderman/companies/urls.py",
+    "dertderman/complaints/views.py",
+    "dertderman/config/settings.py",
+    "dertderman/config/urls.py",
+    "dertderman/notifications/apps.py",
+    "dertderman/notifications/models.py",
+    "dertderman/notifications/services.py",
+    "dertderman/notifications/urls.py",
+    "dertderman/notifications/views.py",
+    "dertderman/templates/adminx/home.html",
+    "dertderman/templates/companies/panel/notifications.html",
+    "dertderman/templates/complaints/complaint_detail.html",
+    "dertderman/templates/components/workspace_nav.html"
+  ],
+  "protected_files_checked": 54,
+  "protected_unchanged": true,
+  "preserved_database_rows": {
+    "accounts_user": {
+      "before_count": 9,
+      "after_count": 9,
+      "preexisting_rows_preserved": true
+    },
+    "companies_company": {
+      "before_count": 7,
+      "after_count": 7,
+      "preexisting_rows_preserved": true
+    },
+    "companies_companymembership": {
+      "before_count": 2,
+      "after_count": 2,
+      "preexisting_rows_preserved": true
+    },
+    "complaints_complaint": {
+      "before_count": 3,
+      "after_count": 3,
+      "preexisting_rows_preserved": true
+    },
+    "companies_companyresponse": {
+      "before_count": 1,
+      "after_count": 1,
+      "preexisting_rows_preserved": true
+    },
+    "companies_internalcompanynote": {
+      "before_count": 0,
+      "after_count": 0,
+      "preexisting_rows_preserved": true
+    },
+    "companies_companynotification": {
+      "before_count": 5,
+      "after_count": 5,
+      "preexisting_rows_preserved": true
+    },
+    "companies_companynotificationread": {
+      "before_count": 2,
+      "after_count": 3,
+      "preexisting_rows_preserved": true
+    }
+  },
+  "database_note": "Comparison excludes last_login; existing login timestamp changed and a read receipt was added during work. No existing account or read receipt was removed."
+}

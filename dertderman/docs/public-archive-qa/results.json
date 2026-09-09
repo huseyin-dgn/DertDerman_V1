@@ -1,0 +1,62 @@
+{
+  "viewports": [
+    {
+      "width": 375,
+      "height": 812,
+      "directory_columns": 1,
+      "journal_columns": 1,
+      "overflow": false,
+      "modal_and_confirmations": true
+    },
+    {
+      "width": 430,
+      "height": 932,
+      "directory_columns": 1,
+      "journal_columns": 1,
+      "overflow": false,
+      "modal_and_confirmations": true
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "directory_columns": 2,
+      "journal_columns": 2,
+      "overflow": false,
+      "modal_and_confirmations": true
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "directory_columns": 2,
+      "journal_columns": 2,
+      "overflow": false,
+      "modal_and_confirmations": true
+    },
+    {
+      "width": 1366,
+      "height": 768,
+      "directory_columns": 4,
+      "journal_columns": 3,
+      "overflow": false,
+      "modal_and_confirmations": true
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "directory_columns": 4,
+      "journal_columns": 3,
+      "overflow": false,
+      "modal_and_confirmations": true
+    }
+  ],
+  "checks": [
+    "Reader: content, ESC, close, backdrop, focus, focus containment, scroll lock/restore, browser back/forward",
+    "Reader error state includes direct detail fallback",
+    "Both searches preserve queries on page 2 and render empty states",
+    "JavaScript disabled: card navigates to full direct article with canonical URL",
+    "Blog/company confirm sends POST with valid CSRF; archive state, archive filter and complaint/membership preservation verified"
+  ],
+  "js_errors": [],
+  "passed": true,
+  "browser": "152.0.4191.66"
+}

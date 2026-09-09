@@ -1,9 +1,17 @@
-{% extends 'base.html' %}
-{% block title %}DertDerman Blog{% endblock %}
-{% block body_class %}public-site public-index blog-index{% endblock %}
-{% block content %}<main id="main-content"><section class="public-page-hero"><div class="section-inner public-page-heading">
-    <p class="page-code">DD / BLOG &amp; REHBER</p><header><p class="section-kicker">Bilgiyle bir adım ileri</p><h1>Daha bilinçli<br><span>bir deneyim.</span></h1><p>Güncel bilgiler, pratik rehberler ve tüketici deneyimine dair editoryal yazılar.</p></header>
-</div></section><section class="content-section"><div class="section-inner">
-    <div class="blog-grid editorial-grid">{% for post in page_obj %}{% include 'blog/card.html' with post=post only %}{% empty %}<div class="empty-state"><p>Henüz yayınlanmış bir yazı bulunmuyor.</p></div>{% endfor %}</div>
-    {% include 'components/pagination.html' %}
-</div></section></main>{% endblock %}
+{% extends 'layouts/public_base.html' %}
+{% load static %}
+{% block title %}Blog & Rehber | DertDerman{% endblock %}
+{% block body_class %}discovery-page journal-page{% endblock %}
+{% block extra_head %}<meta name="description" content="Tüketici deneyimlerine dair yazılar ve pratik rehberler. DertDerman Blog ile bilgiyle bir adım ileri."><link rel="stylesheet" href="{% static 'css/discovery.css' %}"><script src="{% static 'js/article-reader.js' %}" defer></script>{% endblock %}
+{% block content %}
+<main id="main-content">
+  <section class="discovery-hero journal-hero"><div class="discovery-container discovery-hero-inner"><header><p class="discovery-eyebrow">BLOG &amp; REHBER</p><h1>Biraz bilgi.<br><span>Yeni bir bakış.</span></h1></header><p class="discovery-hero-intro journal-hero-intro">Tüketici deneyimlerine dair yazılar, yol gösteren bilgiler ve okumaya değer fikirler.</p></div></section>
+  <section class="discovery-section"><div class="discovery-container">
+    <div class="discovery-tools"><form class="discovery-search" method="get" role="search" aria-label="Blog yazısı ara"><div class="discovery-search-box">{% include 'components/icon.html' with name='search' %}<label class="visually-hidden" for="blog-search">Yazılarda ara</label><input type="search" name="s" id="blog-search" value="{{ search }}" maxlength="180" placeholder="Merak ettiğiniz konuyu arayın"></div><button type="submit">Ara</button>{% if search %}<a class="discovery-search-clear" href="{% url 'blog:list' %}">Temizle</a>{% endif %}</form><div class="discovery-result"><strong>{{ page_obj.paginator.count }}</strong><span>{% if search %}eşleşen yazı{% else %}yayınlanan yazı{% endif %}</span></div></div>
+    {% if search %}<p class="discovery-search-summary">“{{ search }}” için yazılar</p>{% endif %}
+    <div class="journal-grid" aria-label="Blog yazıları">{% for post in page_obj %}{% include 'blog/index_card.html' with post=post only %}{% empty %}{% if search %}{% include 'components/public_empty.html' with icon='write' heading='Aramanızla eşleşen bir yazı bulunamadı.' description='Farklı bir anahtar kelime deneyin veya tüm yazılara göz atın.' route='blog:list' cta='Tüm yazılara dön' %}{% else %}{% include 'components/public_empty.html' with icon='write' heading='Henüz yayınlanmış bir yazı bulunmuyor.' description='Yeni yazılar ve rehberler yayınlandığında bu alanda okuyabilirsiniz.' %}{% endif %}{% endfor %}</div>
+    {% include 'components/pagination.html' with label='Blog sayfaları' %}
+  </div></section>
+</main>
+{% include 'blog/reader_dialog.html' %}
+{% endblock %}

@@ -1,5 +1,8 @@
-{% if page_obj.has_other_pages %}<nav class="complaint-pagination" aria-label="Sayfalar">
-{% if page_obj.has_previous %}<a class="secondary-action" href="?page={{ page_obj.previous_page_number }}" rel="prev">Önceki</a>{% endif %}
-<span aria-current="page">Sayfa {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
-{% if page_obj.has_next %}<a class="secondary-action" href="?page={{ page_obj.next_page_number }}" rel="next">Sonraki</a>{% endif %}
-</nav>{% endif %}
+{% load pagination_tags %}
+{% if page_obj.paginator.count %}{% with parameter=page_param|default:'page' %}
+<nav class="dd-pagination" aria-label="{{ label|default:'Sayfalar' }}">
+<span class="dd-pagination-summary">{{ page_obj.start_index }}–{{ page_obj.end_index }} / {{ page_obj.paginator.count }} kayıt</span><div class="dd-pagination-links">
+{% if page_obj.has_previous %}<a href="{% page_url page_obj.previous_page_number parameter %}" rel="prev" aria-label="Önceki sayfa">‹</a>{% else %}<span aria-disabled="true" aria-label="Önceki sayfa">‹</span>{% endif %}
+{% page_numbers page_obj as numbers %}{% for number in numbers %}{% if number == page_obj.paginator.ELLIPSIS %}<span class="dd-pagination-gap">{{ number }}</span>{% elif number == page_obj.number %}<span aria-current="page" aria-label="Sayfa {{ number }}">{{ number }}</span>{% else %}<a href="{% page_url number parameter %}" aria-label="Sayfa {{ number }}">{{ number }}</a>{% endif %}{% endfor %}
+{% if page_obj.has_next %}<a href="{% page_url page_obj.next_page_number parameter %}" rel="next" aria-label="Sonraki sayfa">›</a>{% else %}<span aria-disabled="true" aria-label="Sonraki sayfa">›</span>{% endif %}</div></nav>
+{% endwith %}{% endif %}

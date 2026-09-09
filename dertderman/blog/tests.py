@@ -144,20 +144,20 @@ class BlogTests(TestCase):
     def test_pagination_order_invalid_pages_and_home_limit(self):
         posts = [Post.objects.create(title=f"Post {i:02d}", excerpt="Excerpt", content="Body", status="PUBLISHED", published_at=timezone.now()) for i in range(19)]
         seen = []
-        for number, size in [(1, 9), (2, 9), (3, 2)]:
+        for number, size in [(1, 6), (2, 6), (3, 6), (4, 2)]:
             response = self.client.get(self.list_url, {"page": number})
             objects = list(response.context["page_obj"])
             self.assertEqual(len(objects), size)
             seen += objects
         self.assertEqual(seen, list(reversed(posts)) + [self.published])
-        for value, page in [("abc", 1), ("-1", 3), ("999999", 3)]:
+        for value, page in [("abc", 1), ("-1", 4), ("999999", 4)]:
             response = self.client.get(self.list_url, {"page": value})
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.context["page_obj"].number, page)
         self.assertEqual(list(self.client.get("/").context["recent_posts"]), list(reversed(posts))[:3])
         self.client.force_login(self.admin)
         response = self.client.get(self.admin_list, {"page": "abc"})
-        self.assertEqual(len(response.context["page_obj"]), 12)
+        self.assertEqual(len(response.context["page_obj"]), 5)
 
     def test_slug_collision_and_non_ascii_title(self):
         posts = [Post.objects.create(title=title, excerpt="Summary", content="Body") for title in ["Same Title", "Same Title", "你好"]]
@@ -176,7 +176,7 @@ class BlogTests(TestCase):
             self.assertNotContains(response, self.published.title)
             self.assertContains(response, escape(self.published.excerpt))
             self.assertNotContains(response, self.published.excerpt)
-        self.assertContains(response, escape(self.published.content))
+        self.assertContains(response, '<p>&lt;script&gt;alert(3)&lt;/script&gt;<br>Another paragraph.</p>', html=True)
         self.assertNotContains(response, self.published.content)
 
     def test_supported_images_are_normalized_and_names_are_generated(self):

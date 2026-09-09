@@ -1,0 +1,12 @@
+<article class="journal-card">
+  <a class="journal-card-image" href="{% url 'blog:detail' post.slug %}" data-article-link aria-label="{{ post.title }} yazısını oku">
+    {% if post.cover_image %}<img src="{{ post.cover_image.url }}" alt="" width="640" height="400" loading="lazy" decoding="async">
+    {% else %}<div class="journal-cover-fallback" aria-hidden="true"><span class="journal-cover-label">DERTDERMAN / BLOG</span><span class="journal-cover-mark">{% include 'components/icon.html' with name='write' %}</span><span class="journal-cover-line"></span></div>{% endif %}
+    <span class="journal-image-action" aria-hidden="true">{% include 'components/icon.html' %}</span>
+  </a>
+  <div class="journal-card-body"><p class="journal-card-meta"><span>DERTDERMAN</span><time datetime="{{ post.published_at|date:'c' }}">{{ post.published_at|date:'d F Y' }}</time></p>
+    <h2><a href="{% url 'blog:detail' post.slug %}" data-article-link>{{ post.title }}</a></h2>
+    <p class="journal-excerpt">{{ post.excerpt }}</p>
+    <a class="journal-read-link" href="{% url 'blog:detail' post.slug %}" data-article-link>Oku <span class="visually-hidden">{{ post.title }}</span>{% include 'components/icon.html' %}</a>
+  </div>
+</article>

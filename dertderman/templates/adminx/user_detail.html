@@ -1,0 +1,4 @@
+{% extends 'adminx/content_base.html' %}
+{% block title %}{{ account.username }} | Yönetim{% endblock %}
+{% block content_heading %}<h1>{{ account.get_full_name|default:account.username }}</h1><p>Kullanıcı hesap özeti</p>{% endblock %}
+{% block management_content %}<section class="account-card management-form"><dl class="account-details"><div><dt>Kullanıcı adı</dt><dd>{{ account.username }}</dd></div><div><dt>E-posta</dt><dd>{{ account.email }}</dd></div><div><dt>Kayıt tarihi</dt><dd>{{ account.date_joined|date:'d.m.Y H:i' }}</dd></div><div><dt>Rol</dt><dd>{{ account.get_user_type_display }}</dd></div><div><dt>Aktiflik</dt><dd>{% if account.is_active %}Aktif{% else %}Pasif{% endif %}</dd></div></dl><a class="secondary-action" href="{% url 'adminx:user_list' %}">Kullanıcılara dön</a></section>{% endblock %}

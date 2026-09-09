@@ -1,0 +1,4 @@
+{% if messages %}<div class="ax-messages" aria-label="İşlem bildirimleri">{% for message in messages %}
+{% if 'company-application' in message.tags %}<section class="ax-application-success" role="status"><span>{% include 'companies/panel/icon.html' with name='check' %} Başvurunuz alındı</span><h2>Şirket başvurunuz alındı.</h2><p>Başvurunuz yönetim ekibi tarafından incelendikten sonra şirket hesabınız aktif hale gelecektir.</p><p>Onay sonrasında başvuruda kullandığınız e-posta adresi ve şifreyle giriş yapabilirsiniz.</p></section>
+{% else %}<div class="feedback feedback-{{ message.level_tag }}" {% if message.level_tag == 'error' %}role="alert"{% else %}role="status"{% endif %}><p>{{ message }}</p><button class="feedback-close" type="button" aria-label="Bildirimi kapat" hidden>×</button></div>{% endif %}
+{% endfor %}</div>{% endif %}

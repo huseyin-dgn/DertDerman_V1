@@ -1,0 +1,1 @@
+<a class="nc-header-link" href="{% url 'notifications:list' %}" aria-label="Bildirimler, {{ notification_unread_count }} okunmamış">{% include 'companies/panel/icon.html' with name='bell' %}<span>Bildirimler</span>{% if notification_unread_count %}<b class="nc-count">{{ notification_unread_count }}</b>{% endif %}</a>

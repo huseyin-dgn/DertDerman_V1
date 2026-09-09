@@ -129,7 +129,7 @@ class AuthenticationSecurityTests(TestCase):
             403,
         )
 
-    def test_login_redirects_by_role_and_ignores_external_next(self):
+    def test_consumer_login_only_accepts_user_and_ignores_external_next(self):
         role_expectations = [
             (User.UserType.USER, reverse("dashboard:home")),
             (User.UserType.COMPANY, reverse("companies:company_panel")),
@@ -146,8 +146,12 @@ class AuthenticationSecurityTests(TestCase):
                     "password": "StrongPass2026!",
                 },
             )
-            self.assertEqual(response.status_code, 302)
-            self.assertEqual(response["Location"], expected_url)
+            if user_type == User.UserType.USER:
+                self.assertEqual(response.status_code, 302)
+                self.assertEqual(response["Location"], expected_url)
+            else:
+                self.assertEqual(response.status_code, 200)
+                self.assertNotIn("_auth_user_id", self.client.session)
             self.client.logout()
 
     def test_valid_login_authenticates_user_and_redirects_to_panel(self):
@@ -178,7 +182,7 @@ class AuthenticationSecurityTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertNotIn("_auth_user_id", self.client.session)
 
-    def test_login_with_unknown_role_fails_closed_to_home(self):
+    def test_login_with_unknown_role_fails_without_creating_session(self):
         user = self.create_user("unknown-role", User.UserType.USER)
         User.objects.filter(pk=user.pk).update(user_type="UNKNOWN")
 
@@ -190,8 +194,8 @@ class AuthenticationSecurityTests(TestCase):
             },
         )
 
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response["Location"], reverse("core:home"))
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn("_auth_user_id", self.client.session)
 
     def test_logout_post_closes_session_get_does_not(self):
         user = self.create_user("logout-user", User.UserType.USER)

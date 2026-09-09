@@ -12,6 +12,7 @@ urlpatterns = [
     path("hesap/", include("accounts.urls")),
     path("kurumsal/", include("companies.auth_urls")),
     path("panel/", include("dashboard.urls")),
+    path("bildirimler/", include("notifications.urls")),
     path("sirket-panel/", include("companies.urls")),
     path("sirketler/", include("companies.public_urls")),
     path("yonetim/", include("adminx.urls")),

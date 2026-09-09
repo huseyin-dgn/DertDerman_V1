@@ -85,6 +85,7 @@ class Company(models.Model):
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    archived_at = models.DateTimeField(null=True, blank=True, editable=False)
 
     class Meta:
         ordering = ("name",)
@@ -194,6 +195,8 @@ class CompanyNotification(models.Model):
     complaint = models.ForeignKey("complaints.Complaint", null=True, blank=True, on_delete=models.CASCADE, related_name="company_notifications")
     kind = models.CharField(max_length=20, choices=Kind.choices)
     title = models.CharField(max_length=180)
+    message = models.TextField(blank=True)
+    event_key = models.CharField(max_length=180, null=True, blank=True, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

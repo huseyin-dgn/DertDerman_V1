@@ -1,21 +1,26 @@
-{% extends "base.html" %}
+{% extends 'layouts/auth_base.html' %}
 {% block title %}Şirket Girişi | DertDerman{% endblock %}
-{% block body_class %}auth-page company-login-page{% endblock %}
-{% block navbar %}{% endblock %}{% block footer %}{% endblock %}
+{% block theme_color %}#102a43{% endblock %}
+{% block auth_variant %}ax-company-login{% endblock %}
 {% block content %}
-<main class="auth-shell" id="main-content">
-    {% include 'components/auth_story.html' %}
-    <div class="auth-form-area"><section class="auth-card" aria-labelledby="auth-title">
-        <a class="auth-back" href="{% url 'core:home' %}">{% include 'components/icon.html' with name='back' %} Ana Sayfaya Dön</a>
-        <header class="auth-heading"><p class="section-kicker">Kurumsal Giriş</p><h1 id="auth-title">Şirket hesabınıza giriş yapın.</h1><p>Onaylanmış kurumsal hesabınızla şirket çalışma alanına erişin.</p></header>
-        <form method="post" class="auth-form">
-            {% csrf_token %}
-            {% if form.non_field_errors %}<div class="form-alert" role="alert">{{ form.non_field_errors }}</div>{% endif %}
-            {% include 'components/field.html' with field=form.email label='E-posta' %}
-            {% include 'components/field.html' with field=form.password label='Şifre' %}
-            <button type="submit" class="auth-submit">Şirket Girişi {% include 'components/icon.html' %}</button>
-        </form>
-        <p class="auth-footer">Kurumsal hesabınız yok mu? <a href="{% url 'company_auth:register' %}">Şirket Başvurusu Yap</a></p>
-    </section></div>
+<main class="ax-layout" id="main-content">
+  <aside class="ax-story ax-workspace-story" aria-labelledby="workspace-story-title"><div class="ax-story-inner">
+    <p class="ax-eyebrow">ŞİRKET ÇALIŞMA ALANI</p><h2 id="workspace-story-title">İletişimi yönetin.<br><span>Çözüme odaklanın.</span></h2><p class="ax-story-lead">Ekibinizin ihtiyaç duyduğu şikayet, yanıt ve profil bilgileri aynı çalışma alanında.</p>
+    {% include 'auth/company_workspace_visual.html' %}
+    <p class="ax-workspace-foot">Dinleyen şirketler. Açık iletişim. Takip edilebilir süreçler.</p>
+  </div></aside>
+  <div class="ax-form-area"><section class="ax-card" aria-labelledby="auth-title">
+    {% include 'auth/messages.html' %}
+    <header class="ax-heading"><span class="ax-role">{% include 'companies/panel/icon.html' with name='building' %} Kurumsal giriş</span><h1 id="auth-title">Şirket Panelinize<br>Hoş Geldiniz</h1><p>Yeni şikayetleri görüntüleyin, müşterilerinize yanıt verin ve şirket profilinizi tek merkezden yönetin.</p></header>
+    <form method="post" class="ax-form" data-auth-form>
+      {% csrf_token %}{% include 'auth/form_errors.html' %}
+      {% include 'auth/field.html' with field=form.email label='E-posta' %}
+      {% include 'auth/field.html' with field=form.password label='Şifre' %}
+      <button type="submit" class="ax-submit" data-submit-label="Şirket paneli açılıyor…"><span>Şirket Girişi</span>{% include 'components/icon.html' %}</button>
+    </form>
+    <p class="ax-access-note">Kurumsal erişim, şirket başvurunuzun onaylanmasının ardından açılır.</p>
+    <div class="ax-alternative"><span>Henüz kurumsal hesabınız yok mu?</span><a href="{% url 'company_auth:register' %}">Şirket Başvurusu Yap {% include 'components/icon.html' %}</a></div>
+    <p class="ax-crosslink">Bireysel kullanıcı mısınız? <a href="{% url 'accounts:login' %}">Kullanıcı Girişi</a></p>
+  </section></div>
 </main>
 {% endblock %}

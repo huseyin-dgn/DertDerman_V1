@@ -1,0 +1,1 @@
+<a class="ad-kpi {% if tone == 'pending' %}ad-kpi--pending{% endif %}" href="{{ url }}"><div class="ad-kpi-top"><span class="ad-kpi-icon">{% include 'companies/panel/icon.html' with name=icon %}</span>{% include 'components/badge.html' with status=tone|default:'info' label=badge %}</div><strong>{{ value }}</strong><h2>{{ label }}</h2><p>{{ description }}</p></a>

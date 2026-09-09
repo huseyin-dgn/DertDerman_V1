@@ -1,0 +1,1 @@
+<form method="post" action="{% url 'companies:notifications_read_all' %}" class="nc-company-actions">{% csrf_token %}<button class="cp-button cp-button--quiet" type="submit" {% if not unread_count %}disabled{% endif %}>Tümünü okundu işaretle</button></form>

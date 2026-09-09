@@ -1,44 +1,6 @@
-{% extends "base.html" %}
-
-{% block title %}Şikayet Moderasyonu | DertDerman{% endblock %}
-
-{% block content %}
-    <main class="content-section section-muted" id="main-content">
-        {% include 'components/workspace_nav.html' %}
-        <section class="section-inner account-shell" aria-labelledby="moderation-title">
-            <div class="account-card moderation-content">
-                <header class="account-header">
-                    <h1 id="moderation-title">Şikayet Moderasyonu</h1>
-                    <p>İnceleme bekleyen şikayetler, en yeniden en eskiye.</p>
-                </header>
-                <div class="complaint-mini-list">
-                    {% for complaint in complaints %}
-                        <article class="complaint-mini-card">
-                            <div>
-                                <p class="complaint-company">{{ complaint.company.name }}</p>
-                                <h2 class="complaint-card-title">{{ complaint.title }}</h2>
-                                <p>Kullanıcı: {{ complaint.user.username }}</p>
-                                <a class="secondary-action" href="{% url 'adminx:complaint_detail' complaint.pk %}">İncele<span class="visually-hidden">: {{ complaint.title }}</span></a>
-                            </div>
-                            <dl>
-                                <div>
-                                    <dt>Durum</dt>
-                                    <dd>{% include "complaints/status_badge.html" with complaint=complaint only %}</dd>
-                                </div>
-                                <div>
-                                    <dt>Oluşturulma tarihi</dt>
-                                    <dd><time datetime="{{ complaint.created_at|date:'c' }}">{{ complaint.created_at|date:"d.m.Y H:i" }}</time></dd>
-                                </div>
-                            </dl>
-                        </article>
-                    {% empty %}
-                        <div class="empty-state"><p>İnceleme bekleyen şikayet bulunmuyor.</p></div>
-                    {% endfor %}
-                </div>
-                <div class="hero-actions">
-                    <a class="secondary-action" href="{% url 'adminx:home' %}">Yönetim Paneline Dön</a>
-                </div>
-            </div>
-        </section>
-    </main>
-{% endblock %}
+{% extends 'adminx/table_base.html' %}
+{% block title %}Şikayetler | DertDerman Yönetim{% endblock %}
+{% block content_heading %}<p class="ad-kicker">YÖNETİM MERKEZİ</p><h1>Şikayetler</h1><p>Şikayetleri inceleyin, yayın ve ret kararlarını yönetin.</p>{% endblock %}
+{% block table_head %}<th scope="col">ID</th><th scope="col">Başlık</th><th scope="col">Kullanıcı</th><th scope="col">Şirket</th><th scope="col">Oluşturulma tarihi</th><th scope="col">Durum</th><th scope="col">Aksiyon</th>{% endblock %}
+{% block table_rows %}{% for complaint in page_obj %}<tr><td>#{{ complaint.pk }}</td><td class="ad-title-cell">{{ complaint.title }}</td><td>{{ complaint.user.username }}</td><td>{{ complaint.company.name }}</td><td>{{ complaint.created_at|date:'d.m.Y H:i' }}</td><td>{% include 'components/badge.html' with status=complaint.status label=complaint.get_status_display %}</td><td><a class="ad-row-action" href="{% url 'adminx:complaint_detail' complaint.pk %}" aria-label="{{ complaint.title }} şikayetini incele">İncele ↗</a></td></tr>{% endfor %}{% endblock %}
+{% block table_empty %}{% if filter_form.cleaned_data.status == 'PENDING' %}{% include 'components/empty_state.html' with heading='İnceleme bekleyen şikayet bulunmuyor.' route='adminx:complaint_list' %}{% else %}{% include 'components/empty_state.html' with heading='Bu filtrelerle eşleşen şikayet bulunmuyor.' route='adminx:complaint_list' %}{% endif %}{% endblock %}

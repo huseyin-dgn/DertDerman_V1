@@ -253,8 +253,8 @@ class CompanyPanelTests(TestCase):
             Complaint.objects.create(user=self.reader, company=self.a, title=f"Page item {i}", description="Pagination content.")
         first = self.client.get(self.route("complaint_list"), {"q": "Page", "page": 1})
         second = self.client.get(self.route("complaint_list"), {"q": "Page", "page": 2})
-        self.assertEqual(len(first.context["page_obj"]), 12)
-        self.assertEqual(len(second.context["page_obj"]), 3)
+        self.assertEqual(len(first.context["page_obj"]), 6)
+        self.assertEqual(len(second.context["page_obj"]), 6)
         self.assertContains(first, "q=Page&amp;page=2")
 
     def test_metrics_count_complaints_not_replies_and_average_first_response(self):

@@ -1,4 +1,4 @@
-from django.db.models import DateTimeField, Exists, F, OuterRef, Q, Subquery
+from django.db.models import CharField, DateTimeField, Exists, F, OuterRef, Q, Subquery, Value
 from django.db.models.functions import Coalesce, Greatest
 
 from complaints.models import Complaint
@@ -27,7 +27,26 @@ def company_complaints(company):
 
 
 def company_notifications(company, user):
+    from .services import active_company_memberships_for
+    if not user.is_authenticated or not user.is_active or user.user_type != 'COMPANY':
+        return CompanyNotification.objects.none()
     reads = CompanyNotificationRead.objects.filter(notification_id=OuterRef("pk"), user=user)
-    return CompanyNotification.objects.filter(company=company).filter(
+    return CompanyNotification.objects.filter(company=company,
+        company_id__in=active_company_memberships_for(user).values('company_id')).filter(
         Q(complaint__isnull=True) | Q(complaint__company=company),
-    ).select_related("complaint").annotate(is_read=Exists(reads))
+    ).select_related("complaint", "company").annotate(is_read=Exists(reads))
+
+
+def complaint_history(company, user, complaint):
+    """Union in SQL so the whole history stays reachable without loading it all."""
+    def events(queryset, source, title):
+        return queryset.order_by().annotate(
+            at=F("created_at"), event_title=title, event_id=F("pk"),
+            source=Value(source, output_field=CharField()),
+        ).values("at", "event_title", "event_id", "source")
+
+    created = events(Complaint.objects.filter(pk=complaint.pk, company=company), "complaint", Value("Şikayet oluşturuldu"))
+    responses = events(company_responses(company).filter(complaint=complaint), "response", Value("Şirket cevabı eklendi"))
+    notes = events(company_notes(company).filter(complaint=complaint), "note", Value("Dahili not eklendi"))
+    notifications = events(company_notifications(company, user).filter(complaint=complaint).exclude(kind="NEW"), "notification", F("title"))
+    return created.union(responses, notes, notifications, all=True).order_by("-at", "-source", "-event_id")

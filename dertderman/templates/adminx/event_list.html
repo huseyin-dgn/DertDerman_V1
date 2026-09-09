@@ -1,0 +1,6 @@
+{% extends 'adminx/table_base.html' %}
+{% block title %}Bildirimler ve Aktivite | DertDerman Yönetim{% endblock %}
+{% block content_heading %}<p class="ad-kicker">YÖNETİM MERKEZİ</p><h1>{% if is_activity %}Sistem / Aktivite{% else %}Bildirimler{% endif %}</h1><p>Şirketlere iletilen şikayet ve yönetim bildirimleri. Bu görünüm şirket olay kayıtlarını kapsar.</p>{% endblock %}
+{% block table_head %}<th scope="col">Olay</th><th scope="col">Şirket</th><th scope="col">Tür</th><th scope="col">Tarih</th><th scope="col">Aksiyon</th>{% endblock %}
+{% block table_rows %}{% for event in page_obj %}<tr><td class="ad-title-cell">{{ event.title }}</td><td>{{ event.company.name }}</td><td>{% include 'components/badge.html' with status='info' label=event.get_kind_display %}</td><td>{{ event.created_at|date:'d.m.Y H:i' }}</td><td>{% if event.complaint_id %}<a class="ad-row-action" href="{% url 'adminx:complaint_detail' event.complaint_id %}">Şikayeti incele ↗</a>{% else %}<a class="ad-row-action" href="{% url 'adminx:company_edit' event.company_id %}">Şirkete git ↗</a>{% endif %}</td></tr>{% endfor %}{% endblock %}
+{% block table_empty %}{% include 'components/empty_state.html' with heading='Henüz olay kaydı bulunmuyor.' route='adminx:notifications' %}{% endblock %}

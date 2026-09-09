@@ -1,0 +1,7 @@
+{% extends 'adminx/content_base.html' %}
+{% block management_content %}{% include 'adminx/filters.html' %}
+<section class="ad-card" aria-label="{{ admin_section.label }} kayıtları">
+{% if page_obj %}<p class="ad-table-hint">Diğer sütunlar için tabloyu yatay kaydırabilirsiniz.</p>{% endif %}
+{% if page_obj %}<div class="ad-table-scroll" tabindex="0" role="region" aria-label="{{ admin_section.label }} tablosu; dar ekranlarda yatay kaydırın"><table class="ad-table"><caption class="visually-hidden">{{ admin_section.label }}</caption><thead><tr>{% block table_head %}{% endblock %}</tr></thead><tbody>{% block table_rows %}{% endblock %}</tbody></table></div>
+{% else %}{% block table_empty %}{% include 'components/empty_state.html' with route='adminx:home' cta='Genel bakışa dön' %}{% endblock %}{% endif %}
+<div class="ad-table-footer">{% include 'components/pagination.html' %}</div></section>{% endblock %}

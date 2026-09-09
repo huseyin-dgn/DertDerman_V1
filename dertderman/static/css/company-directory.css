@@ -1,0 +1,17 @@
+/* Company directory refinement only: no journal, reader or pagination logic. */
+.directory-page{background:#f2f7fd}
+.directory-page .discovery-hero{background:radial-gradient(ellipse at 85% 15%,#ccecf499,transparent 55%),linear-gradient(125deg,#edf4ff,#f4f9ff 60%,#e8f3f9);border-bottom:1px solid #d9e8f4}
+.directory-page .discovery-hero:after{border-color:#b8d5e480;box-shadow:0 0 0 55px #d2e6f32e,0 0 0 110px #d2e6f31f}
+.directory-page .discovery-hero h1 span{color:#477da8}.directory-page .discovery-eyebrow{color:#426e96}
+.directory-page .discovery-section{background:radial-gradient(ellipse at 0 35%,#e2f0fa88,transparent 55%),linear-gradient(#f3f8fd,#edf4fb)}
+.directory-page .discovery-tools{padding:20px 24px;background:#ffffffed;border:1px solid #dce7f2;border-radius:15px;box-shadow:0 8px 28px #30577d08}
+.directory-page .directory-card{background:linear-gradient(155deg,#fff 35%,#f6faff);border-color:#d4e3f0;border-top:3px solid #a6c8e1;box-shadow:0 5px 18px #244f7310}
+.directory-page .directory-card:hover,.directory-page .directory-card:focus-within{border-top-color:#4e8ebd;box-shadow:0 14px 30px #244f7318}
+.directory-page .directory-initial,.directory-page .directory-logo{background:linear-gradient(145deg,#f4f9ff,#e5f0f9);border-color:#d1e2f0;box-shadow:inset 0 1px 0 white}
+.directory-page .directory-category{display:inline-block;border:1px solid #dbe7f2;background:#edf5fb;color:#476b8a;padding:4px 7px;border-radius:5px;max-width:100%;overflow-wrap:anywhere}
+.directory-page .directory-card-footer>span{align-self:flex-start;background:#edf4fa;border:1px solid #dfeaf3;padding:3px 7px;border-radius:5px;color:#55738c}
+.directory-page .dd-pagination{background:#ffffffba;border:1px solid #d7e5f1;border-radius:12px;padding:17px 21px}
+.directory-page .discovery-network{background:linear-gradient(115deg,#e5effa,#eef7fb);border-color:#cbdfee}
+.directory-page .discovery-network .secondary-action{color:#245678;background:#fff;border-color:#aecbdf}
+.directory-page .discovery-network .secondary-action:hover{background:#e2eff9;border-color:#648eae}
+@media(max-width:767px){.directory-page .discovery-tools{padding:17px;gap:14px}.directory-page .discovery-hero{padding-block:33px}.directory-page .directory-card-footer{gap:10px}.directory-page .directory-card-footer>span{font-size:9px;align-self:auto}.directory-page .dd-pagination{padding:16px}.directory-page .discovery-network{padding:24px}}

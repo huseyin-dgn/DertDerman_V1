@@ -47,7 +47,7 @@
                         <p>{{ response.body|linebreaksbr }}</p>
                     </article>
                     {% endfor %}
-                    {% if company_response_page.has_other_pages %}<nav aria-label="Şirket cevabı sayfaları">{% if company_response_page.has_previous %}<a href="?response_page={{ company_response_page.previous_page_number }}">Önceki</a>{% endif %} <span>{{ company_response_page.number }} / {{ company_response_page.paginator.num_pages }}</span> {% if company_response_page.has_next %}<a href="?response_page={{ company_response_page.next_page_number }}">Sonraki</a>{% endif %}</nav>{% endif %}
+                    {% include 'components/pagination.html' with page_obj=company_response_page page_param='response_page' label='Şirket cevabı sayfaları' %}
                 </section>
                 {% endif %}
             </div>

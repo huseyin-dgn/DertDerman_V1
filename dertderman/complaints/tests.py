@@ -283,7 +283,7 @@ class PublicComplaintTests(TestCase):
         Complaint.objects.filter(pk__in=[c.pk for c in extra]).update(created_at=timezone.now())
         expected = list(reversed(extra)) + [self.published]
         seen = []
-        for page, count in [(1, 12), (2, 12), (3, 2)]:
+        for page, count in [(1, 8), (2, 8), (3, 8), (4, 2)]:
             response = self.client.get(self.list_url, {"page": page})
             self.assertEqual(response.status_code, 200)
             objects = list(response.context["page_obj"])
@@ -291,10 +291,10 @@ class PublicComplaintTests(TestCase):
             seen.extend(objects)
             if page > 1:
                 self.assertContains(response, f'href="?page={page - 1}"')
-            if page < 3:
+            if page < 4:
                 self.assertContains(response, f'href="?page={page + 1}"')
         self.assertEqual(seen, expected)
-        for value, expected_page in [("abc", 1), ("-1", 3), ("999999", 3), ("0", 3)]:
+        for value, expected_page in [("abc", 1), ("-1", 4), ("999999", 4), ("0", 4)]:
             with self.subTest(page=value):
                 response = self.client.get(self.list_url, {"page": value})
                 self.assertEqual(response.status_code, 200)

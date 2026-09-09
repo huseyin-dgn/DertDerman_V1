@@ -25,17 +25,7 @@
             {% else %}
                 <div class="empty-state"><p>Henüz yayınlanmış şikayet bulunmuyor.</p></div>
             {% endif %}
-            {% if page_obj.has_other_pages %}
-                <nav class="complaint-pagination" aria-label="Şikayet sayfaları">
-                    {% if page_obj.has_previous %}
-                        <a class="secondary-action" href="?page={{ page_obj.previous_page_number }}" rel="prev">Önceki</a>
-                    {% endif %}
-                    <span aria-current="page">Sayfa {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
-                    {% if page_obj.has_next %}
-                        <a class="secondary-action" href="?page={{ page_obj.next_page_number }}" rel="next">Sonraki</a>
-                    {% endif %}
-                </nav>
-            {% endif %}
+            {% include 'components/pagination.html' %}
         </div></section>
     </main>
 {% endblock %}
