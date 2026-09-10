@@ -13,6 +13,7 @@
                         <p class="section-kicker">Profilim</p>
                         <h1 id="profile-title">{{ request.user.get_full_name|default:request.user.username }}</h1>
                         <p>İletişim bilgilerinizi ve hesap tercihlerinizi buradan yönetebilirsiniz.</p>
+                        {% if primary_user_badge %}<div class="profile-primary-badge">{% include 'components/public_user_badge.html' with badge=primary_user_badge only %}</div>{% endif %}
                     </div>
                 </div>
 
@@ -23,7 +24,7 @@
                     <div><dt>Katılım tarihi</dt><dd>{{ request.user.date_joined|date:"d F Y" }}</dd></div>
                 </dl>
 
-                <section class="user-badges" aria-labelledby="user-badges-title"><header><p class="section-kicker">KATKILAR</p><h2 id="user-badges-title">Rozetler</h2></header><div class="user-badge-grid">{% for badge in user_badges %}{% include 'components/user_badge.html' with badge=badge only %}{% empty %}<p class="user-badge-empty">Public katkılarınız arttıkça uygun rozetler burada otomatik görünür.</p>{% endfor %}</div></section>
+                <section class="user-badges" aria-labelledby="user-badges-title"><header><p class="section-kicker">KATKILAR</p><h2 id="user-badges-title">Başarı Rozetleri</h2><p>Platformdaki gerçek katkılarınızdan otomatik kazanılır.</p></header><div class="achievement-grid">{% for badge in user_badges %}{% include 'components/achievement_badge.html' with badge=badge badge_kind='user' only %}{% empty %}<p class="achievement-empty">Public katkılarınız arttıkça uygun rozetler burada otomatik görünür.</p>{% endfor %}</div></section>
 
                 <div class="account-actions profile-actions">
                     <a class="primary-action" href="{% url 'accounts:profile_edit' %}">Bilgilerimi Düzenle</a>

@@ -98,7 +98,7 @@ class BadgeResolverTests(TestCase):
         keys = {badge.key for badge in resolve_user_badges(self.user)}
         self.assertEqual(keys, {
             "new-contributor", "contributor", "active-contributor", "solution-focused",
-            "community-supporter", "long-standing",
+            "community-supporter", "long-standing", "trusted-contributor",
         })
         Complaint.objects.filter(pk__in=[item.pk for item in self.complaints[3:]]).update(status=Complaint.Status.PENDING)
         keys = {badge.key for badge in resolve_user_badges(self.user)}

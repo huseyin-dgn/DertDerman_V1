@@ -7,6 +7,7 @@ from complaints.selectors import public_complaints
 
 from .models import Company, CompanyResponse
 from .selectors import public_companies, public_company_performance
+from .badges import primary_company_badge, resolve_company_badges_from_performance
 from .panel_views import dashboard as company_panel, legacy_company_dashboard as company_panel_detail
 
 
@@ -54,6 +55,7 @@ def public_company_detail(request, slug):
     )
     performance = public_company_performance(company)
     average_response = _format_response_time(performance["average_response_seconds"])
+    company_badges = resolve_company_badges_from_performance(company, performance)
     return render(request, "companies/company_detail.html", {
         "company": company,
         "page_obj": page_obj,
@@ -66,6 +68,8 @@ def public_company_detail(request, slug):
         "performance": performance,
         "average_response": average_response,
         "recent_responses": recent_responses,
+        "company_badges": company_badges,
+        "primary_company_badge": primary_company_badge(company_badges),
     })
 
 

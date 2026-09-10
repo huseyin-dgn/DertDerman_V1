@@ -11,7 +11,7 @@
       <div class="company-profile-identity">
         <span class="company-profile-logo">{% include 'components/company_avatar.html' with company=company image_class='company-profile-avatar-image' fallback_class='company-profile-avatar-fallback' only %}</span>
         <div><p class="company-profile-category">{{ company.category.name|default:"Şirket" }}</p><h1>{{ company.name }}</h1>
-          {% if company.is_verified %}<span class="company-verified" title="Bu şirket hesabı DertDerman'da doğrulanmıştır." aria-label="Bu şirket hesabı DertDerman'da doğrulanmıştır."><b aria-hidden="true">✓</b> Doğrulanmış şirket</span>{% endif %}
+          <div class="company-profile-trust-row">{% if company.is_verified %}<span class="company-verified" title="Bu şirket hesabı DertDerman'da doğrulanmıştır." aria-label="Bu şirket hesabı DertDerman'da doğrulanmıştır."><b aria-hidden="true">✓</b> Doğrulanmış şirket</span>{% endif %}{% if primary_company_badge %}{% include 'components/public_company_badge.html' with badge=primary_company_badge only %}{% endif %}</div>
         </div>
       </div>
       <div class="company-profile-summary">
@@ -36,6 +36,8 @@
         <article class="company-metric company-metric--navy"><span>Ortalama Cevap</span>{% if average_response %}<strong>{{ average_response }}</strong><small>ilk aktif şirket yanıtı</small>{% else %}<p>Henüz yeterli veri yok</p>{% endif %}</article>
       </div>
     </section>
+
+    <section class="public-company-badges" aria-labelledby="company-badges-title"><header class="company-section-heading"><div><p>Gerçek performanstan</p><h2 id="company-badges-title">Kurumsal Rozetler</h2></div><span>Otomatik hesaplanır</span></header><div class="achievement-grid achievement-grid--company">{% for badge in company_badges %}{% include 'components/achievement_badge.html' with badge=badge badge_kind='company' only %}{% empty %}<p class="achievement-empty">Henüz kurumsal rozet için yeterli public performans verisi yok.</p>{% endfor %}</div></section>
 
     <div class="company-profile-columns">
       <section class="company-complaints" aria-labelledby="company-complaints-title">

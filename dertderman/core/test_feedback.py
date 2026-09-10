@@ -64,10 +64,10 @@ class FeedbackTests(TestCase):
         self.assertContains(response, "Şikayetiniz incelemeye alındı.")
         self.assertEqual(self.user.complaints.get().status, "PENDING")
 
-    def test_logout_info_without_authentication(self):
+    def test_logout_has_no_global_flash_without_authentication(self):
         response = self.client.post(reverse("accounts:logout"), follow=True)
-        self.assertContains(response, "Oturumunuz güvenli şekilde kapatıldı.")
-        self.assertContains(response, 'data-feedback="info"')
+        self.assertNotContains(response, "Oturumunuz güvenli şekilde kapatıldı.")
+        self.assertNotContains(response, 'data-feedback="info"')
         self.assertNotIn("_auth_user_id", self.client.session)
 
     def test_login_error_is_generic_for_existing_and_missing_accounts(self):

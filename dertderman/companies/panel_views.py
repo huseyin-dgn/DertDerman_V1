@@ -13,6 +13,7 @@ from .panel_permissions import COMPANY_SESSION_KEY, PROFILE_ROLES, company_panel
 from .panel_selectors import company_complaints, company_notes, company_notifications, company_responses, complaint_history
 from .panel_services import create_company_entry
 from .services import get_accessible_company_membership
+from .badges import resolve_company_badges
 
 
 def panel_context(request, section, **extra):
@@ -160,13 +161,34 @@ def profile(request):
         require_profile_role(request.company_membership)
         form = CompanyProfileForm(request.POST, request.FILES, instance=request.company)
         if form.is_valid():
-            form.save()
+            company = form.save()
+            # Preserve the former clear-checkbox POST contract for existing clients;
+            # the current UI uses the dedicated CSRF-protected removal endpoint.
+            if request.POST.get("logo-clear") == "on" and company.logo:
+                company.logo.delete(save=False)
+                company.logo = None
+                company.save(update_fields=("logo", "updated_at"))
             messages.success(request, "Şirket profiliniz güncellendi.")
             return redirect("companies:profile")
     else:
         form = CompanyProfileForm(instance=request.company)
-    return render(request, "companies/panel/profile.html", panel_context(request, "profile", form=form),
+    return render(request, "companies/panel/profile.html", panel_context(
+        request, "profile", form=form, company_badges=resolve_company_badges(request.company),
+    ),
         status=400 if request.method == "POST" else 200)
+
+
+@company_panel_required
+@require_POST
+def logo_remove(request):
+    require_profile_role(request.company_membership)
+    company = request.company
+    if company.logo:
+        company.logo.delete(save=False)
+        company.logo = None
+        company.save(update_fields=("logo", "updated_at"))
+        messages.success(request, "Şirket logosu kaldırıldı.")
+    return redirect("companies:profile")
 
 
 @company_panel_required

@@ -11,7 +11,7 @@ from core.decorators import role_required
 
 from .forms import ProfileUpdateForm, RegisterForm, UserAuthenticationForm
 from .models import User
-from .badges import resolve_user_badges
+from .badges import primary_badge, resolve_user_badges
 
 
 def role_redirect_url(user):
@@ -52,7 +52,11 @@ class SecureLoginView(LoginView):
 
 @role_required(User.UserType.USER)
 def profile(request):
-    return render(request, "accounts/profile.html", {"user_badges": resolve_user_badges(request.user)})
+    badges = resolve_user_badges(request.user)
+    return render(request, "accounts/profile.html", {
+        "user_badges": badges,
+        "primary_user_badge": primary_badge(badges),
+    })
 
 
 @role_required(User.UserType.USER)
@@ -86,12 +90,6 @@ class SecureLogoutView(LogoutView):
 
     def get_success_url(self):
         return reverse("core:home")
-
-    def post(self, request, *args, **kwargs):
-        response = super().post(request, *args, **kwargs)
-        messages.info(request, "Oturumunuz güvenli şekilde kapatıldı.")
-        return response
-
 
 @never_cache
 def account_entry(request):

@@ -13,6 +13,7 @@ urlpatterns = [
     path("sikayetler/<int:pk>/not/", panel_views.note_create, name="note_create"),
     path("cevaplar/", panel_views.responses, name="responses"),
     path("profil/", panel_views.profile, name="profile"),
+    path("profil/logo-kaldir/", panel_views.logo_remove, name="logo_remove"),
     path("yetkililer/", panel_views.members, name="members"),
     path("bildirimler/", panel_views.notifications, name="notifications"),
     path("bildirimler/<int:pk>/", panel_views.notification_open, name="notification_open"),

@@ -1,4 +1,4 @@
-"""Light/dark responsive QA for product refinements using a disposable database."""
+"""Light-only responsive QA for product refinements using a disposable database."""
 import json
 import os
 from pathlib import Path
@@ -55,9 +55,9 @@ def run(directory):
     sizes = [(375, 812), (430, 932), (768, 1024), (1024, 768), (1366, 768), (1440, 900)]
     report = {"passed": False, "browser": "", "checks": [], "js_errors": []}
 
-    def set_theme(page, theme):
-        page.evaluate("theme => { localStorage.setItem('dd-theme', theme); document.documentElement.dataset.theme = theme; }", theme)
-        assert page.locator("html").get_attribute("data-theme") == theme
+    def assert_light_only(page):
+        assert page.locator("[data-theme-toggle]").count() == 0
+        assert page.locator("html").get_attribute("data-theme") is None
 
     def no_overflow(page):
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
@@ -143,43 +143,42 @@ def run(directory):
             public_routes = ("/", "/sikayetler/", "/sirketler/", f"/sirketler/{company.slug}/", f"/sikayetler/{featured.pk}/", "/hakkimizda/", "/bize-ulasin/")
             user_routes = ("/panel/", "/sikayetlerim/", f"/sikayetlerim/{featured.pk}/", f"/sikayetlerim/{featured.pk}/duzenle/", "/hesap/profil/", "/hesap/profil/duzenle/")
             for width, height in sizes:
-                for theme in ("light", "dark"):
+                for theme in ("light",):
                     public_page.set_viewport_size({"width": width, "height": height})
-                    public_page.goto(origin + "/hesap/kayit/", wait_until="networkidle"); set_theme(public_page, theme)
+                    public_page.goto(origin + "/hesap/kayit/", wait_until="networkidle"); assert_light_only(public_page)
                     expect(public_page.locator(".avatar-presets--register img[src*='/avatars/users/']")).to_have_count(20)
                     expect(public_page.locator("input[type=file]")).to_have_count(0); no_overflow(public_page)
                     assert public_page.locator(".avatar-presets--register img").evaluate_all("images => images.every(image => image.complete && image.naturalWidth > 0)")
                     for route in ("/hakkimizda/", "/bize-ulasin/"):
-                        public_page.goto(origin + route, wait_until="networkidle"); set_theme(public_page, theme); no_overflow(public_page)
+                        public_page.goto(origin + route, wait_until="networkidle"); assert_light_only(public_page); no_overflow(public_page)
                         expect(public_page.locator("footer a[href='/hakkimizda/']")).to_have_count(1)
                         expect(public_page.locator("footer a[href='/bize-ulasin/']")).to_have_count(1)
                     user_page.set_viewport_size({"width": width, "height": height})
                     for route in public_routes + user_routes:
                         user_page.goto(origin + route, wait_until="networkidle")
-                        set_theme(user_page, theme); no_overflow(user_page); detail_ctas_are_blue_and_fit(user_page)
-                        expect(user_page.locator("[data-theme-toggle]").first).to_be_visible()
-                    user_page.goto(origin + "/hesap/profil/duzenle/"); set_theme(user_page, theme)
+                        assert_light_only(user_page); no_overflow(user_page); detail_ctas_are_blue_and_fit(user_page)
+                    user_page.goto(origin + "/hesap/profil/duzenle/"); assert_light_only(user_page)
                     expect(user_page.locator(".avatar-presets input")).to_have_count(20)
                     expect(user_page.locator(".avatar-presets img[src*='/avatars/users/']")).to_have_count(20)
                     expect(user_page.locator(".avatar-preset-option:has(input:checked) .avatar-choice-check")).to_be_visible()
                     expect(user_page.locator("input[type=file]")).to_have_count(0); no_overflow(user_page)
                     if width in (375, 1440):
                         user_page.screenshot(path=str(output / f"avatar-selector-{theme}-{width}.png"), full_page=True)
-                    user_page.goto(origin + f"/sikayetler/{featured.pk}/"); set_theme(user_page, theme)
+                    user_page.goto(origin + f"/sikayetler/{featured.pk}/"); assert_light_only(user_page)
                     expect(user_page.locator(".public-user-badge").first).to_be_visible()
                     expect(user_page.get_by_text("Tepkiyi Kaydet", exact=True)).to_have_count(0)
                     expect(user_page.locator(".emoji-picker")).to_be_visible(); expect(user_page.locator(".community-comment")).to_be_visible(); expect(user_page.locator(".official-response")).to_be_visible(); no_overflow(user_page)
                     if width in (375, 1440):
                         user_page.screenshot(path=str(output / f"public-detail-{theme}-{width}.png"), full_page=True)
-                    user_page.goto(origin + f"/sikayetlerim/{featured.pk}/"); set_theme(user_page, theme)
+                    user_page.goto(origin + f"/sikayetlerim/{featured.pk}/"); assert_light_only(user_page)
                     user_page.locator("[data-withdraw-open]").click(); expect(user_page.locator("[data-withdraw-dialog]")).to_be_visible(); user_page.locator("[data-withdraw-close]").click(); no_overflow(user_page)
 
                     company_page.set_viewport_size({"width": width, "height": height})
-                    company_page.goto(origin + "/sirket-panel/profil/", wait_until="networkidle"); set_theme(company_page, theme)
-                    expect(company_page.locator("input[type=file]")).to_be_visible(); expect(company_page.locator(".company-avatar-presets input")).to_have_count(9); expect(company_page.locator(".cp-logo-preview img[src*='/avatars/companies/']")).to_be_visible(); expect(company_page.locator("[data-theme-toggle]")).to_be_visible(); no_overflow(company_page)
+                    company_page.goto(origin + "/sirket-panel/profil/", wait_until="networkidle"); assert_light_only(company_page)
+                    expect(company_page.locator(".cp-logo-pick")).to_be_visible(); expect(company_page.locator("input[type=file]")).to_be_hidden(); expect(company_page.locator(".company-avatar-presets input")).to_have_count(9); expect(company_page.locator(".cp-logo-preview img[src*='/avatars/companies/']")).to_be_visible(); no_overflow(company_page)
                     admin_page.set_viewport_size({"width": width, "height": height})
                     for route in ("/yonetim/iletisim-talepleri/", f"/yonetim/iletisim-talepleri/{contact_request.pk}/"):
-                        admin_page.goto(origin + route, wait_until="networkidle"); set_theme(admin_page, theme); no_overflow(admin_page)
+                        admin_page.goto(origin + route, wait_until="networkidle"); assert_light_only(admin_page); no_overflow(admin_page)
                     if width in (375, 1440):
                         user_page.screenshot(path=str(output / f"complaint-{theme}-{width}.png"), full_page=True)
                         company_page.screenshot(path=str(output / f"company-profile-{theme}-{width}.png"), full_page=True)

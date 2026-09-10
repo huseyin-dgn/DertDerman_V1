@@ -16,3 +16,23 @@
     }
   });
 })();
+
+document.querySelectorAll('[data-logo-uploader]').forEach((uploader) => {
+  const input = uploader.querySelector('input[type="file"]');
+  const name = uploader.querySelector('[data-logo-name]');
+  const action = uploader.querySelector('[data-logo-action]');
+  const preview = uploader.querySelector('.cp-logo-upload-preview');
+  if (!input || !name || !preview) return;
+  input.addEventListener('change', () => {
+    const file = input.files?.[0];
+    if (!file) return;
+    name.textContent = file.name;
+    if (action) action.textContent = 'Görseli Değiştir';
+    const prior = preview.querySelector('img');
+    const image = prior || document.createElement('img');
+    image.className = 'cp-logo-upload-image';
+    image.alt = 'Seçilen şirket logosu önizlemesi';
+    image.src = URL.createObjectURL(file);
+    if (!prior) preview.replaceChildren(image);
+  });
+});

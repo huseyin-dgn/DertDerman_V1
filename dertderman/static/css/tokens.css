@@ -10,4 +10,7 @@
   --dd-radius-sm: 8px; --dd-radius: 16px; --dd-radius-lg: 24px;
   --dd-shadow: 0 8px 32px rgb(16 42 67 / 5%); --dd-shadow-hover: 0 12px 32px rgb(16 42 67 / 9%);
   --dd-font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --bg: var(--dd-background); --surface: var(--dd-surface); --surface-secondary: var(--dd-surface-soft);
+  --text: var(--dd-text); --text-muted: var(--dd-muted); --border: var(--dd-border);
+  --primary: var(--dd-primary); --primary-hover: var(--dd-primary-hover);
 }

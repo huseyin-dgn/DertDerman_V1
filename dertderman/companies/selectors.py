@@ -49,12 +49,17 @@ def public_company_performance(company):
 
     total = answered = resolved = 0
     response_seconds = []
+    response_days = set()
+    first_response_seen = last_response_seen = None
     for status, created_at, published_at, first_response_at in rows:
         total += 1
         resolved += status == Complaint.Status.RESOLVED
         if first_response_at is None:
             continue
         answered += 1
+        response_days.add(first_response_at.date())
+        first_response_seen = min(first_response_seen or first_response_at, first_response_at)
+        last_response_seen = max(last_response_seen or first_response_at, first_response_at)
         # Legacy/imported data can contain a reply predating its publication event.
         started_at = published_at if first_response_at >= published_at else created_at
         if first_response_at >= started_at:
@@ -68,5 +73,10 @@ def public_company_performance(company):
         "resolved_ratio": round(resolved * 100 / total) if total else None,
         "average_response_seconds": (
             sum(response_seconds) / len(response_seconds) if response_seconds else None
+        ),
+        "response_activity_days": len(response_days),
+        "response_span_days": (
+            (last_response_seen - first_response_seen).days
+            if first_response_seen and last_response_seen else 0
         ),
     }

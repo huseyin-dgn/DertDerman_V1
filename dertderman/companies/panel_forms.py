@@ -40,7 +40,13 @@ class CompanyProfileForm(forms.ModelForm):
         fields = ("name", "description", "logo", "selected_avatar", "website", "phone", "email", "category")
         labels = {"name": "Şirket adı", "description": "Açıklama", "logo": "Şirket logosu",
             "website": "Web sitesi", "phone": "Telefon", "email": "İletişim e-postası", "category": "Kategori"}
-        widgets = {"description": forms.Textarea(attrs={"rows": 5, "maxlength": 5000})}
+        widgets = {
+            "description": forms.Textarea(attrs={"rows": 5, "maxlength": 5000}),
+            "logo": forms.FileInput(attrs={
+                "class": "cp-logo-native-input",
+                "accept": "image/png,image/jpeg,image/webp",
+            }),
+        }
 
     def __init__(self, *args, **kwargs):
         files = kwargs.get("files") or (args[1] if len(args) > 1 else None)

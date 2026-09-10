@@ -1,8 +1,6 @@
 <header class="site-header{% if request.user.is_authenticated and request.user.user_type == 'USER' %} user-site-header{% endif %}">
     <nav class="site-nav section-inner" aria-label="Ana navigasyon">
         {% include 'components/brand.html' with compact_brand=True %}
-        {% include 'components/theme_toggle.html' %}
-
         <button class="nav-toggle" type="button" data-nav-toggle aria-controls="site-links" aria-expanded="true" hidden>
             {% include 'components/icon.html' with name='menu' %}
             Menü

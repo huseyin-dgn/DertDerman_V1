@@ -2,6 +2,12 @@
 .public-site { --public-rule: #c8d9e8; --public-ink-soft: #36516a; --public-shadow: 0 18px 50px rgb(16 42 67 / 9%); --public-shadow-hover: 0 22px 56px rgb(16 42 67 / 13%); background: #fff; }
 .public-site .section-inner { width: min(1380px, calc(100% - 80px)); }
 .public-site .content-section { padding-block: clamp(56px, 6vw, 88px); }
+.home-public .complaint-feed-section,
+.home-public .company-section,
+.home-public .editorial-section { padding-block: clamp(46px, 4.8vw, 68px); }
+.home-public .process-section { padding-block: clamp(50px, 5vw, 72px); }
+.home-public .business-cta { padding-block: clamp(50px, 5vw, 72px); }
+.home-public .corporate-discovery { padding-block: clamp(44px, 4.5vw, 64px); }
 .public-site h1 { font-size: clamp(2.65rem, 5vw, 5.125rem); line-height: .92; letter-spacing: -.065em; }
 .public-site h2 { font-size: clamp(2rem, 3.6vw, 3.5rem); line-height: .98; letter-spacing: -.055em; }
 .public-site h3 { letter-spacing: -.025em; }
@@ -172,6 +178,7 @@
 .business-cta-inner { position: relative; z-index: 1; display: grid; grid-template-columns: 108px minmax(300px, 1.15fr) minmax(240px, .65fr) auto; gap: clamp(24px, 3vw, 48px); align-items: center; }
 .business-cta h2,.business-cta .section-kicker { color: #fff; }
 .business-cta p { margin: 0; color: #dceeff; }
+.business-mark span { display: block; margin-bottom: 6px; color: #72b9f4; }
 .business-mark { align-self: start; padding-top: 9px; }
 .business-cta-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .business-cta-actions a { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 48px; padding: 11px 17px; border: 1px solid transparent; border-radius: 10px; font-size: .875rem; font-weight: 750; line-height: 1.2; white-space: nowrap; transition: transform 160ms ease, border-color 160ms ease, background-color 160ms ease; }

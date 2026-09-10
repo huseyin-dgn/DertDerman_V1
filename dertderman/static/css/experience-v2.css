@@ -468,12 +468,6 @@
     width: 100%;
   }
 }
-[data-theme="dark"] .official-response {
-  background: linear-gradient(135deg, #17364a, #152536) !important;
-}
-[data-theme="dark"] .home-public .stats-grid .stat-item:nth-child(n) {
-  background: var(--surface) !important;
-}
 .cp-logo-preview {
   display: flex;
   align-items: center;
