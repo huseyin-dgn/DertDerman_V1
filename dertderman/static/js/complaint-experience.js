@@ -48,8 +48,38 @@ document.querySelectorAll('[data-emoji-picker]').forEach((picker) => {
   input.addEventListener('change', () => submitReaction(input.value.trim()));
 });
 
-document.querySelectorAll('[data-withdraw-open]').forEach((button) => button.addEventListener('click', () => {
-  const dialog = document.querySelector('[data-withdraw-dialog]');
-  if (dialog) dialog.showModal();
-}));
-document.querySelectorAll('[data-withdraw-close]').forEach((button) => button.addEventListener('click', () => button.closest('dialog').close()));
+const withdrawDialog = document.querySelector('[data-withdraw-dialog]');
+
+document.querySelectorAll('[data-withdraw-open]').forEach((button) => {
+  button.addEventListener('click', () => {
+    if (!withdrawDialog) return;
+
+    if (!withdrawDialog.open) {
+      withdrawDialog.showModal();
+    }
+  });
+});
+
+document.querySelectorAll('[data-withdraw-close]').forEach((button) => {
+  button.addEventListener('click', () => {
+    const dialog = button.closest('dialog');
+
+    if (dialog?.open) {
+      dialog.close();
+    }
+  });
+});
+
+window.addEventListener('pagehide', () => {
+  if (withdrawDialog?.open) {
+    withdrawDialog.close();
+  }
+});
+
+window.addEventListener('pageshow', (event) => {
+  if (!event.persisted) return;
+
+  if (withdrawDialog?.open) {
+    withdrawDialog.close();
+  }
+});

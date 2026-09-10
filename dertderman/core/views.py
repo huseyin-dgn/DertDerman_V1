@@ -45,6 +45,13 @@ def home(request):
 def about(request):
     return render(request, "core/about.html")
 
+@require_safe
+def privacy_policy(request):
+    return render(
+        request,
+        "core/legal/privacy.html",
+    )
+
 
 @require_http_methods(["GET", "HEAD", "POST"])
 def contact(request):
@@ -82,4 +89,25 @@ def custom_404(request, exception=None, unmatched_path=None):
         request,
         "404.html",
         status=404,
+    )
+
+def custom_500(request):
+    return render(
+        request,
+        "500.html",
+        status=500,
+    )
+
+def custom_400(request, exception=None):
+    return render(
+        request,
+        "400.html",
+        status=400,
+    )
+
+@require_safe
+def disclosure_notice(request):
+    return render(
+        request,
+        "core/legal/disclosure.html",
     )

@@ -1,6 +1,31 @@
 {% extends 'base.html' %}
 {% block title %}400 | DertDerman{% endblock %}
-{% block content %}<main class="content-section" id="main-content"><section class="error-shell">
-{% include 'components/error_visual.html' with code='400' %}
-<p class="error-code">400</p><h1>İsteğinizi tamamlayamadık.</h1><p>Bağlantıyı kontrol ederek tekrar deneyin.</p><div class="hero-actions error-actions"><a class="primary-action" href="{% url 'core:home' %}">Ana Sayfaya Dön</a></div>
-</section></main>{% endblock %}
+
+{% block content %}
+<main class="content-section" id="main-content">
+    <section class="error-shell">
+
+        {% include 'components/error_visual.html' with code='400' %}
+
+        <p class="error-code">400</p>
+
+        <h1>İsteğiniz işlenemedi.</h1>
+
+        <p>
+            Gönderilen istekte geçersiz veya eksik bir bilgi bulundu.
+            Lütfen sayfayı yenileyip tekrar deneyin.
+        </p>
+
+        <div class="hero-actions error-actions">
+            <a class="primary-action" href="{% url 'core:home' %}">
+                Ana Sayfaya Dön
+            </a>
+
+            <a class="detail-cta" href="{% url 'core:contact' %}">
+                Bize Ulaşın
+            </a>
+        </div>
+
+    </section>
+</main>
+{% endblock %}

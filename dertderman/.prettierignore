@@ -2,3 +2,8 @@ templates/components/hero_brand.html
 templates/complaints/public_list.html
 templates/base.html
 templates/components/site_header.html
+templates/500.html
+templates/400.html
+templates/core/legal/privacy.html
+templates/layouts/public_base.html
+templates/core/legal/disclosure.html

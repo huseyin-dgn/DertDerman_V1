@@ -1,0 +1,139 @@
+{% extends 'layouts/public_base.html' %}
+
+{% block title %}Gizlilik Politikası | DertDerman{% endblock %}
+
+{% block body_class %}public-site corporate-page{% endblock %}
+
+{% block content %}
+<main id="main-content">
+
+    <section class="corporate-hero">
+        <div class="section-inner corporate-hero-grid">
+
+            <div>
+                <p class="section-kicker">GİZLİLİK POLİTİKASI</p>
+
+                <h1>Verilerinizin gizliliğini önemsiyoruz.</h1>
+
+                <p class="corporate-lead">
+                    Bu sayfa, DertDerman platformunun kullanıcı verilerini hangi amaçlarla
+                    işlediğini, hangi durumlarda sakladığını ve kullanıcıların verileri
+                    üzerindeki temel haklarını genel hatlarıyla açıklar.
+                </p>
+            </div>
+
+            <aside class="corporate-manifesto">
+                <span aria-hidden="true">DD</span>
+                <p>Şeffaflık yalnızca şikayetlerde değil, veri kullanımında da önemlidir.</p>
+            </aside>
+
+        </div>
+    </section>
+
+    <section class="content-section corporate-content">
+        <div class="section-inner">
+
+            <header class="corporate-heading">
+                <p class="section-kicker">VERİ GÜVENLİĞİ</p>
+
+                <h2>Hangi veriler işlenebilir?</h2>
+
+                <p>
+                    DertDerman üzerinde hesap oluşturulması, şikayet paylaşılması,
+                    şirketlerle iletişim kurulması ve platform özelliklerinin kullanılması
+                    sırasında belirli kişisel ve teknik veriler işlenebilir.
+                </p>
+            </header>
+
+            <div class="corporate-story-grid corporate-story-grid--process">
+
+                <article>
+                    <span>01</span>
+                    <h3>Hesap bilgileri</h3>
+                    <p>
+                        Ad, soyad, e-posta adresi, telefon bilgisi ve hesap güvenliği için
+                        gerekli kimlik doğrulama verileri işlenebilir.
+                    </p>
+                </article>
+
+                <article>
+                    <span>02</span>
+                    <h3>Platform içerikleri</h3>
+                    <p>
+                        Kullanıcıların oluşturduğu şikayetler, yorumlar, tepkiler ve
+                        platform içindeki diğer etkileşimler sistemde saklanabilir.
+                    </p>
+                </article>
+
+                <article>
+                    <span>03</span>
+                    <h3>Teknik veriler</h3>
+                    <p>
+                        Güvenlik, hata tespiti ve sistem performansı amacıyla IP adresi,
+                        oturum bilgileri ve teknik kayıtlar işlenebilir.
+                    </p>
+                </article>
+
+            </div>
+
+            <div class="corporate-principles">
+
+                <div>
+                    <p class="section-kicker">KULLANIM AMAÇLARI</p>
+
+                    <h2>Veriler neden kullanılır?</h2>
+
+                    <p>
+                        Veriler; hesabın çalıştırılması, şikayet süreçlerinin yönetilmesi,
+                        güvenliğin sağlanması, kötüye kullanımın önlenmesi ve platformun
+                        geliştirilmesi amacıyla kullanılabilir.
+                    </p>
+                </div>
+
+                <dl>
+
+                    <div>
+                        <dt>Hesap ve kimlik doğrulama</dt>
+                        <dd>
+                            Kullanıcı hesabının oluşturulması, korunması ve yetkilendirme
+                            işlemlerinin yürütülmesi için.
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt>Şikayet süreci</dt>
+                        <dd>
+                            Şikayetlerin ilgili şirketlerle eşleştirilmesi, yayınlanması ve
+                            çözüm durumunun takip edilmesi için.
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt>Güvenlik</dt>
+                        <dd>
+                            Yetkisiz erişim, kötüye kullanım ve sistem güvenliğini tehdit
+                            eden davranışların tespit edilmesi için.
+                        </dd>
+                    </div>
+
+                </dl>
+
+            </div>
+
+            <footer class="corporate-closing">
+
+                <p class="section-kicker">İLETİŞİM</p>
+
+                <h2>Gizlilikle ilgili sorularınız için bizimle iletişime geçebilirsiniz.</h2>
+
+                <a class="primary-action" href="{% url 'core:contact' %}">
+                    Bize Ulaşın
+                </a>
+
+            </footer>
+
+        </div>
+    </section>
+
+</main>
+{% endblock %}

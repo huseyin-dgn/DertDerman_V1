@@ -83,3 +83,4 @@ def _format_response_time(seconds):
     if hours:
         return f"{hours} sa"
     return f"{minutes} dk"
+

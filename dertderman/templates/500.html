@@ -1,6 +1,28 @@
 {% extends 'base.html' %}
 {% block title %}500 | DertDerman{% endblock %}
-{% block content %}<main class="content-section" id="main-content"><section class="error-shell">
-{% include 'components/error_visual.html' with code='500' %}
-<p class="error-code">500</p><h1>Bir şeyler yolunda gitmedi.</h1><p>İsteğinizi şu anda tamamlayamıyoruz. Lütfen kısa süre sonra tekrar deneyin.</p><div class="hero-actions error-actions"><a class="primary-action" href="{% url 'core:home' %}">Ana Sayfaya Dön</a></div>
-</section></main>{% endblock %}
+
+{% block content %}
+<main class="content-section" id="main-content">
+    <section class="error-shell">
+
+        {% include 'components/error_visual.html' with code='500' %}
+
+        <p class="error-code">500</p>
+
+        <h1>Bir şeyler ters gitti.</h1>
+
+        <p>İsteğinizi işlerken beklenmeyen bir sorun oluştu. Lütfen kısa süre sonra tekrar deneyin.</p>
+
+        <div class="hero-actions error-actions">
+            <a class="primary-action" href="{% url 'core:home' %}">
+                Ana Sayfaya Dön
+            </a>
+
+            <a class="detail-cta" href="{% url 'core:contact' %}">
+                Bize Ulaşın
+            </a>
+        </div>
+
+    </section>
+</main>
+{% endblock %}

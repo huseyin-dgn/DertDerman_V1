@@ -227,15 +227,39 @@ def notification_open(request, pk):
 @company_panel_required
 @require_POST
 def notifications_read_all(request):
-    from itertools import batched
-    ids = company_notifications(request.company, request.user).filter(is_read=False).values_list('pk', flat=True)
-    # Batch inserts retain each member's independent read state.
+    from itertools import islice
+
+    ids = (
+        company_notifications(request.company, request.user)
+        .filter(is_read=False)
+        .values_list("pk", flat=True)
+    )
+
+    def batched(iterable, size):
+        iterator = iter(iterable)
+
+        while True:
+            batch = tuple(islice(iterator, size))
+
+            if not batch:
+                break
+
+            yield batch
+
     for batch in batched(ids.iterator(chunk_size=500), 500):
         CompanyNotificationRead.objects.bulk_create(
-            [CompanyNotificationRead(notification_id=pk, user=request.user) for pk in batch],
-            ignore_conflicts=True, batch_size=500)
-    return redirect('companies:notifications')
+            [
+                CompanyNotificationRead(
+                    notification_id=pk,
+                    user=request.user,
+                )
+                for pk in batch
+            ],
+            ignore_conflicts=True,
+            batch_size=500,
+        )
 
+    return redirect("companies:notifications")
 
 @company_panel_required
 @require_safe
