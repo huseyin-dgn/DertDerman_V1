@@ -20,6 +20,9 @@ urlpatterns = [
     path("bildirimler/<int:pk>/okundu/", views.notification_read, name="notification_read"),
     path("bildirimler/tumunu-okundu/", views.notifications_read_all, name="notifications_read_all"),
     path("aktivite/", views.activity, name="activity"),
+    path("iletisim-talepleri/", views.contact_list, name="contact_list"),
+    path("iletisim-talepleri/<int:pk>/", views.contact_detail, name="contact_detail"),
+    path("iletisim-talepleri/<int:pk>/durum/", views.contact_status, name="contact_status"),
     path("ana-sayfa/", content_views.homepage_content, name="homepage_content"),
     path("blog/", blog_views.post_list, name="blog_list"),
     path("blog/yeni/", blog_views.post_create, name="blog_create"),
@@ -31,4 +34,5 @@ urlpatterns = [
     path("sikayetler/<int:pk>/", views.complaint_detail, name="complaint_detail"),
     path("sikayetler/<int:pk>/yayinla/", views.complaint_publish, name="complaint_publish"),
     path("sikayetler/<int:pk>/reddet/", views.complaint_reject, name="complaint_reject"),
+    path("sikayetler/<int:pk>/cozuldu/", views.complaint_resolve, name="complaint_resolve"),
 ]

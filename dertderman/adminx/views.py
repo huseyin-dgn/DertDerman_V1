@@ -11,10 +11,12 @@ from accounts.models import User
 from blog.models import Post
 from companies.models import CompanyNotification
 from core.pagination import PREVIEW_SIZE, paginate
+from core.models import ContactRequest
 from notifications.selectors import inbox
 from notifications.services import mark_read
 from .filters import ComplaintFilters, EventFilters, list_context
 from .decorators import admin_required
+from .forms import ContactStatusForm
 
 
 @admin_required
@@ -100,6 +102,42 @@ def activity(request):
     return _event_list(request, "activity")
 
 
+@admin_required
+@require_safe
+def contact_list(request):
+    queryset = ContactRequest.objects.all()
+    status = request.GET.get("status", "")
+    if status in ContactRequest.Status.values:
+        queryset = queryset.filter(status=status)
+    return render(request, "adminx/contact_list.html", {
+        "page_obj": paginate(request, queryset, "admin"), "active_status": status,
+        "status_options": ContactRequest.Status.choices,
+    })
+
+
+@admin_required
+@require_safe
+def contact_detail(request, pk):
+    item = get_object_or_404(ContactRequest, pk=pk)
+    return render(request, "adminx/contact_detail.html", {
+        "contact_request": item, "form": ContactStatusForm(initial={"status": item.status}),
+    })
+
+
+@admin_required
+@require_POST
+def contact_status(request, pk):
+    item = get_object_or_404(ContactRequest, pk=pk)
+    form = ContactStatusForm(request.POST)
+    if form.is_valid():
+        item.status = form.cleaned_data["status"]
+        item.save(update_fields=("status",))
+        messages.success(request, "İletişim talebi durumu güncellendi.")
+    else:
+        messages.error(request, "Geçerli bir durum seçin.")
+    return redirect("adminx:contact_detail", pk=item.pk)
+
+
 def _event_list(request, kind):
     context = list_context(request, CompanyNotification.objects.select_related("company", "complaint"),
         EventFilters, search_fields=("title", "company__name"), fields={"kind": "kind"})
@@ -128,7 +166,14 @@ def _moderate(request, pk, target_status):
         }, status=409)
     from companies.models import CompanyNotification
     from companies.panel_events import record_complaint_notification
-    complaint = Complaint.objects.only("company_id").get(pk=pk)
+    complaint = Complaint.objects.get(pk=pk)
+    from complaints.events import record_event
+    from complaints.models import ComplaintEvent
+    event_type = (ComplaintEvent.Type.PUBLISHED if target_status == Complaint.Status.PUBLISHED
+                  else ComplaintEvent.Type.REJECTED)
+    record_event(complaint, event_type, actor_type=ComplaintEvent.Actor.ADMIN,
+                 source_key=f"complaint:{pk}:moderation:{target_status}",
+                 occurred_at=complaint.updated_at)
     record_complaint_notification(complaint,
         CompanyNotification.Kind.PUBLISHED if target_status == Complaint.Status.PUBLISHED else CompanyNotification.Kind.ADMIN)
     messages.success(request, (
@@ -148,3 +193,17 @@ def complaint_publish(request, pk):
 @require_POST
 def complaint_reject(request, pk):
     return _moderate(request, pk, Complaint.Status.REJECTED)
+
+
+@admin_required
+@require_POST
+def complaint_resolve(request, pk):
+    get_object_or_404(Complaint.objects.only("pk"), pk=pk)
+    from complaints.services import ComplaintStateConflict, resolve_complaint
+    try:
+        resolve_complaint(complaint_id=pk, actor=request.user)
+    except ComplaintStateConflict:
+        messages.warning(request, "Yalnızca yayındaki bir şikayet çözüldü olarak işaretlenebilir.")
+    else:
+        messages.success(request, "Şikayet çözüldü olarak işaretlendi.")
+    return redirect("adminx:complaint_detail", pk=pk)

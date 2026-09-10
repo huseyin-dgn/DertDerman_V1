@@ -16,6 +16,7 @@ class AuthenticationSecurityTests(TestCase):
             "first_name": "New",
             "last_name": "User",
             "phone": "5551234567",
+            "selected_avatar": "avatar-1",
             "password1": "StrongPass2026!",
             "password2": "StrongPass2026!",
         }

@@ -32,7 +32,7 @@ class PlatformPresentationTests(TestCase):
         self.assertContains(response, 'data-count="5"')
         self.assertNotContains(response, self.complaints["PENDING"].title)
         self.assertNotContains(response, self.complaints["REJECTED"].title)
-        self.assertNotContains(response, self.complaints["RESOLVED"].title)
+        self.assertContains(response, self.complaints["RESOLVED"].title)
         self.assertNotContains(response, self.hidden.title)
 
     def test_empty_metrics_are_zero(self):
@@ -42,19 +42,20 @@ class PlatformPresentationTests(TestCase):
         response = self.client.get("/")
         self.assertEqual(set(response.context["stats"].values()), {0})
 
-    def test_company_activity_is_public_limited_and_has_constant_queries(self):
+    def test_company_profile_is_public_paginated_and_has_constant_queries(self):
         for index in range(7):
             Complaint.objects.create(user=self.user, company=self.company, status=Complaint.Status.PUBLISHED,
                 title=f"Recent complaint {index}", description="A public complaint description.")
         url = reverse("companies_public:company_detail", args=[self.company.slug])
-        with self.assertNumQueries(2):
+        with self.assertNumQueries(5):
             response = self.client.get(url)
-        entries = list(response.context["recent_public_complaints"])
-        self.assertEqual(len(entries), 5)
-        self.assertEqual([entry.title for entry in entries], [f"Recent complaint {index}" for index in range(6, 1, -1)])
-        for status in ["PENDING", "REJECTED", "RESOLVED"]:
+        entries = list(response.context["page_obj"])
+        self.assertEqual(len(entries), 6)
+        self.assertEqual([entry.title for entry in entries], [f"Recent complaint {index}" for index in range(6, 0, -1)])
+        for status in ["PENDING", "REJECTED"]:
             self.assertNotContains(response, self.complaints[status].title)
             self.assertEqual(self.client.get(reverse("complaints:public_detail", args=[self.complaints[status].pk])).status_code, 404)
+        self.assertEqual(self.client.get(reverse("complaints:public_detail", args=[self.complaints["RESOLVED"].pk])).status_code, 200)
         self.assertNotContains(response, self.hidden.title)
         self.assertEqual(self.client.get(reverse("companies_public:company_detail", args=[self.inactive.slug])).status_code, 404)
 
@@ -64,25 +65,21 @@ class PlatformPresentationTests(TestCase):
         updated = timezone.now() - timedelta(days=2)
         Complaint.objects.filter(pk=complaint.pk).update(created_at=created, updated_at=updated)
         response = self.client.get(reverse("companies_public:company_detail", args=[self.company.slug]))
-        self.assertContains(response, "Yayındaki şikayet")
-        self.assertContains(response, "Oluşturulma:")
+        self.assertContains(response, "Yayında")
         self.assertContains(response, timezone.localtime(created).strftime("%d.%m.%Y"))
         self.assertNotContains(response, timezone.localtime(updated).strftime("%d.%m.%Y"))
         self.assertNotContains(response, "yayınlandı")
-        self.assertNotContains(response, complaint.description)
-        self.assertEqual(list(public_complaints()), [complaint])
+        self.assertContains(response, complaint.description)
+        self.assertEqual(list(public_complaints()), [self.complaints["RESOLVED"], complaint])
 
-    def test_lifecycle_uses_current_status_without_invented_history(self):
+    def test_timeline_uses_recorded_real_events(self):
         self.client.force_login(self.user)
         for status, complaint in self.complaints.items():
             with self.subTest(status=status):
                 response = self.client.get(reverse("complaints:detail", args=[complaint.pk]))
                 self.assertEqual(response.status_code, 200)
                 self.assertIn("no-store", response["Cache-Control"])
-                self.assertContains(response, 'aria-current="step"', count=1)
-                self.assertContains(response, complaint.get_status_display())
-                self.assertContains(response, "Gönderildi")
-                self.assertNotContains(response, "Şirket Yanıtladı")
-                if status in ["RESOLVED", "REJECTED"]:
-                    self.assertNotContains(response, "Bekleniyor")
-                    self.assertNotContains(response, ">Yayında<")
+                self.assertContains(response, "Şikayet zaman çizelgesi")
+                self.assertContains(response, "Şikayet oluşturuldu")
+                self.assertContains(response, complaint.timeline_events.last().get_event_type_display())
+                self.assertNotContains(response, "Şirket cevapladı")

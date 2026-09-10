@@ -1,0 +1,79 @@
+{
+  "passed": true,
+  "browser": "152.0.4191.66",
+  "checks": [
+    {
+      "width": 375,
+      "theme": "light",
+      "overflow": false,
+      "surfaces": 18
+    },
+    {
+      "width": 375,
+      "theme": "dark",
+      "overflow": false,
+      "surfaces": 18
+    },
+    {
+      "width": 430,
+      "theme": "light",
+      "overflow": false,
+      "surfaces": 18
+    },
+    {
+      "width": 430,
+      "theme": "dark",
+      "overflow": false,
+      "surfaces": 18
+    },
+    {
+      "width": 768,
+      "theme": "light",
+      "overflow": false,
+      "surfaces": 18
+    },
+    {
+      "width": 768,
+      "theme": "dark",
+      "overflow": false,
+      "surfaces": 18
+    },
+    {
+      "width": 1024,
+      "theme": "light",
+      "overflow": false,
+      "surfaces": 18
+    },
+    {
+      "width": 1024,
+      "theme": "dark",
+      "overflow": false,
+      "surfaces": 18
+    },
+    {
+      "width": 1366,
+      "theme": "light",
+      "overflow": false,
+      "surfaces": 18
+    },
+    {
+      "width": 1366,
+      "theme": "dark",
+      "overflow": false,
+      "surfaces": 18
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "overflow": false,
+      "surfaces": 18
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "overflow": false,
+      "surfaces": 18
+    }
+  ],
+  "js_errors": []
+}

@@ -1,6 +1,5 @@
 <article class="company-card">
-    {% if company.logo %}<img class="company-logo" src="{{ company.logo.url }}" alt="{{ company.name }} logosu" width="52" height="52" loading="lazy" decoding="async">
-    {% else %}<span class="company-avatar" aria-hidden="true">{{ company.name|first }}</span>{% endif %}
+    {% include 'components/company_avatar.html' with company=company image_class='company-logo' fallback_class='company-avatar' only %}
     <div><h3><a href="{% url 'companies_public:company_detail' company.slug %}">{{ company.name }}</a></h3>
     <p>{% if company.category %}{{ company.category.name }}{% else %}Kategori belirtilmedi{% endif %}</p>
     {% if company.is_verified %}<span class="status-badge complaint-status-resolved">Doğrulanmış şirket</span>{% endif %}</div>

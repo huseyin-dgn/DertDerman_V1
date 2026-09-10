@@ -3,6 +3,7 @@
 <html lang="tr">
 <head>
     <meta charset="utf-8">
+    <script>try{document.documentElement.dataset.theme=localStorage.getItem('dd-theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){document.documentElement.dataset.theme='light'}</script>
     {% block pre_paint %}{% endblock %}
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#1d5fa7">
@@ -18,8 +19,12 @@
     <link rel="stylesheet" href="{% static 'css/pagination.css' %}">
 
     <script src="{% static 'js/ui-motion.js' %}" defer></script>
+    <script src="{% static 'js/theme.js' %}" defer></script>
 
     {% block extra_head %}{% endblock %}
+    <link rel="stylesheet" href="{% static 'css/theme.css' %}">
+    <link rel="stylesheet" href="{% static 'css/experience-v2.css' %}">
+    <link rel="stylesheet" href="{% static 'css/identity-v1.css' %}">
 </head>
 
 <body class="{% block body_class %}{% endblock %}">
@@ -27,212 +32,7 @@
 <a class="skip-link" href="#main-content">İçeriğe geç</a>
 
 {% block navbar %}
-<header class="site-header">
-    <nav class="site-nav section-inner" aria-label="Ana navigasyon">
-
-        {% include 'components/brand.html' %}
-
-        <button
-            class="nav-toggle"
-            type="button"
-            data-nav-toggle
-            aria-controls="site-links"
-            aria-expanded="true"
-            hidden
-        >
-            {% include 'components/icon.html' with name='menu' %}
-            Menü
-        </button>
-
-        <div class="nav-links" id="site-links">
-
-            <div class="nav-main">
-
-                <a
-                    href="{% url 'core:home' %}"
-                    {% if request.resolver_match.namespace == 'core' %}
-                    aria-current="page"
-                    {% endif %}
-                >
-                    Ana Sayfa
-                </a>
-
-                <a
-                    href="{% url 'complaints:public_list' %}"
-                    {% if request.resolver_match.namespace == 'complaints' and request.resolver_match.url_name == 'public_list' %}
-                    aria-current="page"
-                    {% endif %}
-                >
-                    Şikayetler
-                </a>
-
-                <a
-                    href="{% url 'companies_public:company_list' %}"
-                    {% if request.resolver_match.namespace == 'companies_public' %}
-                    aria-current="page"
-                    {% endif %}
-                >
-                    Şirketler
-                </a>
-
-                <a
-                    href="{% url 'blog:list' %}"
-                    {% if request.resolver_match.namespace == 'blog' %}
-                    aria-current="page"
-                    {% endif %}
-                >
-                    Blog
-                </a>
-
-            </div>
-
-            <div class="nav-actions">
-
-                {% if request.user.is_authenticated %}
-
-                    {% if request.user.user_type == 'USER' %}
-
-                        <a href="{% url 'dashboard:home' %}">
-                            Panelim
-                        </a>
-
-                        <a href="{% url 'accounts:profile' %}">
-                            Profilim
-                        </a>
-
-                        <details class="nav-corporate" data-corporate-menu>
-
-                            <summary>
-                                Kurumsal
-                                <span class="nav-corporate-chevron" aria-hidden="true">
-                                    ⌄
-                                </span>
-                            </summary>
-
-                            <div class="nav-corporate-panel">
-
-                                <a href="{% url 'company_auth:login' %}">
-                                    <strong>Şirket Girişi</strong>
-                                    <small>
-                                        Kurumsal çalışma alanınıza erişin
-                                    </small>
-                                </a>
-
-                                <a href="{% url 'company_auth:register' %}">
-                                    <strong>Şirket Kaydı</strong>
-                                    <small>
-                                        Şirket ağımıza katılmak için başvurun
-                                    </small>
-                                </a>
-
-                                <a href="{% url 'companies_public:company_list' %}">
-                                    <strong>Şirketler</strong>
-                                    <small>
-                                        DertDerman’daki şirketleri keşfedin
-                                    </small>
-                                </a>
-
-                            </div>
-
-                        </details>
-
-                        <a
-                            class="nav-cta"
-                            href="{% url 'complaints:create' %}"
-                        >
-                            Şikayet Yaz
-                        </a>
-
-                    {% elif request.user.user_type == 'COMPANY' %}
-
-                        <a
-                            class="nav-company-panel-link"
-                            href="{% url 'companies:company_panel' %}"
-                        >
-                            Şirket Paneli
-                        </a>
-
-                    {% elif request.user.user_type == 'ADMIN' %}
-
-                        <a href="{% url 'adminx:home' %}">
-                            Yönetim
-                        </a>
-
-                    {% endif %}
-
-                    <form
-                        method="post"
-                        action="{% url 'accounts:logout' %}"
-                        class="nav-logout-form"
-                    >
-                        {% csrf_token %}
-
-                        <button type="submit">
-                            Çıkış
-                        </button>
-                    </form>
-
-                {% else %}
-
-                    <details class="nav-corporate" data-corporate-menu>
-
-                        <summary>
-                            Kurumsal
-                            <span class="nav-corporate-chevron" aria-hidden="true">
-                                ⌄
-                            </span>
-                        </summary>
-
-                        <div class="nav-corporate-panel">
-
-                            <a href="{% url 'company_auth:login' %}">
-                                <strong>Şirket Girişi</strong>
-                                <small>
-                                    Kurumsal çalışma alanınıza erişin
-                                </small>
-                            </a>
-
-                            <a href="{% url 'company_auth:register' %}">
-                                <strong>Şirket Kaydı</strong>
-                                <small>
-                                    Şirket ağımıza katılmak için başvurun
-                                </small>
-                            </a>
-
-                            <a href="{% url 'companies_public:company_list' %}">
-                                <strong>Şirketler</strong>
-                                <small>
-                                    DertDerman’daki şirketleri keşfedin
-                                </small>
-                            </a>
-
-                        </div>
-
-                    </details>
-
-                    <a href="{% url 'accounts:login' %}">
-                        Giriş Yap
-                    </a>
-
-                    <a href="{% url 'accounts:register' %}">
-                        Kayıt Ol
-                    </a>
-
-                    <a
-                        class="nav-cta"
-                        href="{% url 'complaints:create' %}"
-                    >
-                        Şikayet Yaz
-                    </a>
-
-                {% endif %}
-
-            </div>
-
-        </div>
-
-    </nav>
-</header>
+{% include 'components/site_header.html' %}
 {% endblock %}
 
 
@@ -251,7 +51,7 @@
 
         <div class="footer-story">
 
-            {% include 'components/brand.html' %}
+            <div class="footer-brand-lockup">{% include 'components/brand.html' with compact_brand=True %}</div>
 
             <p class="footer-statement">
                 Bir sözle başlar.<br>
@@ -286,6 +86,10 @@
                     <a href="{% url 'blog:list' %}">
                         Blog &amp; Rehber
                     </a>
+
+                    <a href="{% url 'core:about' %}">Hakkımızda</a>
+
+                    <a href="{% url 'core:contact' %}">Bize Ulaşın</a>
 
                 </div>
 

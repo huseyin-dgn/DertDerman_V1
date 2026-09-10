@@ -8,7 +8,7 @@ from .models import Company, CompanyNotification
 
 
 @transaction.atomic
-def record_complaint_notification(complaint, kind, event_key=None):
+def record_complaint_notification(complaint, kind, event_key=None, notify_user=True):
     from notifications.services import complaint_event
     # Timestamp identifies a transition, not a permanent object/status pair.
     event_key = event_key or f'complaint:{complaint.pk}:{kind}:{complaint.updated_at.isoformat()}'
@@ -17,7 +17,8 @@ def record_complaint_notification(complaint, kind, event_key=None):
         'kind': kind, 'title': CompanyNotification.Kind(kind).label,
         'message': 'Şikayetle ilgili gelişmeyi çalışma alanınızdan inceleyebilirsiniz.',
     })
-    complaint_event(complaint, kind, event_key)
+    if notify_user:
+        complaint_event(complaint, kind, event_key)
     return notification
 
 

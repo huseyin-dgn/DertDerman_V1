@@ -1,14 +1,55 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}{{ company.name }} | DertDerman{% endblock %}
+{% block body_class %}public-site company-profile-v2{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/company-public-profile.css' %}">{% endblock %}
 {% block content %}
-<main class="content-section" id="main-content"><div class="section-inner account-shell"><article class="account-card">
-    <a class="auth-back" href="{% url 'companies_public:company_list' %}">{% include 'components/icon.html' with name='back' %} Şirketlere Dön</a>
-    {% include 'components/company_identity.html' %}
-    <section class="complaint-description"><h2>Şirket hakkında</h2><p>{{ company.description|default:'Şirket açıklaması henüz eklenmemiş.' }}</p></section>
-    <dl class="account-details"><div><dt>Web sitesi</dt><dd>{{ company.website|default:'Belirtilmemiş' }}</dd></div><div><dt>E-posta</dt><dd>{{ company.email|default:'Belirtilmemiş' }}</dd></div><div><dt>Telefon</dt><dd>{{ company.phone|default:'Belirtilmemiş' }}</dd></div></dl>
-    <section class="company-activity" aria-labelledby="activity-title"><h2 id="activity-title">Son Hareketler</h2><p>Şirkete ait, şu anda yayında olan son şikayetler.</p>
-        <ol>{% for complaint in recent_public_complaints %}<li><span class="activity-node" aria-hidden="true"></span><div><span class="activity-kind">Yayındaki şikayet</span><h3><a href="{% url 'complaints:public_detail' complaint.pk %}">{{ complaint.title }}</a></h3><p>Oluşturulma: <time datetime="{{ complaint.created_at|date:'c' }}">{{ complaint.created_at|date:'d.m.Y' }}</time></p></div></li>{% empty %}<li class="activity-empty">Henüz herkese açık bir şikayet bulunmuyor.</li>{% endfor %}</ol>
+<main id="main-content">
+  <section class="company-profile-hero"><div class="section-inner">
+    <a class="company-profile-back" href="{% url 'companies_public:company_list' %}">{% include 'components/icon.html' with name='back' %} Şirketlere dön</a>
+    <div class="company-profile-hero-grid">
+      <div class="company-profile-identity">
+        <span class="company-profile-logo">{% include 'components/company_avatar.html' with company=company image_class='company-profile-avatar-image' fallback_class='company-profile-avatar-fallback' only %}</span>
+        <div><p class="company-profile-category">{{ company.category.name|default:"Şirket" }}</p><h1>{{ company.name }}</h1>
+          {% if company.is_verified %}<span class="company-verified" title="Bu şirket hesabı DertDerman'da doğrulanmıştır." aria-label="Bu şirket hesabı DertDerman'da doğrulanmıştır."><b aria-hidden="true">✓</b> Doğrulanmış şirket</span>{% endif %}
+        </div>
+      </div>
+      <div class="company-profile-summary">
+        <p>{{ company.description|default:"Bu şirket henüz kısa bir profil açıklaması paylaşmadı."|truncatechars:360 }}</p>
+        {% if company.website or company.email or company.phone %}<ul class="company-contact-list" aria-label="Şirket iletişim bilgileri">
+          {% if company.website %}<li><span>Web</span><a href="{{ company.website }}" target="_blank" rel="noopener noreferrer">Web sitesini ziyaret et ↗</a></li>{% endif %}
+          {% if company.email %}<li><span>E-posta</span><a href="mailto:{{ company.email }}">{{ company.email }}</a></li>{% endif %}
+          {% if company.phone %}<li><span>Telefon</span><a href="tel:{{ company.phone }}">{{ company.phone }}</a></li>{% endif %}
+        </ul>{% endif %}
+        <a class="company-profile-cta" href="{% url 'complaints:create' %}?company={{ company.pk }}">Bu şirket hakkında şikayet yaz {% include 'components/icon.html' with name='write' %}</a>
+      </div>
+    </div>
+  </div></section>
+
+  <section class="company-profile-content"><div class="section-inner company-profile-shell">
+    <section aria-labelledby="performance-title">
+      <header class="company-section-heading"><div><p>DertDerman performansı</p><h2 id="performance-title">Şirketin public görünümü</h2></div><span>Gerçek yayın verileri</span></header>
+      <div class="company-metric-grid">
+        <article class="company-metric"><span>Toplam Şikayet</span>{% if performance.total %}<strong>{{ performance.total }}</strong><small>public kayıt</small>{% else %}<p>Henüz yeterli veri yok</p>{% endif %}</article>
+        <article class="company-metric company-metric--cyan"><span>Cevap Oranı</span>{% if performance.response_ratio is not None %}<strong>%{{ performance.response_ratio }}</strong><small>{{ performance.answered }} şikayete yanıt</small>{% else %}<p>Henüz yeterli veri yok</p>{% endif %}</article>
+        <article class="company-metric company-metric--green"><span>Çözüm Oranı</span>{% if performance.resolved_ratio is not None %}<strong>%{{ performance.resolved_ratio }}</strong><small>{{ performance.resolved }} çözülen kayıt</small>{% else %}<p>Henüz yeterli veri yok</p>{% endif %}</article>
+        <article class="company-metric company-metric--navy"><span>Ortalama Cevap</span>{% if average_response %}<strong>{{ average_response }}</strong><small>ilk aktif şirket yanıtı</small>{% else %}<p>Henüz yeterli veri yok</p>{% endif %}</article>
+      </div>
     </section>
-    <a class="secondary-action" href="{% url 'complaints:public_list' %}">Yayınlanan Şikayetleri İncele {% include 'components/icon.html' %}</a>
-</article></div></main>
+
+    <div class="company-profile-columns">
+      <section class="company-complaints" aria-labelledby="company-complaints-title">
+        <header class="company-section-heading company-list-heading"><div><p>Topluluk deneyimleri</p><h2 id="company-complaints-title">{{ company.name }} şikayetleri</h2></div></header>
+        <nav class="company-filter-tabs" aria-label="Şirket şikayet filtreleri">{% for key, label in filter_options %}<a href="?status={{ key }}" {% if key == active_filter %}aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}</nav>
+        {% if page_obj %}<div class="company-complaint-grid">{% for complaint in page_obj %}{% include 'companies/company_complaint_card.html' with complaint=complaint only %}{% endfor %}</div>{% else %}<div class="company-profile-empty"><h3>Bu filtrede şikayet bulunmuyor</h3><p>Yalnızca yayınlanmış ve çözülen kayıtlar burada görünür.</p></div>{% endif %}
+        {% include 'components/pagination.html' with label='Şirket şikayet sayfaları' %}
+      </section>
+
+      <aside class="company-response-panel" aria-labelledby="recent-responses-title">
+        <header><p>Doğrudan şirketten</p><h2 id="recent-responses-title">Son Şirket Yanıtları</h2></header>
+        <div class="company-response-list">{% for response in recent_responses %}<article><span class="response-check" aria-hidden="true">✓</span><div><h3>{{ response.complaint.title }}</h3><p>{{ response.body|truncatechars:150 }}</p><footer><time datetime="{{ response.created_at|date:'c' }}">{{ response.created_at|date:'d.m.Y' }}</time><a class="detail-cta" href="{% url 'complaints:public_detail' response.complaint.pk %}">Şikayeti Gör →</a></footer></div></article>{% empty %}<div class="company-response-empty"><span aria-hidden="true">↗</span><p>Henüz public bir şirket yanıtı bulunmuyor.</p></div>{% endfor %}</div>
+      </aside>
+    </div>
+  </div></section>
+</main>
 {% endblock %}

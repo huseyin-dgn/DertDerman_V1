@@ -92,7 +92,7 @@ def run(directory):
                     assert page.goto(origin + route).status == 200
                     expect(page.locator(rows[role])).to_have_count(10 if role == 'ADMIN' else 8)
                     no_overflow()
-                    assert page.get_by_role('link', name='Bildirimler,', exact=False).count() >= 1
+                    assert page.get_by_role('link', name='Bildirimler', exact=False).count() >= 1
                     page.screenshot(path=str(output / f'{role.lower()}-{width}.png'), full_page=True)
                     report['screens'].append({'role': role, 'width': width, 'overflow': False})
                 page.get_by_role('link', name='Sayfa 2', exact=True).click()

@@ -44,6 +44,13 @@
                             <button class="danger-action" type="submit" data-confirm="Bu şikayeti reddetmek inceleme sürecini sonlandırır. Devam etmek istiyor musunuz?">Reddet</button>
                         </form>
                     </div>
+                {% elif complaint.status == "PUBLISHED" %}
+                    <div class="moderation-actions">
+                        <form method="post" action="{% url 'adminx:complaint_resolve' complaint.pk %}">
+                            {% csrf_token %}
+                            <button class="primary-action" type="submit" data-confirm="Bu şikayeti çözüldü olarak işaretlemek istiyor musunuz?">Çözüldü Olarak İşaretle</button>
+                        </form>
+                    </div>
                 {% else %}
                     <p class="complaint-pending-note">Bu şikayet için bekleyen moderasyon işlemi yok.</p>
                 {% endif %}

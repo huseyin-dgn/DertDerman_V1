@@ -1,6 +1,8 @@
 from django import forms
+from core.images import secure_uploaded_image
 
 from .models import Company, CompanyCategory
+from .avatars import COMPANY_AVATAR_CHOICES
 
 
 class CompanyResponseForm(forms.Form):
@@ -29,18 +31,25 @@ class ComplaintFilterForm(forms.Form):
 
 
 class CompanyProfileForm(forms.ModelForm):
+    selected_avatar = forms.ChoiceField(
+        label="Kurumsal simge", choices=COMPANY_AVATAR_CHOICES, required=False,
+        widget=forms.RadioSelect,
+    )
     class Meta:
         model = Company
-        fields = ("name", "description", "logo", "website", "phone", "email", "category")
+        fields = ("name", "description", "logo", "selected_avatar", "website", "phone", "email", "category")
         labels = {"name": "Şirket adı", "description": "Açıklama", "logo": "Şirket logosu",
             "website": "Web sitesi", "phone": "Telefon", "email": "İletişim e-postası", "category": "Kategori"}
         widgets = {"description": forms.Textarea(attrs={"rows": 5, "maxlength": 5000})}
 
     def __init__(self, *args, **kwargs):
+        files = kwargs.get("files") or (args[1] if len(args) > 1 else None)
+        raw_logo = files.get("logo") if files else None
+        self._logo_mime = getattr(raw_logo, "content_type", "")
         super().__init__(*args, **kwargs)
         self.fields["category"].queryset = CompanyCategory.objects.filter(is_active=True)
         self.fields["description"].max_length = 5000
-        self.fields["logo"].help_text = "PNG, JPEG veya WebP; en fazla 2 MB."
+        self.fields["logo"].help_text = "PNG, JPEG veya WebP; en fazla 3 MB."
 
     def clean_description(self):
         value = self.cleaned_data["description"].strip()
@@ -50,7 +59,4 @@ class CompanyProfileForm(forms.ModelForm):
 
     def clean_logo(self):
         logo = self.cleaned_data.get("logo")
-        if logo and hasattr(logo, "image"):
-            if logo.size > 2 * 1024 * 1024 or logo.image.format not in {"PNG", "JPEG", "WEBP"}:
-                raise forms.ValidationError("En fazla 2 MB boyutunda PNG, JPEG veya WebP yükleyin.")
-        return logo
+        return secure_uploaded_image(logo, supplied_mime=self._logo_mime)

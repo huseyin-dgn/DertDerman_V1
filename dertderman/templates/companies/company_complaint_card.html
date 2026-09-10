@@ -1,0 +1,7 @@
+<article class="company-complaint-card">
+  <header>{% include 'complaints/status_badge.html' with complaint=complaint only %}<time datetime="{{ complaint.created_at|date:'c' }}">{{ complaint.created_at|date:'d.m.Y' }}</time></header>
+  <h3><a href="{% url 'complaints:public_detail' complaint.pk %}">{{ complaint.title }}</a></h3>
+  <p>{{ complaint.description|truncatechars:170 }}</p>
+  <div class="company-complaint-flags">{% if complaint.has_response %}<span>Şirket cevapladı</span>{% endif %}{% if complaint.status == 'RESOLVED' %}<span class="is-resolved">Çözüldü</span>{% endif %}</div>
+  <footer><span aria-label="Etkileşimler">♡ {{ complaint.like_count|default:0 }} · Tepki {{ complaint.reaction_count|default:0 }} · Yorum {{ complaint.comment_count|default:0 }}</span><a class="detail-cta" href="{% url 'complaints:public_detail' complaint.pk %}">İncele →</a></footer>
+</article>

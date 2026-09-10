@@ -1,49 +1,23 @@
 {% extends "complaints/private_base.html" %}
-
 {% block title %}Şikayetlerim | DertDerman{% endblock %}
-
 {% block content %}
-    <main class="content-section section-muted" id="main-content">
-        {% include 'components/workspace_nav.html' %}
-        <section class="section-inner account-shell" aria-labelledby="complaints-title">
-            <div class="account-card private-complaints">
-                <header class="account-header">
-                    <h1 id="complaints-title">Şikayetlerim</h1>
-                    <p>Şikayetlerinizi ve güncel durumlarını buradan takip edebilirsiniz.</p>
-                </header>
-                {% if complaints %}
-                    <div class="complaint-mini-list">
-                        {% for complaint in complaints %}
-                            <article class="complaint-mini-card">
-                                <div>
-                                    <p class="complaint-company">{{ complaint.company.name }}</p>
-                                    <h2 class="complaint-card-title">{{ complaint.title }}</h2>
-                                </div>
-                                <dl>
-                                    <div>
-                                        <dt>Durum</dt>
-                                        <dd>{% include "complaints/status_badge.html" %}</dd>
-                                    </div>
-                                    <div>
-                                        <dt>Oluşturulma tarihi</dt>
-                                        <dd><time datetime="{{ complaint.created_at|date:'c' }}">{{ complaint.created_at|date:"d.m.Y H:i" }}</time></dd>
-                                    </div>
-                                </dl>
-                                <a class="secondary-action complaint-detail-link" href="{% url 'complaints:detail' complaint.pk %}">Detayı Gör<span class="visually-hidden">: {{ complaint.title }}</span></a>
-                            </article>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <div class="empty-state">
-                        <p>Henüz bir şikayetiniz bulunmuyor.</p>
-                    </div>
-                {% endif %}
-                {% include 'components/pagination.html' %}
-                <div class="hero-actions">
-                    <a class="primary-action" href="{% url 'complaints:create' %}">Şikayet Oluştur</a>
-                    <a class="secondary-action" href="{% url 'dashboard:home' %}">Panelime Dön</a>
-                </div>
-            </div>
+<main class="content-section user-complaints-v2" id="main-content">
+    {% include 'components/workspace_nav.html' %}
+    <div class="section-inner user-complaints-shell">
+        <header class="user-page-heading"><div><p class="section-kicker">DENEYİMLERİNİZ</p><h1>Şikayetlerim</h1><p>Başvurularınızı ve çözüm yolundaki gelişmeleri tek yerden takip edin.</p></div><a class="primary-action" href="{% url 'complaints:create' %}">{% include 'components/icon.html' with name='write' %} Şikayet Yaz</a></header>
+
+        <section class="user-list-tools" aria-label="Şikayet arama ve filtreleme">
+            <form method="get" class="user-complaint-search"><label class="visually-hidden" for="complaint-search">Başlık veya şirket ara</label>{% if active_filter != 'all' %}<input type="hidden" name="status" value="{{ active_filter }}">{% endif %}<span>{% include 'components/icon.html' with name='search' %}</span><input id="complaint-search" type="search" name="q" value="{{ search }}" placeholder="Başlık veya şirket ara"><button type="submit">Ara</button></form>
+            <nav class="user-filter-tabs" aria-label="Şikayet filtreleri">{% for key,label in filter_options %}<a href="?status={{ key }}{% if search %}&amp;q={{ search|urlencode }}{% endif %}" {% if key == active_filter %}aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}</nav>
         </section>
-    </main>
+
+        <div class="user-complaint-grid">{% for complaint in complaints %}<article class="user-complaint-card{% if complaint.status == 'RESOLVED' %} is-resolved{% endif %}">
+            <div class="user-complaint-card-top"><span class="user-company-logo">{% include 'components/company_avatar.html' with company=complaint.company image_class='user-company-logo-image' fallback_class='user-company-logo-fallback' only %}</span><div><p>{{ complaint.company.name }}</p><time datetime="{{ complaint.created_at|date:'c' }}">{{ complaint.created_at|date:'d.m.Y H:i' }}</time></div>{% include 'complaints/status_badge.html' with complaint=complaint only %}</div>
+            <h2>{{ complaint.title }}</h2><p class="user-complaint-excerpt">{{ complaint.description|truncatechars:150 }}</p>
+            <div class="user-complaint-badges">{% if complaint.has_response %}<span class="response-badge">{% include 'companies/panel/icon.html' with name='reply' %} Şirket cevapladı</span>{% else %}<span class="waiting-badge">Yanıt bekleniyor</span>{% endif %}{% if complaint.status == 'RESOLVED' %}<span class="resolution-badge">{% include 'companies/panel/icon.html' with name='check' %} Sorun çözüldü</span>{% endif %}</div>
+            <a class="secondary-action" href="{% url 'complaints:detail' complaint.pk %}">İncele {% include 'components/icon.html' %}</a>
+        </article>{% empty %}<section class="user-empty user-empty--wide"><span>{% include 'companies/panel/icon.html' with name='complaint' %}</span><h2>Henüz bir şikayetiniz bulunmuyor.</h2><p>Bu görünümde sonuç yok. Filtreleri temizleyebilir veya yeni bir şikayet oluşturabilirsiniz.</p><div><a class="secondary-action" href="{% url 'complaints:list' %}">Filtreleri Temizle</a><a class="primary-action" href="{% url 'complaints:create' %}">Şikayet Yaz</a></div></section>{% endfor %}</div>
+        {% include 'components/pagination.html' %}
+    </div>
+</main>
 {% endblock %}

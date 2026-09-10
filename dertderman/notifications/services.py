@@ -16,6 +16,28 @@ def send_admins(**event):
         send(recipient=admin, scope='ADMIN', **event)
 
 
+def complaint_social_event(*, complaint, actor, kind, event_key):
+    """Notify an owner once per deterministic social event, never for self-actions."""
+    if actor.pk == complaint.user_id:
+        return None
+    mapping = {
+        'LIKE': ('Şikayetiniz beğenildi.', 'Bir kullanıcı deneyiminizi faydalı buldu.'),
+        'REACTION': ('Şikayetinize bir kullanıcı tepki verdi.', 'Topluluktan yeni bir tepki aldınız.'),
+        'COMMENT': ('Şikayetinize yeni bir yorum yapıldı.', 'Yeni yorumu şikayet detayında inceleyebilirsiniz.'),
+    }
+    title, message = mapping[kind]
+    return send(
+        recipient=complaint.user,
+        scope='USER',
+        kind=kind,
+        event_key=event_key,
+        title=title,
+        message=message,
+        complaint=complaint,
+        company=complaint.company,
+    )
+
+
 def complaint_event(complaint, kind, event_key):
     mapping = {
         'NEW': ('RECEIVED', 'Şikayetiniz alındı.', 'Şikayetiniz yayınlanmadan önce yönetim tarafından incelenecek.'),

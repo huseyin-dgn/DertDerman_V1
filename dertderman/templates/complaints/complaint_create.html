@@ -1,26 +1,33 @@
 {% extends "layouts/user_base.html" %}
+{% load static %}
 
-{% block title %}Şikayet Oluştur | DertDerman{% endblock %}
+{% block title %}Şikayetinizi Paylaşın | DertDerman{% endblock %}
+{% block extra_head %}{{ block.super }}<script src="{% static 'js/complaint-experience.js' %}" defer></script>{% endblock %}
 
 {% block content %}
-    <main class="content-section section-muted" id="main-content">
-        {% include 'components/workspace_nav.html' %}
-        <section class="section-inner account-shell" aria-labelledby="complaint-create-title">
-            <div class="account-card account-form-card">
-                <div class="account-header"><p class="section-kicker">Deneyiminizle başlayalım</p>
-                    <h1 id="complaint-create-title">Şikayet Oluştur</h1>
-                    <p>Yaşadığınız sorunu seçtiğiniz şirkete açık ve anlaşılır şekilde iletin.</p>
-                </div>
-
-<form method="post" class="account-form">
-    {% csrf_token %}
-    {% if form.non_field_errors %}<div class="form-alert" role="alert">{{ form.non_field_errors }}</div>{% endif %}
-    {% include 'components/field.html' with field=form.company label='Şirket' %}
-{% include 'components/field.html' with field=form.title label='Şikayet başlığı' %}
-{% include 'components/field.html' with field=form.description label='Açıklama' %}
-    <div class="account-form-actions"><button type="submit" class="auth-submit">Şikayeti Gönder</button><a class="secondary-action" href="{% url 'dashboard:home' %}">Panele Dön</a></div>
-    </form>
-            </div>
+<main class="content-section complaint-create-v2" id="main-content">
+    {% include 'components/workspace_nav.html' %}
+    <div class="section-inner complaint-create-layout">
+        <section class="complaint-create-card" aria-labelledby="complaint-create-title">
+            <header class="complaint-create-heading"><p class="section-kicker">DENEYİMİNİZ ÖNEMLİ</p><h1 id="complaint-create-title">Şikayetinizi Paylaşın</h1><p>Yaşadığınız sorunu açık ve anlaşılır şekilde paylaşın.</p></header>
+            <form method="post" class="account-form complaint-create-form" data-submit-form>
+                {% csrf_token %}
+                {% if form.non_field_errors %}<div class="form-alert" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+                <section class="complaint-form-step"><span>01</span><div><h2>Şirket seçimi</h2><p>Deneyiminizin ilgili olduğu şirketi seçin.</p></div></section>
+                {% include 'components/field.html' with field=form.company label='Şirket' %}
+                <section class="complaint-form-step"><span>02</span><div><h2>Konuyu özetleyin</h2><p>Kısa ve anlaşılır bir başlık kullanın.</p></div></section>
+                {% include 'components/field.html' with field=form.title label='Şikayet başlığı' %}
+                <section class="complaint-form-step"><span>03</span><div><h2>Yaşadıklarınızı anlatın</h2><p>Olayı ve beklediğiniz çözümü detaylandırın.</p></div></section>
+                {% include 'components/field.html' with field=form.description label='Şikayet içeriği' %}
+                <div class="complaint-create-actions"><button type="submit" class="primary-action" data-submit-label="Şikayeti Gönder">Şikayeti Gönder</button><a class="secondary-action" href="{% url 'dashboard:home' %}">İptal</a></div>
+            </form>
         </section>
-    </main>
+        <aside class="complaint-writing-guide" aria-labelledby="writing-guide-title"><p class="section-kicker">KÜÇÜK BİR REHBER</p><h2 id="writing-guide-title">İyi bir şikayet nasıl yazılır?</h2><ul>
+            <li><span aria-hidden="true">✓</span><p><strong>Sorunu açık anlatın</strong><small>Konuyu kısa cümlelerle netleştirin.</small></p></li>
+            <li><span aria-hidden="true">◷</span><p><strong>Önemli detayları ekleyin</strong><small>Tarih ve olay sırası çözümü kolaylaştırır.</small></p></li>
+            <li><span aria-hidden="true">⌁</span><p><strong>Hassas verileri koruyun</strong><small>Kimlik, kart ve parola bilgisi paylaşmayın.</small></p></li>
+            <li><span aria-hidden="true">♡</span><p><strong>Olaya odaklanın</strong><small>Hakaret yerine yaşanan deneyimi anlatın.</small></p></li>
+        </ul><div class="privacy-chip">Kişisel bilgileriniz size özeldir.</div></aside>
+    </div>
+</main>
 {% endblock %}

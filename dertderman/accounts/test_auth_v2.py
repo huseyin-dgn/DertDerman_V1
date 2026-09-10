@@ -83,6 +83,7 @@ class AuthExperienceV2Tests(TestCase):
             response = client.post(reverse('accounts:register'), {
                 'username': f'register-{role}', 'email': f'register-{role}@example.com',
                 'password1': self.password, 'password2': self.password,
+                'selected_avatar': 'avatar-1',
                 'user_type': role, 'is_staff': 'true', 'is_superuser': 'true',
                 'is_verified': 'true', 'approval_status': 'APPROVED', 'company_name': 'Injected company'})
             self.assertRedirects(response, reverse('dashboard:home'))

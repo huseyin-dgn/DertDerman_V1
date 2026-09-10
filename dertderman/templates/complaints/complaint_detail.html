@@ -1,4 +1,5 @@
-{% extends "complaints/private_base.html" %}
+{% extends "complaints/private_base.html" %}{% load static %}
+{% block extra_head %}{{ block.super }}<script src="{% static 'js/complaint-experience.js' %}" defer></script>{% endblock %}
 
 {% block title %}Şikayet Detayı | DertDerman{% endblock %}
 
@@ -8,7 +9,7 @@
         <article class="section-inner account-shell" aria-labelledby="complaint-title">
             <div class="account-card private-complaints">
                 <header class="account-header">
-                    <p class="complaint-company">{{ complaint.company.name }}</p>
+                    <div class="private-detail-company"><span class="user-company-logo">{% include 'components/company_avatar.html' with company=complaint.company image_class='user-company-logo-image' fallback_class='user-company-logo-fallback' only %}</span><p class="complaint-company">{{ complaint.company.name }}</p></div>
                     <h1 id="complaint-title">{{ complaint.title }}</h1>
                 </header>
                 <dl class="account-details">
@@ -25,7 +26,7 @@
                         <dd><time datetime="{{ complaint.updated_at|date:'c' }}">{{ complaint.updated_at|date:"d.m.Y H:i" }}</time></dd>
                     </div>
                 </dl>
-                {% include 'complaints/lifecycle.html' %}
+                {% include 'complaints/timeline.html' %}
                 {% if complaint.status == "PENDING" %}
                     <p class="complaint-pending-note">Şikayetiniz incelemede. Henüz yayınlanmadı.</p>
                 {% endif %}
@@ -33,6 +34,8 @@
                     <h2 id="description-title">Açıklama</h2>
                     <p>{{ complaint.description }}</p>
                 </section>
+                {% if not complaint.withdrawn_at %}<div class="complaint-owner-actions">{% if complaint.status != 'RESOLVED' %}<a class="secondary-action" href="{% url 'complaints:edit' complaint.pk %}">Şikayeti Düzenle</a>{% endif %}<button class="danger-action" type="button" data-withdraw-open>Şikayeti Geri Çek</button></div><dialog class="withdraw-dialog" data-withdraw-dialog aria-labelledby="withdraw-title"><form method="post" action="{% url 'complaints:withdraw' complaint.pk %}">{% csrf_token %}<h2 id="withdraw-title">Şikayeti geri çekmek istediğinize emin misiniz?</h2><p>Şikayet public görünümden kaldırılır; geçmiş ve yanıtlar korunur.</p><div><button class="secondary-action" type="button" data-withdraw-close>Vazgeç</button><button class="danger-action" type="submit">Evet, Geri Çek</button></div></form></dialog>{% else %}<div class="complaint-withdrawn-note">Bu şikayet geri çekildi. Geçmiş kayıtları korunuyor.</div>{% endif %}
+                {% if complaint.status == "PUBLISHED" %}<form method="post" action="{% url 'complaints:resolve' complaint.pk %}" class="user-resolve-action">{% csrf_token %}<div><strong>Sorununuz çözüldü mü?</strong><p>Deneyiminizin olumlu şekilde tamamlandığını onaylayabilirsiniz.</p></div><button class="primary-action" type="submit">{% include 'companies/panel/icon.html' with name='check' %} Sorunum Çözüldü</button></form>{% elif complaint.status == "RESOLVED" %}<div class="user-resolved-note">{% include 'companies/panel/icon.html' with name='check' %}<div><strong>Bu şikayet çözüldü.</strong><p>Çözüm onayı zaman çizelgesine eklendi.</p></div></div>{% endif %}
                 {% if company_response_page %}<section class="complaint-description" aria-labelledby="company-response-title"><h2 id="company-response-title">Şirket yanıtları</h2>{% for response in company_response_page %}<article><time datetime="{{ response.created_at|date:'c' }}">{{ response.created_at|date:'d.m.Y H:i' }}</time><p>{{ response.body|linebreaksbr }}</p></article>{% endfor %}{% include 'components/pagination.html' with page_obj=company_response_page page_param='response_page' %}</section>{% endif %}
                 <a class="secondary-action" href="{% url 'complaints:list' %}">Şikayetlerime Dön</a>
             </div>

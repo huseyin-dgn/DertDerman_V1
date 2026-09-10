@@ -1,19 +1,34 @@
 {% extends "complaints/private_base.html" %}
-{% block title %}Kullanıcı Paneli | DertDerman{% endblock %}
+{% block title %}Genel Bakış | DertDerman{% endblock %}
 {% block content %}
-<main class="content-section" id="main-content">
+<main class="content-section user-dashboard-v2" id="main-content">
     {% include 'components/workspace_nav.html' %}
-    <section class="section-inner dashboard-panel" aria-labelledby="dashboard-title"><div class="dashboard-card">
-        <header class="dashboard-header"><div><p class="section-kicker">Sizin alanınız</p><h1 id="dashboard-title">Merhaba, {% if request.user.first_name %}{{ request.user.first_name }}{% else %}{{ request.user.username }}{% endif %}.</h1><p>Şikayetlerinizi ve hesap bilgilerinizi buradan takip edebilirsiniz.</p></div><span class="status-badge">Hesabınız aktif.</span></header>
-        <div class="task-grid">
-            <a class="task-card task-card-featured" href="{% url 'complaints:create' %}">{% include 'components/icon.html' with name='write' %}<strong>Yeni Şikayet</strong><span>Yaşadığınız sorunu kendi sözlerinizle anlatın.</span></a>
-            <a class="task-card" href="{% url 'complaints:list' %}">{% include 'components/icon.html' with name='list' %}<strong>Şikayetlerim</strong><span>Başvurularınızı ve güncel durumlarını takip edin.</span></a>
-            <a class="task-card" href="{% url 'accounts:profile' %}">{% include 'components/icon.html' with name='user' %}<strong>Profilim</strong><span>Hesap bilgilerinizi görüntüleyin ve düzenleyin.</span></a>
-        </div>
-        <section class="user-complaints" aria-labelledby="user-complaints-title"><header class="panel-section-heading section-heading-row"><div><h2 id="user-complaints-title">Son şikayetleriniz</h2><p>Her başvurunun güncel durumu, tek bir yerde.</p></div><a class="text-action" href="{% url 'complaints:list' %}">Tüm Şikayetlerimi Gör {% include 'components/icon.html' %}</a></header>
-            <div class="complaint-mini-list">{% for complaint in recent_complaints %}<article class="complaint-mini-card"><div><p class="complaint-company">{{ complaint.company.name }}</p><h3><a href="{% url 'complaints:detail' complaint.pk %}">{{ complaint.title }}</a></h3></div><dl><div><dt>Durum</dt><dd>{% include 'complaints/status_badge.html' %}</dd></div><div><dt>Tarih</dt><dd>{{ complaint.created_at|date:"d.m.Y H:i" }}</dd></div></dl></article>
-            {% empty %}<div class="empty-state"><p>Henüz şikayet oluşturmadınız.</p><a class="text-action" href="{% url 'complaints:create' %}">İlk şikayetinizi yazın {% include 'components/icon.html' %}</a></div>{% endfor %}</div>
+    <div class="section-inner user-dashboard-shell">
+        <header class="user-welcome">
+            <div><p class="section-kicker">KİŞİSEL ALANINIZ</p><h1>Hoş geldiniz, {{ request.user.first_name|default:request.user.username }}</h1><p>Şikayetlerinizi, şirket yanıtlarını ve çözüm süreçlerinizi buradan takip edebilirsiniz.</p><a class="primary-action" href="{% url 'complaints:create' %}">{% include 'components/icon.html' with name='write' %} Şikayet Yaz</a></div>
+        </header>
+
+        <section class="user-metric-grid" aria-label="Şikayet özeti">
+            <a class="user-metric user-metric--blue" href="{% url 'complaints:list' %}"><span>{% include 'companies/panel/icon.html' with name='complaint' %}</span><strong>{{ metrics.total }}</strong><small>Toplam Şikayetim</small></a>
+            <a class="user-metric user-metric--amber" href="{% url 'complaints:list' %}?status=pending"><span>{% include 'companies/panel/icon.html' with name='clock' %}</span><strong>{{ metrics.pending }}</strong><small>İncelemede</small></a>
+            <a class="user-metric user-metric--lavender" href="{% url 'complaints:list' %}?status=answered"><span>{% include 'companies/panel/icon.html' with name='reply' %}</span><strong>{{ metrics.answered }}</strong><small>Şirket Cevapladı</small></a>
+            <a class="user-metric user-metric--green" href="{% url 'complaints:list' %}?status=resolved"><span>{% include 'companies/panel/icon.html' with name='check' %}</span><strong>{{ metrics.resolved }}</strong><small>Çözülen</small></a>
+            <a class="user-metric user-metric--cyan" href="{% url 'notifications:list' %}"><span>{% include 'companies/panel/icon.html' with name='bell' %}</span><strong>{{ metrics.unread }}</strong><small>Okunmamış Bildirim</small></a>
         </section>
-    </div></section>
+
+        <div class="user-dashboard-columns">
+            <section class="user-panel-card" aria-labelledby="recent-complaints-title">
+                <header class="user-panel-heading"><div><p class="section-kicker">SON HAREKETLER</p><h2 id="recent-complaints-title">Son Şikayetlerim</h2></div><a href="{% url 'complaints:list' %}">Tümünü Gör →</a></header>
+                <div class="user-recent-list">{% for complaint in recent_complaints %}<a class="user-recent-row" href="{% url 'complaints:detail' complaint.pk %}"><span class="user-company-avatar">{% include 'components/company_avatar.html' with company=complaint.company image_class='user-company-avatar-image' fallback_class='user-company-avatar-fallback' only %}</span><span><small>{{ complaint.company.name }} · {{ complaint.created_at|date:'d.m.Y' }}</small><strong>{{ complaint.title }}</strong></span>{% include 'complaints/status_badge.html' with complaint=complaint only %}</a>{% empty %}<div class="user-empty">{% include 'companies/panel/icon.html' with name='complaint' %}<h3>Henüz şikayetiniz yok.</h3><p>İlk deneyiminizi paylaşarak süreci başlatın.</p><a class="secondary-action" href="{% url 'complaints:create' %}">Şikayet Yaz</a></div>{% endfor %}</div>
+            </section>
+
+            <section class="user-panel-card" aria-labelledby="recent-notifications-title">
+                <header class="user-panel-heading"><div><p class="section-kicker">GÜNCEL KALIN</p><h2 id="recent-notifications-title">Son Bildirimler</h2></div><a href="{% url 'notifications:list' %}">Tümünü Gör →</a></header>
+                <div class="user-notification-preview">{% for notification in recent_notifications %}<a href="{{ notification.target_url }}" class="user-notification-row{% if not notification.is_read %} is-unread{% endif %}"><span>{% include 'companies/panel/icon.html' with name=notification.icon %}</span><span><strong>{{ notification.title }}</strong><small>{{ notification.created_at|date:'d.m.Y H:i' }}</small></span></a>{% empty %}<div class="user-empty user-empty--compact">{% include 'companies/panel/icon.html' with name='bell' %}<h3>Yeni bildiriminiz yok.</h3><p>Gelişmeler burada görünecek.</p></div>{% endfor %}</div>
+            </section>
+        </div>
+
+        <section class="user-quick-actions" aria-labelledby="quick-actions-title"><div><p class="section-kicker">KISAYOLLAR</p><h2 id="quick-actions-title">Hızlı İşlemler</h2></div><nav aria-label="Hızlı işlemler"><a href="{% url 'complaints:create' %}">{% include 'components/icon.html' with name='write' %}<span><strong>Şikayet Yaz</strong><small>Yeni bir deneyim paylaşın</small></span></a><a href="{% url 'complaints:list' %}">{% include 'components/icon.html' with name='list' %}<span><strong>Şikayetlerim</strong><small>Tüm süreçleri inceleyin</small></span></a><a href="{% url 'accounts:profile_edit' %}">{% include 'components/icon.html' with name='user' %}<span><strong>Bilgilerimi Düzenle</strong><small>İletişim bilgilerinizi güncelleyin</small></span></a></nav></section>
+    </div>
 </main>
 {% endblock %}

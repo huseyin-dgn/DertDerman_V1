@@ -23,6 +23,7 @@
       <div class="ax-pair">{% include 'auth/field.html' with field=form.email label='E-posta' %}{% include 'auth/field.html' with field=form.phone label='Telefon (isteğe bağlı)' %}</div>
       {% include 'auth/field.html' with field=form.password1 label='Şifre' %}
       {% include 'auth/field.html' with field=form.password2 label='Şifre tekrar' %}
+      {% include 'accounts/avatar_selector.html' with field=form.selected_avatar legend='Profil avatarınızı seçin' selector_class='avatar-presets--register' only %}
       <button type="submit" class="ax-submit" data-submit-label="Hesabınız oluşturuluyor…"><span>Ücretsiz Kayıt Ol</span>{% include 'components/icon.html' %}</button>
     </form>
     <div class="ax-alternative"><span>Zaten hesabınız var mı?</span><a href="{% url 'accounts:login' %}">Giriş Yap {% include 'components/icon.html' %}</a></div>

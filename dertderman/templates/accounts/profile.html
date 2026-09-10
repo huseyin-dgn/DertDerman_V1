@@ -3,83 +3,32 @@
 {% block title %}Profilim | DertDerman{% endblock %}
 
 {% block content %}
-    <main class="content-section section-muted" id="main-content">
+    <main class="content-section section-muted profile-v2" id="main-content">
         {% include 'components/workspace_nav.html' %}
         <section class="section-inner account-shell" aria-labelledby="profile-title">
-            <div class="account-card">
-                <div class="identity-header"><span class="identity-avatar" aria-hidden="true">{{ request.user.username|first|upper }}</span><div><p class="section-kicker">Hesabınız</p><h1 id="profile-title">Profilim</h1><p>{{ request.user.username }}</p></div></div><div class="account-header">
-                    <span class="status-badge">
-                        {% if request.user.is_active %}
-                            Hesabınız aktif.
-                        {% else %}
-                            Hesabınız pasif.
-                        {% endif %}
-                    </span>
+            <div class="account-card profile-card">
+                <div class="profile-hero">
+                    {% include 'components/user_avatar.html' with user=request.user size_class='profile-avatar' only %}
+                    <div class="profile-intro">
+                        <p class="section-kicker">Profilim</p>
+                        <h1 id="profile-title">{{ request.user.get_full_name|default:request.user.username }}</h1>
+                        <p>İletişim bilgilerinizi ve hesap tercihlerinizi buradan yönetebilirsiniz.</p>
                     </div>
+                </div>
 
-                <dl class="account-details">
-                    <div>
-                        <dt>Kullanıcı adı</dt>
-                        <dd>{{ request.user.username }}</dd>
-                    </div>
-                    <div>
-                        <dt>Ad</dt>
-                        <dd>
-                            {% if request.user.first_name %}
-                                {{ request.user.first_name }}
-                            {% else %}
-                                Belirtilmemiş
-                            {% endif %}
-                        </dd>
-                    </div>
-                    <div>
-                        <dt>Soyad</dt>
-                        <dd>
-                            {% if request.user.last_name %}
-                                {{ request.user.last_name }}
-                            {% else %}
-                                Belirtilmemiş
-                            {% endif %}
-                        </dd>
-                    </div>
-                    <div>
-                        <dt>E-posta</dt>
-                        <dd>{{ request.user.email }}</dd>
-                    </div>
-                    <div>
-                        <dt>Telefon</dt>
-                        <dd>
-                            {% if request.user.phone %}
-                                {{ request.user.phone }}
-                            {% else %}
-                                Belirtilmemiş
-                            {% endif %}
-                        </dd>
-                    </div>
-                    <div>
-                        <dt>Hesap türü</dt>
-                        <dd>{{ request.user.get_user_type_display }}</dd>
-                    </div>
-                    <div>
-                        <dt>Hesap durumu</dt>
-                        <dd>
-                            {% if request.user.is_active %}
-                                Aktif
-                            {% else %}
-                                Pasif
-                            {% endif %}
-                        </dd>
-                    </div>
-                    <div>
-                        <dt>Kayıt tarihi</dt>
-                        <dd>{{ request.user.date_joined|date:"d.m.Y H:i" }}</dd>
-                    </div>
+                <dl class="account-details profile-details">
+                    <div><dt>Ad soyad</dt><dd>{{ request.user.get_full_name|default:"Belirtilmemiş" }}</dd></div>
+                    <div><dt>E-posta</dt><dd>{{ request.user.email }}</dd></div>
+                    <div><dt>Telefon</dt><dd>{{ request.user.phone|default:"Belirtilmemiş" }}</dd></div>
+                    <div><dt>Katılım tarihi</dt><dd>{{ request.user.date_joined|date:"d F Y" }}</dd></div>
                 </dl>
 
-                <div class="account-actions">
-                    <a class="secondary-action" href="{% url 'accounts:profile_edit' %}">Profili Düzenle</a>
-                    <a class="secondary-action" href="{% url 'accounts:password_change' %}">Şifremi Değiştir</a>
-                    <a class="secondary-action" href="{% url 'dashboard:home' %}">Panele Dön</a>
+                <section class="user-badges" aria-labelledby="user-badges-title"><header><p class="section-kicker">KATKILAR</p><h2 id="user-badges-title">Rozetler</h2></header><div class="user-badge-grid">{% for badge in user_badges %}{% include 'components/user_badge.html' with badge=badge only %}{% empty %}<p class="user-badge-empty">Public katkılarınız arttıkça uygun rozetler burada otomatik görünür.</p>{% endfor %}</div></section>
+
+                <div class="account-actions profile-actions">
+                    <a class="primary-action" href="{% url 'accounts:profile_edit' %}">Bilgilerimi Düzenle</a>
+                    <a class="secondary-action" href="{% url 'accounts:password_change' %}">Şifre Değiştir</a>
+                    <a class="ghost-action" href="{% url 'core:home' %}">Ana Sayfa</a>
                 </div>
             </div>
         </section>

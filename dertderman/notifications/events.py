@@ -12,6 +12,12 @@ def response_created(sender, instance, created, raw=False, **kwargs):
          event_key=f'response:{instance.pk}', title='Şirket şikayetinize cevap verdi.',
          message='Şirket yanıtını şikayetinizin detayında inceleyebilirsiniz.',
          complaint=instance.complaint, company=instance.company)
+    from complaints.events import record_event
+    from complaints.models import ComplaintEvent
+    record_event(instance.complaint, ComplaintEvent.Type.COMPANY_RESPONDED,
+                 actor_type=ComplaintEvent.Actor.COMPANY,
+                 message=f'{instance.company.name} şikayetinize cevap verdi.',
+                 source_key=f'response:{instance.pk}:timeline', occurred_at=instance.created_at)
 
 
 @receiver(post_save, sender=Company)

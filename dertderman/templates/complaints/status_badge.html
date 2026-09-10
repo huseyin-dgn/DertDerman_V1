@@ -1,1 +1,1 @@
-<span class="status-badge complaint-status-{{ complaint.status|lower }}">{{ complaint.get_status_display }}</span>
+{% if complaint.withdrawn_at %}<span class="status-badge complaint-status-withdrawn">Geri çekildi</span>{% else %}<span class="status-badge complaint-status-{{ complaint.status|lower }}">{{ complaint.get_status_display }}</span>{% endif %}

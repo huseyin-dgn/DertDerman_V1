@@ -2,16 +2,16 @@
 <!doctype html>
 <html lang="tr">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="utf-8"><script>try{document.documentElement.dataset.theme=localStorage.getItem('dd-theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){document.documentElement.dataset.theme='light'}</script><meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow"><meta name="theme-color" content="{% block theme_color %}#f3f8ff{% endblock %}">
   <title>{% block title %}Hesabınız | DertDerman{% endblock %}</title>
   <link rel="stylesheet" href="{% static 'css/tokens.css' %}"><link rel="stylesheet" href="{% static 'css/base.css' %}">
   <link rel="stylesheet" href="{% static 'css/components.css' %}"><link rel="stylesheet" href="{% static 'css/pages.css' %}">
-  <link rel="stylesheet" href="{% static 'css/auth.css' %}"><script src="{% static 'js/auth.js' %}" defer></script>
+  <link rel="stylesheet" href="{% static 'css/auth.css' %}"><link rel="stylesheet" href="{% static 'css/theme.css' %}"><link rel="stylesheet" href="{% static 'css/identity-v1.css' %}"><script src="{% static 'js/auth.js' %}" defer></script><script src="{% static 'js/theme.js' %}" defer></script>
 </head>
 <body class="ax-page {% block auth_variant %}{% endblock %}">
 <a class="skip-link" href="#main-content">İçeriğe geç</a>
-<header class="ax-header">{% include 'components/brand.html' %}<a class="ax-home" href="{% url 'core:home' %}">{% include 'components/icon.html' with name='back' %}<span>Ana Sayfaya Dön</span></a></header>
+<header class="ax-header">{% include 'components/brand.html' with compact_brand=True %}<div class="ax-header-actions">{% include 'components/theme_toggle.html' %}<a class="ax-home" href="{% url 'core:home' %}">{% include 'components/icon.html' with name='back' %}<span>Ana Sayfaya Dön</span></a></div></header>
 {% block content %}{% endblock %}
 <footer class="ax-footer"><span>DertDerman</span><span>Bir sözle başlar. Dertten dermana.</span></footer>
 </body>

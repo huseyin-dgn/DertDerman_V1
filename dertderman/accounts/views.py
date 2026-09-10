@@ -11,6 +11,7 @@ from core.decorators import role_required
 
 from .forms import ProfileUpdateForm, RegisterForm, UserAuthenticationForm
 from .models import User
+from .badges import resolve_user_badges
 
 
 def role_redirect_url(user):
@@ -51,7 +52,7 @@ class SecureLoginView(LoginView):
 
 @role_required(User.UserType.USER)
 def profile(request):
-    return render(request, "accounts/profile.html")
+    return render(request, "accounts/profile.html", {"user_badges": resolve_user_badges(request.user)})
 
 
 @role_required(User.UserType.USER)

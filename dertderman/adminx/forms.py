@@ -1,6 +1,7 @@
 from django import forms
 
 from companies.models import Company
+from core.models import ContactRequest
 
 
 class CompanyContentForm(forms.ModelForm):
@@ -19,3 +20,7 @@ class CompanyApprovalActionForm(forms.Form):
     action = forms.ChoiceField(
         choices=((Action.APPROVE, "Onayla"), (Action.REJECT, "Reddet"))
     )
+
+
+class ContactStatusForm(forms.Form):
+    status = forms.ChoiceField(label="Durum", choices=ContactRequest.Status.choices)

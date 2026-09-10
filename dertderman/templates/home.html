@@ -50,7 +50,7 @@
                 <label for="home-search">Şirket ara</label>
                 <div class="home-search-row">{% include 'components/icon.html' with name='search' %}<input id="home-search" type="search" name="q" placeholder="Bir şirket adı yazın"><button class="primary-action button-sm" type="submit">Keşfet</button></div>
             </form>
-            <div class="hero-actions"><a class="primary-action button-lg" href="{% url 'complaints:create' %}">Şikayet Yaz {% include 'components/icon.html' with name='write' %}</a><a class="secondary-action button-lg" href="{% url 'complaints:public_list' %}">Yayınlananları İncele</a></div>
+            <div class="hero-actions"><a class="primary-action button-lg" href="{% url 'complaints:create' %}">Şikayet Yaz {% include 'components/icon.html' with name='write' %}</a><a class="detail-cta button-lg" href="{% url 'complaints:public_list' %}">Yayınlananları İncele</a></div>
             <span class="cta-note">Her şikayet yayınlanmadan önce incelenir.</span>
         </div>
         {% include 'components/hero_brand.html' %}
@@ -58,7 +58,7 @@
     </section>
 
     <section class="stats-section" aria-labelledby="stats-title"><div class="section-inner stats-layout">
-        <header><p class="section-index">01</p><div><p class="section-kicker">Platformun bugünkü görünümü</p><h2 id="stats-title">Rakamların söylediği.</h2></div><p class="stats-note">Yalnızca sistemdeki güncel ve gerçek kayıtlar.</p></header>
+        <header><p class="section-index">01</p><div><p class="section-kicker">Platformun güncel görünümü</p><h2 id="stats-title">DertDerman'da Bugün</h2></div><p class="stats-note">Yalnızca sistemdeki güncel ve gerçek kayıtlar.</p></header>
         <div class="stats-grid" data-count-region data-motion-region>
             {% include 'components/metric.html' with value=stats.total_complaints label='Toplam Şikayet' visual='complaint' %}
             {% include 'components/metric.html' with value=stats.published label='Yayınlanan' visual='published' %}
@@ -70,8 +70,8 @@
     </div></section>
 
     <section class="content-section complaint-feed-section"><div class="section-inner split-section">
-        <header class="section-heading sticky-heading"><p class="section-index">02</p><p class="section-kicker">Kamusal deneyimler</p><h2>Son Şikayetler</h2><p>İncelemeden geçerek yayına alınan en yeni tüketici deneyimleri.</p><a class="text-action" href="{% url 'complaints:public_list' %}">Tüm şikayetler {% include 'components/icon.html' %}</a></header>
-        <div class="public-complaint-grid complaint-feed">{% for complaint in recent_complaints %}{% include 'complaints/public_card.html' with complaint=complaint only %}{% empty %}<div class="empty-state"><p>Henüz yayınlanmış şikayet bulunmuyor.</p><a class="text-action" href="{% url 'complaints:create' %}">İlk adımı atın {% include 'components/icon.html' %}</a></div>{% endfor %}</div>
+        <header class="section-heading sticky-heading"><p class="section-index">02</p><p class="section-kicker">Kamusal deneyimler</p><h2>En Güncel Şikayetler</h2><p>İncelemeden geçerek yayına alınan en yeni tüketici deneyimleri.</p><a class="primary-action" href="{% url 'complaints:public_list' %}">Tüm Şikayetleri Gör {% include 'components/icon.html' %}</a></header>
+        <div class="public-complaint-grid complaint-feed home-complaint-preview">{% for complaint in recent_complaints %}{% include 'complaints/public_card.html' with complaint=complaint only %}{% empty %}<div class="empty-state"><p>Henüz yayınlanmış şikayet bulunmuyor.</p><a class="text-action" href="{% url 'complaints:create' %}">İlk adımı atın {% include 'components/icon.html' %}</a></div>{% endfor %}</div>
     </div></section>
 
     {% include 'components/solution_path.html' %}

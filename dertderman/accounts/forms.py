@@ -1,8 +1,10 @@
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.core.exceptions import ValidationError
 from django.forms import ModelForm
+from django import forms
 
 from .models import User
+from .avatars import USER_AVATAR_CHOICES
 
 
 USER_LOGIN_ERROR = "Giriş bilgileriniz doğrulanamadı. Kullanıcı adınızı ve şifrenizi kontrol edin."
@@ -18,6 +20,9 @@ class UserAuthenticationForm(AuthenticationForm):
 
 
 class RegisterForm(UserCreationForm):
+    selected_avatar = forms.ChoiceField(
+        label="Avatar", choices=USER_AVATAR_CHOICES, required=True, widget=forms.RadioSelect,
+    )
     class Meta:
         model = User
         fields = (
@@ -26,6 +31,7 @@ class RegisterForm(UserCreationForm):
             "first_name",
             "last_name",
             "phone",
+            "selected_avatar",
             "password1",
             "password2",
         )
@@ -42,6 +48,10 @@ class RegisterForm(UserCreationForm):
 
 
 class ProfileUpdateForm(ModelForm):
+    selected_avatar = forms.ChoiceField(
+        label="Hazır avatar", choices=USER_AVATAR_CHOICES, required=False,
+        widget=forms.RadioSelect,
+    )
     class Meta:
         model = User
         fields = (
@@ -49,4 +59,5 @@ class ProfileUpdateForm(ModelForm):
             "last_name",
             "email",
             "phone",
+            "selected_avatar",
         )

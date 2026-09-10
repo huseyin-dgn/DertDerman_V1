@@ -18,6 +18,9 @@ class Notification(models.Model):
         UPDATED = 'UPDATED', 'Durum güncellemesi'
         MODERATION = 'MODERATION', 'Moderasyon bekliyor'
         APPLICATION = 'APPLICATION', 'Şirket başvurusu'
+        LIKE = 'LIKE', 'Şikayet beğenisi'
+        REACTION = 'REACTION', 'Şikayet tepkisi'
+        COMMENT = 'COMMENT', 'Şikayet yorumu'
 
     recipient_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='notifications')
     recipient_role = models.CharField(max_length=10, choices=Scope.choices)
@@ -49,4 +52,5 @@ class Notification(models.Model):
     @property
     def icon(self):
         return {'RESPONSE': 'reply', 'RESOLVED': 'check', 'APPLICATION': 'building',
-                'REJECTED': 'shield', 'MODERATION': 'clock'}.get(self.notification_type, 'bell')
+                'REJECTED': 'shield', 'MODERATION': 'clock', 'LIKE': 'check',
+                'REACTION': 'bell', 'COMMENT': 'reply'}.get(self.notification_type, 'bell')

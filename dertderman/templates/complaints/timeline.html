@@ -1,0 +1,7 @@
+<section class="complaint-timeline" aria-labelledby="timeline-title">
+    <header><p class="section-kicker">ADIM ADIM</p><h2 id="timeline-title">Şikayet zaman çizelgesi</h2></header>
+    <ol>{% for event in timeline_events %}<li class="timeline-event timeline-event--{{ event.event_type|lower }}">
+        <span class="timeline-icon">{% if event.event_type == 'COMPANY_RESPONDED' %}{% include 'companies/panel/icon.html' with name='reply' %}{% elif event.event_type == 'RESOLVED' %}{% include 'companies/panel/icon.html' with name='check' %}{% elif event.event_type == 'PENDING' %}{% include 'companies/panel/icon.html' with name='clock' %}{% else %}{% include 'companies/panel/icon.html' with name='complaint' %}{% endif %}</span>
+        <div><div class="timeline-title-row"><strong>{{ event.get_event_type_display }}</strong><time datetime="{{ event.occurred_at|date:'c' }}">{{ event.occurred_at|date:'d.m.Y H:i' }}</time></div><p>{{ event.message }}</p></div>
+    </li>{% empty %}<li class="timeline-event"><span class="timeline-icon">{% include 'companies/panel/icon.html' with name='complaint' %}</span><div><strong>Şikayet oluşturuldu</strong><p>Süreç bilgileri hazırlanıyor.</p></div></li>{% endfor %}</ol>
+</section>

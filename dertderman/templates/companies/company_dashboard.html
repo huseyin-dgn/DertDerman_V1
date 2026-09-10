@@ -5,7 +5,7 @@
     {% include 'components/workspace_nav.html' %}
     <section class="section-inner"><header class="section-heading"><p class="section-kicker">Kurumsal çalışma alanınız</p><h1>Şirket Paneli</h1><p>Yetkili olduğunuz şirketleri görüntüleyin. Devam etmek için bir şirket seçin.</p></header>
     <div class="company-grid">{% for membership in memberships %}<article class="company-card company-workspace">
-        {% if membership.company.logo %}<img class="company-logo" src="{{ membership.company.logo.url }}" alt="{{ membership.company.name }} logosu" width="52" height="52" loading="lazy" decoding="async">{% else %}<span class="company-avatar" aria-hidden="true">{{ membership.company.name|first }}</span>{% endif %}
+        {% include 'components/company_avatar.html' with company=membership.company image_class='company-logo' fallback_class='company-avatar' only %}
         <div><h3>{{ membership.company.name }}</h3><p>{{ membership.get_role_display }}</p><a class="text-action" href="{% url 'companies:company_panel_detail' membership.company.slug %}">Şirket Alanına Git {% include 'components/icon.html' %}</a></div>
     </article>{% endfor %}</div></section>
 </main>

@@ -9,6 +9,7 @@ SECTIONS = [
     ("user_list", "Kullanıcılar", "users"),
     ("blog_list", "Blog", "note"),
     ("notifications", "Bildirimler", "bell"),
+    ("contact_list", "İletişim Talepleri", "note"),
     ("activity", "Sistem / Aktivite", "clock"),
     ("homepage_content", "Site İçerikleri", "settings"),
 ]
@@ -24,6 +25,7 @@ def admin_shell(request):
         "complaint_reject": "complaint_list", "company_edit": "company_list",
         "company_application_detail": "company_application_list", "user_detail": "user_list",
         "blog_edit": "blog_list", "blog_create": "blog_list", "blog_publish": "blog_list",
+        "contact_detail": "contact_list", "contact_status": "contact_list",
     }
     current = parents.get(route, route)
     items = [{"url": reverse(f"adminx:{name}"), "label": label, "icon": icon,

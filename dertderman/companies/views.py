@@ -5,8 +5,8 @@ from core.pagination import paginate
 
 from complaints.selectors import public_complaints
 
-from .models import Company
-from .selectors import public_companies
+from .models import Company, CompanyResponse
+from .selectors import public_companies, public_company_performance
 from .panel_views import dashboard as company_panel, legacy_company_dashboard as company_panel_detail
 
 
@@ -31,8 +31,51 @@ def public_company_detail(request, slug):
         public_companies(),
         slug=slug,
     )
-    return render(
-        request,
-        "companies/company_detail.html",
-        {"company": company, "recent_public_complaints": public_complaints().filter(company=company).defer("description")[:5]},
+    complaints = public_complaints().filter(company=company)
+    active_filter = request.GET.get("status", "all")
+    if active_filter == "answered":
+        complaints = complaints.filter(has_response=True)
+    elif active_filter == "resolved":
+        complaints = complaints.filter(status="RESOLVED")
+    elif active_filter != "all":
+        active_filter = "all"
+
+    page_obj = paginate(request, complaints, "company_public_complaints")
+    recent_responses = (
+        CompanyResponse.objects.filter(
+            company=company,
+            complaint__company=company,
+            complaint__status__in=("PUBLISHED", "RESOLVED"),
+            complaint__withdrawn_at__isnull=True,
+            is_active=True,
+        )
+        .select_related("complaint")
+        .order_by("-created_at", "-pk")[:4]
     )
+    performance = public_company_performance(company)
+    average_response = _format_response_time(performance["average_response_seconds"])
+    return render(request, "companies/company_detail.html", {
+        "company": company,
+        "page_obj": page_obj,
+        "active_filter": active_filter,
+        "filter_options": (
+            ("all", "Tümü"),
+            ("answered", "Şirket Cevapladı"),
+            ("resolved", "Çözüldü"),
+        ),
+        "performance": performance,
+        "average_response": average_response,
+        "recent_responses": recent_responses,
+    })
+
+
+def _format_response_time(seconds):
+    if seconds is None:
+        return None
+    total_minutes = max(0, round(seconds / 60))
+    hours, minutes = divmod(total_minutes, 60)
+    if hours and minutes:
+        return f"{hours} sa {minutes} dk"
+    if hours:
+        return f"{hours} sa"
+    return f"{minutes} dk"

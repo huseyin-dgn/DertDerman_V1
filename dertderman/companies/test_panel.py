@@ -167,9 +167,11 @@ class CompanyPanelTests(TestCase):
     def test_public_responses_respect_publication_and_active_flag(self):
         reply = CompanyResponse.objects.create(company=self.a, complaint=self.own, author_user=self.owner, body="ACTIVE PUBLIC RESPONSE")
         url = reverse("complaints:public_detail", args=[self.own.pk])
-        for status in ("PENDING", "REJECTED", "RESOLVED"):
+        for status in ("PENDING", "REJECTED"):
             Complaint.objects.filter(pk=self.own.pk).update(status=status)
             self.assertEqual(self.client.get(url).status_code, 404)
+        Complaint.objects.filter(pk=self.own.pk).update(status="RESOLVED")
+        self.assertEqual(self.client.get(url).status_code, 200)
         Complaint.objects.filter(pk=self.own.pk).update(status="PUBLISHED")
         CompanyResponse.objects.filter(pk=reply.pk).update(is_active=False)
         self.assertNotContains(self.client.get(url), reply.body)

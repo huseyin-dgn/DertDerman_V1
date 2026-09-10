@@ -197,12 +197,15 @@ class RouteAccessTests(TestCase):
                 self.assertEqual(self.client.get(url).status_code, 403)
             target.is_active = True
             target.save()
-        for status in [Complaint.Status.PENDING, Complaint.Status.REJECTED, Complaint.Status.RESOLVED]:
+        for status in [Complaint.Status.PENDING, Complaint.Status.REJECTED]:
             self.pending.status = status
             self.pending.save()
             response = Client().get(f"/sikayetler/{self.pending.pk}/")
             self.assertEqual(response.status_code, 404)
             self.assertNotContains(response, self.pending.description, status_code=404)
+        self.pending.status = Complaint.Status.RESOLVED
+        self.pending.save()
+        self.assertEqual(Client().get(f"/sikayetler/{self.pending.pk}/").status_code, 200)
         self.company.is_active = False
         self.company.save()
         self.assertEqual(Client().get(f"/sikayetler/{self.published.pk}/").status_code, 404)
@@ -212,6 +215,7 @@ class RouteAccessTests(TestCase):
         self.assertRedirects(client.post("/hesap/kayit/", {
             "username": "route-smoke-user", "email": "route-smoke@example.com",
             "password1": self.password, "password2": self.password,
+            "selected_avatar": "avatar-1",
         }), "/panel/")
         self.assertEqual(client.get("/panel/").status_code, 200)
         self.assertRedirects(client.post("/hesap/cikis/"), "/")

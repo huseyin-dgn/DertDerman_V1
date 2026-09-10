@@ -1,4 +1,5 @@
 from pathlib import Path
+from uuid import uuid4
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -28,8 +29,7 @@ def generate_unique_slug(instance, value):
 
 def company_logo_upload_path(instance, filename):
     extension = Path(filename).suffix.lower()
-    safe_slug = instance.slug or slugify(instance.name) or "company"
-    return f"companies/logos/{safe_slug}{extension}"
+    return f"companies/logos/{uuid4().hex}{extension}"
 
 
 class CompanyCategory(models.Model):
@@ -86,6 +86,7 @@ class Company(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     archived_at = models.DateTimeField(null=True, blank=True, editable=False)
+    selected_avatar = models.CharField(max_length=24, blank=True)
 
     class Meta:
         ordering = ("name",)

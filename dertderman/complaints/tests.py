@@ -149,14 +149,13 @@ class PrivateComplaintTests(TestCase):
         self.assertEqual(self.owned[0].status, Complaint.Status.PENDING)
         self.assertEqual(Complaint.objects.count(), 5)
 
-    def test_panel_keeps_three_recent_complaints_and_private_links(self):
+    def test_panel_keeps_up_to_five_recent_complaints_and_private_links(self):
         response = self.client.get(reverse("dashboard:home"))
-        self.assertEqual(list(response.context["recent_complaints"]), list(reversed(self.owned))[:3])
+        self.assertEqual(list(response.context["recent_complaints"]), list(reversed(self.owned))[:5])
         self.assertContains(response, reverse("complaints:list"))
-        self.assertContains(response, "Tüm Şikayetlerimi Gör")
-        for complaint in self.owned[1:]:
+        self.assertContains(response, "Tümünü Gör")
+        for complaint in self.owned:
             self.assertContains(response, reverse("complaints:detail", args=[complaint.pk]))
-        self.assertNotContains(response, self.owned[0].title)
         self.assertNotContains(response, escape(self.foreign.title))
 
 
@@ -194,8 +193,8 @@ class PublicComplaintTests(TestCase):
                 self.assertContains(response, self.published.get_status_display())
                 self.assertContains(response, self.published.description[:100])
                 self.assertNotContains(response, self.published.description)
-                for status in [Complaint.Status.PENDING, Complaint.Status.REJECTED,
-                               Complaint.Status.RESOLVED]:
+                self.assertContains(response, self.complaints[Complaint.Status.RESOLVED].title)
+                for status in [Complaint.Status.PENDING, Complaint.Status.REJECTED]:
                     self.assertNotContains(response, self.complaints[status].title)
                     self.assertNotContains(response, self.complaints[status].description[:100])
 
@@ -219,8 +218,7 @@ class PublicComplaintTests(TestCase):
         for logged_in in [False, True]:
             if logged_in:
                 self.client.force_login(self.owner)
-            for status in [Complaint.Status.PENDING, Complaint.Status.REJECTED,
-                           Complaint.Status.RESOLVED]:
+            for status in [Complaint.Status.PENDING, Complaint.Status.REJECTED]:
                 complaint = self.complaints[status]
                 with self.subTest(logged_in=logged_in, status=status):
                     response = self.client.get(
@@ -229,6 +227,8 @@ class PublicComplaintTests(TestCase):
                     self.assertEqual(response.status_code, 404)
                     self.assertNotContains(response, complaint.title, status_code=404)
                     self.assertNotContains(response, complaint.description, status_code=404)
+            resolved = self.complaints[Complaint.Status.RESOLVED]
+            self.assertEqual(self.client.get(reverse("complaints:public_detail", args=[resolved.pk])).status_code, 200)
         self.assertEqual(self.client.get(
             reverse("complaints:public_detail", args=[999999])
         ).status_code, 404)
@@ -281,9 +281,9 @@ class PublicComplaintTests(TestCase):
             title=f"Paginated complaint {index:02d}", description="Pagination description.",
         ) for index in range(25)]
         Complaint.objects.filter(pk__in=[c.pk for c in extra]).update(created_at=timezone.now())
-        expected = list(reversed(extra)) + [self.published]
+        expected = list(reversed(extra)) + [self.complaints[Complaint.Status.RESOLVED], self.published]
         seen = []
-        for page, count in [(1, 8), (2, 8), (3, 8), (4, 2)]:
+        for page, count in [(1, 8), (2, 8), (3, 8), (4, 3)]:
             response = self.client.get(self.list_url, {"page": page})
             self.assertEqual(response.status_code, 200)
             objects = list(response.context["page_obj"])
@@ -300,13 +300,15 @@ class PublicComplaintTests(TestCase):
                 self.assertEqual(response.status_code, 200)
                 self.assertEqual(response.context["page_obj"].number, expected_page)
         home = self.client.get(self.home_url)
-        self.assertEqual(list(home.context["recent_complaints"]), expected[:6])
-        for complaint in expected[6:]:
+        self.assertEqual(list(home.context["recent_complaints"]), expected[:4])
+        for complaint in expected[4:]:
             self.assertNotContains(home, complaint.title)
 
     def test_empty_states_and_empty_pagination(self):
         self.published.status = Complaint.Status.PENDING
         self.published.save()
+        self.complaints[Complaint.Status.RESOLVED].status = Complaint.Status.PENDING
+        self.complaints[Complaint.Status.RESOLVED].save()
         for url in [self.list_url, self.home_url]:
             response = self.client.get(url, {"page": "999999"})
             self.assertContains(response, "Henüz yayınlanmış şikayet bulunmuyor.")
@@ -373,7 +375,7 @@ class ComplaintCreateTests(TestCase):
         response = self.client.get(reverse("complaints:create"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Şikayet Oluştur")
+        self.assertContains(response, "Şikayetinizi Paylaşın")
         cache_control = response.headers.get("Cache-Control", "")
         self.assertIn("no-store", cache_control)
         self.assertIn("no-cache", cache_control)

@@ -2,7 +2,7 @@ from django import forms
 
 from companies.models import Company
 
-from .models import Complaint
+from .models import Complaint, ComplaintComment
 
 
 class ComplaintCreateForm(forms.ModelForm):
@@ -19,7 +19,8 @@ class ComplaintCreateForm(forms.ModelForm):
             "description": "Sorunu en az 20 karakterle anlaşılır şekilde açıklayın.",
         }
         widgets = {
-            "description": forms.Textarea(attrs={"rows": 6}),
+            "title": forms.TextInput(attrs={"maxlength": 150, "data-character-count": ""}),
+            "description": forms.Textarea(attrs={"rows": 8, "data-character-count": ""}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -40,3 +41,31 @@ class ComplaintCreateForm(forms.ModelForm):
         if len(description) < 20:
             raise forms.ValidationError("Açıklama en az 20 karakter olmalıdır.")
         return description
+
+
+class ComplaintEditForm(ComplaintCreateForm):
+    class Meta(ComplaintCreateForm.Meta):
+        pass
+
+
+class ComplaintCommentForm(forms.ModelForm):
+    class Meta:
+        model = ComplaintComment
+        fields = ("body",)
+        labels = {"body": "Yorumunuz"}
+        widgets = {
+            "body": forms.Textarea(
+                attrs={
+                    "rows": 4,
+                    "maxlength": 1000,
+                    "placeholder": "Deneyimle ilgili görüşünüzü paylaşın…",
+                    "data-character-count": "",
+                }
+            )
+        }
+
+    def clean_body(self):
+        body = (self.cleaned_data.get("body") or "").strip()
+        if not body:
+            raise forms.ValidationError("Yorum boş bırakılamaz.")
+        return body

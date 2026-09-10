@@ -1,0 +1,43 @@
+{
+  "passed": true,
+  "browser": "152.0.4191.66",
+  "viewports": [
+    {
+      "width": 375,
+      "overflow": false,
+      "cards": 6,
+      "metrics": 4
+    },
+    {
+      "width": 430,
+      "overflow": false,
+      "cards": 6,
+      "metrics": 4
+    },
+    {
+      "width": 768,
+      "overflow": false,
+      "cards": 6,
+      "metrics": 4
+    },
+    {
+      "width": 1024,
+      "overflow": false,
+      "cards": 6,
+      "metrics": 4
+    },
+    {
+      "width": 1366,
+      "overflow": false,
+      "cards": 6,
+      "metrics": 4
+    },
+    {
+      "width": 1440,
+      "overflow": false,
+      "cards": 6,
+      "metrics": 4
+    }
+  ],
+  "js_errors": []
+}

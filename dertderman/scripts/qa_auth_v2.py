@@ -84,7 +84,7 @@ def run(directory):
                         if width <= 768:
                             assert form['y'] < story['y']
                         else:
-                            assert abs(form['x'] - story['x']) > 100
+                            assert story['x'] < form['x']
                         button = page.locator('.ax-submit')
                         button.scroll_into_view_if_needed()
                         expect(button).to_be_in_viewport()

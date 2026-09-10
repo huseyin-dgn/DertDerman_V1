@@ -3,12 +3,15 @@ from django.contrib.auth import get_user_model
 from django.db.models import Count, Q
 from django.http import Http404
 from django.shortcuts import redirect, render
+from django.urls import reverse
+from django.views.decorators.http import require_http_methods, require_safe
 from django.views.decorators.cache import never_cache
 
 from complaints.models import Complaint
 from complaints.selectors import public_complaints
 from blog.selectors import published_posts
 from .presentation import HERO_BRAND_MESSAGES
+from .forms import ContactRequestForm
 
 
 def home(request):
@@ -21,8 +24,8 @@ def home(request):
     popular_companies = public_companies().order_by("name", "pk")[:6]
     counts = Complaint.objects.aggregate(
         total_complaints=Count("pk"),
-        published=Count("pk", filter=Q(status=Complaint.Status.PUBLISHED, company__is_active=True)),
-        resolved=Count("pk", filter=Q(status=Complaint.Status.RESOLVED)),
+        published=Count("pk", filter=Q(status=Complaint.Status.PUBLISHED, company__is_active=True, withdrawn_at__isnull=True)),
+        resolved=Count("pk", filter=Q(status=Complaint.Status.RESOLVED, withdrawn_at__isnull=True)),
     )
     context = {
         "hero_brand_messages": HERO_BRAND_MESSAGES,
@@ -32,10 +35,29 @@ def home(request):
             "users": get_user_model().objects.count(),
         },
         "popular_companies": popular_companies,
-        "recent_complaints": public_complaints()[:6],
+        "recent_complaints": public_complaints()[:4],
         "recent_posts": published_posts().defer("content")[:3],
     }
     return render(request, "home.html", context)
+
+
+@require_safe
+def about(request):
+    return render(request, "core/about.html")
+
+
+@require_http_methods(["GET", "HEAD", "POST"])
+def contact(request):
+    submitted = request.GET.get("sent") == "1"
+    form = ContactRequestForm(request.POST if request.method == "POST" else None)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        return redirect(f"{reverse('core:contact')}?sent=1")
+    return render(request, "core/contact.html", {
+        "form": form,
+        "submitted": submitted,
+        "support_email": getattr(settings, "SUPPORT_EMAIL", "").strip(),
+    }, status=400 if request.method == "POST" else 200)
 
 
 @never_cache

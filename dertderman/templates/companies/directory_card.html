@@ -1,7 +1,6 @@
 <article class="directory-card">
   <div class="directory-card-top">
-    {% if company.logo %}<img class="directory-logo" src="{{ company.logo.url }}" alt="{{ company.name }} logosu" width="64" height="64" loading="lazy" decoding="async">
-    {% else %}<span class="directory-initial" aria-hidden="true">{{ company.name|first|upper }}</span>{% endif %}
+    {% include 'components/company_avatar.html' with company=company image_class='directory-logo' fallback_class='directory-initial' only %}
     {% if company.is_verified %}<span class="directory-verified">{% include 'companies/panel/icon.html' with name='check' %} Doğrulanmış</span>{% endif %}
   </div>
   <div class="directory-card-content">
@@ -9,5 +8,5 @@
     <h2><a href="{% url 'companies_public:company_detail' company.slug %}">{{ company.name }}</a></h2>
     {% if company.description %}<p class="directory-description">{{ company.description|truncatechars:150 }}</p>{% endif %}
   </div>
-  <div class="directory-card-footer"><span>{{ company.public_complaint_count }} yayındaki şikayet</span><a href="{% url 'companies_public:company_detail' company.slug %}" aria-label="{{ company.name }} — Şirketi İncele">Şirketi İncele {% include 'components/icon.html' %}</a></div>
+  <div class="directory-card-footer"><span>{{ company.public_complaint_count }} yayındaki şikayet</span><a class="detail-cta" href="{% url 'companies_public:company_detail' company.slug %}" aria-label="{{ company.name }} — Şirketi İncele">Şirketi İncele {% include 'components/icon.html' %}</a></div>
 </article>
