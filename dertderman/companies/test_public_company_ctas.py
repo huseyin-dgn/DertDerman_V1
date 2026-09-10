@@ -41,7 +41,7 @@ class PublicCompanyCtaTests(TestCase):
         self.assertNotContains(response, f'href="{reverse("company_auth:register")}"')
         self.assertNotContains(response, f'href="{reverse("company_auth:login")}"')
 
-    def test_regular_user_sees_company_links_without_company_privilege(self):
+    def test_regular_user_does_not_see_company_onboarding_links(self):
         user = User.objects.create_user(
             username="cta-user",
             email="cta-user@example.com",
@@ -52,8 +52,10 @@ class PublicCompanyCtaTests(TestCase):
 
         response = self.client.get(reverse("core:home"))
 
-        self.assertContains(response, f'href="{reverse("company_auth:login")}"')
-        self.assertContains(response, f'href="{reverse("company_auth:register")}"')
+        self.assertNotContains(response, f'href="{reverse("company_auth:login")}"')
+        self.assertNotContains(response, f'href="{reverse("company_auth:register")}"')
+        self.assertNotContains(response, "Şirket Ağına Katıl")
+        self.assertNotContains(response, "Şirketler için DertDerman")
         self.assertNotContains(response, f'href="{reverse("companies:company_panel")}"')
         self.assertEqual(self.client.get(reverse("companies:company_panel")).status_code, 403)
 

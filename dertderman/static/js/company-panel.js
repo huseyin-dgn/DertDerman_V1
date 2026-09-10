@@ -21,8 +21,10 @@ document.querySelectorAll('[data-logo-uploader]').forEach((uploader) => {
   const input = uploader.querySelector('input[type="file"]');
   const name = uploader.querySelector('[data-logo-name]');
   const action = uploader.querySelector('[data-logo-action]');
+  const trigger = uploader.querySelector('[data-logo-trigger]');
   const preview = uploader.querySelector('.cp-logo-upload-preview');
   if (!input || !name || !preview) return;
+  if (trigger) trigger.addEventListener('click', () => input.click());
   input.addEventListener('change', () => {
     const file = input.files?.[0];
     if (!file) return;

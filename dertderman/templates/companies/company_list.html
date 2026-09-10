@@ -11,13 +11,13 @@
     {% if search %}<p class="discovery-search-summary">“{{ search }}” için şirketler</p>{% endif %}
     <div class="directory-grid" aria-label="Şirketler">{% for company in page_obj %}{% include 'companies/directory_card.html' with company=company only %}{% empty %}{% include 'components/public_empty.html' with icon='building' heading='Aradığınız kriterlere uygun şirket bulunamadı.' description='Yeni şirketler rehbere eklendikçe burada görünecek. Arama yaptıysanız farklı bir şirket adı veya kategori deneyebilirsiniz.' route='companies_public:company_list' cta='Şirket rehberine dön' %}{% endfor %}</div>
     {% include 'components/pagination.html' with label='Şirket rehberi sayfaları' %}
-    <aside class="discovery-network" id="kurumsal-katilim" aria-labelledby="company-network-title">
+    {% if not request.user.is_authenticated or request.user.user_type != 'USER' %}<aside class="discovery-network" id="kurumsal-katilim" aria-labelledby="company-network-title">
         <div><p class="discovery-eyebrow">Şirketler için DertDerman</p><h2 id="company-network-title">Şirketiniz de DertDerman’da yerini alsın.</h2><p>Müşteri geri bildirimlerini takip edin, şikayetlere yanıt verin ve çözüm sürecini tek merkezden yönetin.</p></div>
         <div class="company-network-actions">
             {% if request.user.is_authenticated and request.user.user_type == 'COMPANY' %}<a class="primary-action" href="{% url 'companies:company_panel' %}">Şirket Paneli</a>
             {% elif request.user.is_authenticated and request.user.user_type == 'ADMIN' %}<a class="primary-action" href="{% url 'adminx:home' %}">Yönetim Paneli</a>
             {% else %}<a class="primary-action" href="{% url 'company_auth:register' %}">Şirket Ağına Katıl</a><a class="secondary-action" href="{% url 'company_auth:login' %}">Şirket Girişi</a>{% endif %}
         </div>
-    </aside>
+    </aside>{% endif %}
   </div></section>
 </main>{% endblock %}

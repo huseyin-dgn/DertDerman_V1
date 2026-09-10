@@ -21,7 +21,7 @@
           {% if company.email %}<li><span>E-posta</span><a href="mailto:{{ company.email }}">{{ company.email }}</a></li>{% endif %}
           {% if company.phone %}<li><span>Telefon</span><a href="tel:{{ company.phone }}">{{ company.phone }}</a></li>{% endif %}
         </ul>{% endif %}
-        <a class="company-profile-cta" href="{% url 'complaints:create' %}?company={{ company.pk }}">Bu şirket hakkında şikayet yaz {% include 'components/icon.html' with name='write' %}</a>
+        {% if not request.user.is_authenticated or request.user.user_type == 'USER' %}<a class="company-profile-cta" href="{% url 'complaints:create' %}?company={{ company.pk }}">Bu şirket hakkında şikayet yaz {% include 'components/icon.html' with name='write' %}</a>{% endif %}
       </div>
     </div>
   </div></section>

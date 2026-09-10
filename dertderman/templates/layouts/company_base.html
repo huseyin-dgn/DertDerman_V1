@@ -1,9 +1,10 @@
 {% load static %}
 <!doctype html>
-<html lang="tr">
+<html lang="tr" data-auth-role="{{ request.user.user_type }}" data-history-invalidate-url="{% url 'accounts:history_invalidate' %}">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow"><meta name="theme-color" content="#102a43">
+  <script src="{% static 'js/history-session.js' %}"></script>
   <title>{% block title %}Şirket Paneli{% endblock %} | DertDerman</title>
   <link rel="stylesheet" href="{% static 'css/tokens.css' %}">
   <link rel="stylesheet" href="{% static 'css/base.css' %}">

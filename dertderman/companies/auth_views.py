@@ -9,6 +9,7 @@ from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_http_methods
 
 from accounts.models import User
+from accounts.redirects import safe_role_next
 
 from .forms import CompanyAuthenticationForm, CompanyRegistrationForm
 from .services import active_company_memberships_for
@@ -56,4 +57,4 @@ class CompanyLoginView(LoginView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_success_url(self):
-        return reverse("companies:company_panel")
+        return safe_role_next(self.request, self.request.user.user_type) or reverse("companies:company_panel")

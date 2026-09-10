@@ -8,7 +8,7 @@
     <section class="public-page-hero"><div class="section-inner public-page-heading" aria-labelledby="public-complaints-title">
         <p class="page-code">DD / DENEYİMLER</p>
         <header><p class="section-kicker">Paylaşılan deneyimler</p><h1 id="public-complaints-title">Şikayetler,<br><span>olduğu gibi.</span></h1><p>İnceleme sürecinden geçerek yayınlanan tüketici deneyimlerini en yeniden en eskiye okuyun.</p></header>
-        <a class="primary-action button-lg" href="{% url 'complaints:create' %}">Şikayet Yaz {% include 'components/icon.html' with name='write' %}</a>
+        {% if not request.user.is_authenticated or request.user.user_type == 'USER' %}<a class="primary-action button-lg" href="{% url 'complaints:create' %}">Şikayet Yaz {% include 'components/icon.html' with name='write' %}</a>{% endif %}
     </div></section>
     <section class="content-section public-complaints-section"><div class="section-inner">
         <form class="public-complaint-tools" method="get" role="search">

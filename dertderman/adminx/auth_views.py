@@ -8,6 +8,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 
 from accounts.models import User
+from accounts.redirects import safe_role_next
 
 
 LOGIN_ERROR = "Yönetim paneli giriş bilgileri doğrulanamadı."
@@ -37,5 +38,4 @@ class AdminLoginView(LoginView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_success_url(self):
-        # The management entry always goes home; no user-supplied next is used.
-        return reverse("adminx:home")
+        return safe_role_next(self.request, self.request.user.user_type) or reverse("adminx:home")

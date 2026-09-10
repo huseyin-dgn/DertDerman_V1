@@ -13,7 +13,7 @@
     {% include 'auth/messages.html' %}
     <header class="ax-heading"><span class="ax-role">{% include 'companies/panel/icon.html' with name='building' %} Kurumsal giriş</span><h1 id="auth-title">Şirket Panelinize<br>Hoş Geldiniz</h1><p>Yeni şikayetleri görüntüleyin, müşterilerinize yanıt verin ve şirket profilinizi tek merkezden yönetin.</p></header>
     <form method="post" class="ax-form" data-auth-form>
-      {% csrf_token %}{% include 'auth/form_errors.html' %}
+      {% csrf_token %}{% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}{% include 'auth/form_errors.html' %}
       {% include 'auth/field.html' with field=form.email label='E-posta' %}
       {% include 'auth/field.html' with field=form.password label='Şifre' %}
       <button type="submit" class="ax-submit" data-submit-label="Şirket paneli açılıyor…"><span>Şirket Girişi</span>{% include 'components/icon.html' %}</button>

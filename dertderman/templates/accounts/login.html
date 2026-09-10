@@ -7,7 +7,7 @@
     {% include 'auth/messages.html' %}
     <header class="ax-heading"><span class="ax-role">Bireysel giriş</span><h1 id="auth-title">Tekrar<br>Hoş Geldiniz</h1><p>Şikayetlerinizi takip edin, şirket yanıtlarını görüntüleyin ve çözüm sürecinizi kaldığınız yerden yönetin.</p></header>
     <form method="post" class="ax-form" data-auth-form>
-      {% csrf_token %}{% include 'auth/form_errors.html' %}
+      {% csrf_token %}{% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}{% include 'auth/form_errors.html' %}
       {% include 'auth/field.html' with field=form.username label='Kullanıcı adı' %}
       {% include 'auth/field.html' with field=form.password label='Şifre' %}
       <button class="ax-submit" type="submit" data-submit-label="Giriş yapılıyor…"><span>Giriş Yap</span>{% include 'components/icon.html' %}</button>

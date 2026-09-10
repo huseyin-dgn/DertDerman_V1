@@ -22,7 +22,7 @@
           <p class="journey-reveal journey-reveal--description">Deneyiminizi kendi sözlerinizle paylaşın.</p>
         </div>
         <div class="journey-card-action journey-reveal journey-reveal--action">
-          <a class="journey-cta journey-cta--primary" href="{% url 'complaints:create' %}">Şikayet Yaz <span aria-hidden="true">→</span></a>
+          {% if not request.user.is_authenticated or request.user.user_type == 'USER' %}<a class="journey-cta journey-cta--primary" href="{% url 'complaints:create' %}">Şikayet Yaz <span aria-hidden="true">→</span></a>{% endif %}
         </div>
       </article>
 

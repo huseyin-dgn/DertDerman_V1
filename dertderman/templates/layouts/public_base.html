@@ -1,11 +1,12 @@
 {% load static %}
 <!doctype html>
-<html lang="tr">
+<html lang="tr" data-auth-role="{% if request.user.is_authenticated %}{{ request.user.user_type }}{% endif %}" data-history-invalidate-url="{% url 'accounts:history_invalidate' %}">
 <head>
     <meta charset="utf-8">
     {% block pre_paint %}{% endblock %}
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#1d5fa7">
+    <script src="{% static 'js/history-session.js' %}"></script>
 
     <title>{% block title %}DertDerman{% endblock %}</title>
 
@@ -100,9 +101,9 @@
 
                 <div class="footer-links">
 
-                    <a href="{% url 'complaints:create' %}">
+                    {% if not request.user.is_authenticated or request.user.user_type == 'USER' %}<a href="{% url 'complaints:create' %}">
                         Şikayet Yaz
-                    </a>
+                    </a>{% endif %}
 
                     {% if not request.user.is_authenticated %}
 
@@ -123,7 +124,7 @@
             <div>
 
                 <p class="footer-label">
-                    Kurumsal
+                    {% if request.user.is_authenticated and request.user.user_type == 'USER' %}Keşfet{% else %}Kurumsal{% endif %}
                 </p>
 
                 <div class="footer-links">
@@ -140,7 +141,7 @@
                             Yönetim
                         </a>
 
-                    {% else %}
+                    {% elif not request.user.is_authenticated %}
 
                         <a href="{% url 'company_auth:login' %}">
                             Şirket Girişi
@@ -156,9 +157,9 @@
                         Şirketler
                     </a>
 
-                    <a href="{% url 'companies_public:company_list' %}#kurumsal-katilim">
+                    {% if not request.user.is_authenticated %}<a href="{% url 'companies_public:company_list' %}#kurumsal-katilim">
                         Şirketler için DertDerman
-                    </a>
+                    </a>{% endif %}
 
                 </div>
 

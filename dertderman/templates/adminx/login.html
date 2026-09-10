@@ -5,7 +5,7 @@
 {% block content %}<main class="admin-login-shell" id="main-content"><section class="admin-login-card" aria-labelledby="admin-login-title">
 {% include 'components/brand.html' %}
 <header class="auth-heading"><p class="section-kicker">Yönetim Paneli</p><h1 id="admin-login-title">Yetkili Girişi</h1></header>
-<form method="post" class="auth-form" action="{% url 'adminx:login' %}">{% csrf_token %}
+<form method="post" class="auth-form" action="{% url 'adminx:login' %}">{% csrf_token %}{% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
 {% if form.non_field_errors %}<div class="form-alert" role="alert">Yönetim paneli giriş bilgileri doğrulanamadı.</div>{% endif %}
 {% include 'components/field.html' with field=form.username label='Kullanıcı adı' %}
 {% include 'components/field.html' with field=form.password label='Şifre' %}

@@ -1,10 +1,12 @@
-from django.contrib.auth import login
+from django.contrib.auth import login, logout
 from django.contrib import messages
 from django.contrib.auth.views import LoginView, LogoutView, PasswordChangeView
+from django.http import HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
+from django.views.decorators.http import require_POST
 from django.views.generic.edit import FormView
 
 from core.decorators import role_required
@@ -12,6 +14,7 @@ from core.decorators import role_required
 from .forms import ProfileUpdateForm, RegisterForm, UserAuthenticationForm
 from .models import User
 from .badges import primary_badge, resolve_user_badges
+from .redirects import safe_role_next
 
 
 def role_redirect_url(user):
@@ -47,7 +50,7 @@ class SecureLoginView(LoginView):
     redirect_authenticated_user = True
 
     def get_success_url(self):
-        return role_redirect_url(self.request.user)
+        return safe_role_next(self.request, self.request.user.user_type) or role_redirect_url(self.request.user)
 
 
 @role_required(User.UserType.USER)
@@ -90,6 +93,15 @@ class SecureLogoutView(LogoutView):
 
     def get_success_url(self):
         return reverse("core:home")
+
+
+@never_cache
+@require_POST
+def invalidate_history_session(request):
+    if not request.user.is_authenticated:
+        return HttpResponse(status=401)
+    logout(request)
+    return HttpResponse(status=204)
 
 @never_cache
 def account_entry(request):

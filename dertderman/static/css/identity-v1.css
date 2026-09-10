@@ -11,7 +11,7 @@
 }
 .avatar-presets > div {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 9px;
 }
 .avatar-preset-option {
@@ -33,6 +33,7 @@
   border-color: var(--primary, var(--dd-primary));
   box-shadow: inset 0 0 0 1px var(--primary, var(--dd-primary));
 }
+.avatar-preset-option:has(input:checked) { background: #e8f4fc; box-shadow: inset 0 0 0 2px var(--primary, var(--dd-primary)), 0 9px 22px rgb(29 95 167 / 13%); }
 .avatar-preset-option:focus-within {
   outline: 3px solid color-mix(in srgb, var(--dd-primary) 25%, transparent);
   outline-offset: 2px;
@@ -152,6 +153,8 @@
   background: var(--surface-secondary, var(--dd-surface-soft));
   cursor: pointer;
 }
+.company-avatar-option:hover { border-color: #78a8cb; background: #f1f8fc; }
+.company-avatar-option:focus-within { outline: 3px solid color-mix(in srgb, var(--dd-primary) 24%, transparent); outline-offset: 2px; }
 .company-avatar-option:has(input:checked) {
   border-color: var(--primary, var(--dd-primary));
   box-shadow: inset 0 0 0 1px var(--primary, var(--dd-primary));
@@ -294,8 +297,11 @@
 .profile-edit-section-heading p { margin: 0; color: var(--dd-muted); font-size: .75rem; line-height: 1.55; }
 .profile-field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 14px; }
 .profile-field-grid .field-group { margin: 0; }
-.avatar-editor { background: linear-gradient(145deg, #f7fbfe, #edf7fc); }
-.avatar-editor-preview .profile-avatar { width: 68px; height: 68px; flex-basis: 68px; border-color: #c9ddec; background: #fff; box-shadow: 0 9px 24px rgb(16 55 86 / 10%); }
+.avatar-editor { background: linear-gradient(145deg, #f8fbff, #edf7fc); }
+.avatar-editor-preview { align-items: center; }
+.avatar-editor-current { display: grid; justify-items: center; gap: 7px; flex: 0 0 108px; padding: 12px; border: 1px solid #c9ddec; border-radius: 17px; background: #fff; box-shadow: 0 12px 30px rgb(16 55 86 / 9%); }
+.avatar-editor-current > small { color: #55758e; font-size: .52rem; font-weight: 850; letter-spacing: .09em; }
+.avatar-editor-preview .profile-avatar { width: 86px; height: 86px; flex-basis: 86px; border: 0; background: #fff; box-shadow: none; }
 .profile-edit-actions { display: flex; grid-column: 1 / -1; justify-content: flex-end; gap: 10px; padding: 8px 0 0; }
 .user-badges { margin: 0 42px; padding: 28px 0 8px; }
 .user-badges header > p:last-child { margin: -9px 0 18px; color: var(--dd-muted); font-size: .72rem; }
@@ -323,18 +329,20 @@
 .company-badge-showcase .achievement-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .company-badge-showcase .achievement-badge { padding-inline: 5px; }
 .company-badge-showcase .achievement-badge img { width: 58px; height: 58px; }
-.cp-logo-uploader { margin: 20px 0; padding: 20px; border: 1px solid #cbddea; border-radius: 15px; background: #f5faff; }
+.cp-logo-uploader { margin: 20px 0 26px; padding: 24px; border: 1px solid #bed5e5; border-left: 4px solid #1768a2; border-radius: 15px; background: linear-gradient(145deg, #f5faff, #edf5fa); }
 .cp-logo-upload-heading { display: flex; align-items: end; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
 .cp-logo-upload-heading h3 { margin: 0; font-size: 1.05rem; }
 .cp-logo-upload-heading > span { color: var(--dd-muted); font-size: .62rem; }
-.cp-logo-upload-body { display: grid; grid-template-columns: 82px minmax(0, 1fr); gap: 16px; align-items: center; }
-.cp-logo-upload-preview { display: grid; width: 82px; height: 82px; place-items: center; overflow: hidden; border: 1px solid #c8dcea; border-radius: 17px; background: #fff; }
+.cp-logo-upload-body { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 20px; align-items: center; }
+.cp-logo-upload-preview { display: grid; width: 112px; height: 112px; place-items: center; overflow: hidden; border: 1px solid #b9d2e3; border-radius: 18px; background: #fff; box-shadow: 0 10px 24px rgb(16 55 86 / 9%); }
 .cp-logo-upload-image, .cp-logo-upload-fallback { display: grid; width: 100%; height: 100%; place-items: center; object-fit: contain; color: #1768a2; font-size: 1.6rem; font-weight: 850; }
 .cp-logo-pick { cursor: pointer; }
 .cp-logo-native-input { display: none; }
+.cp-logo-upload-controls { min-width: 0; }
 .cp-logo-file-name { display: block; overflow: hidden; margin: 8px 0 5px; color: var(--dd-muted); font-size: .68rem; text-overflow: ellipsis; white-space: nowrap; }
 .cp-logo-uploader small { display: block; color: var(--dd-muted); font-size: .65rem; }
-.cp-logo-remove { margin-top: -8px; padding-top: 18px; border-top: 1px solid var(--dd-border); }
+.cp-logo-remove { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 4px; padding-top: 18px; border-top: 1px solid var(--dd-border); }
+.cp-logo-remove > span { max-width: 52ch; color: var(--dd-muted); font-size: .68rem; line-height: 1.55; }
 .primary-action--soft { border-color: #b8d8ec; background: #e8f5fc; color: #145e9d; box-shadow: none; }
 .primary-action--soft:hover { background: #d9eef9; color: #104d82; }
 .corporate-discovery { padding-block: 64px; background: #edf6fb; }
@@ -353,6 +361,7 @@
 .corporate-audiences { margin-top: 64px; }
 .corporate-audiences > header { max-width: 680px; }
 .corporate-audiences > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 24px; }
+.corporate-audiences article:only-child { grid-column: 1 / -1; }
 .corporate-audiences article { padding: 32px; border: 1px solid #cfdfeb; border-radius: 19px; background: #eaf5fb; }
 .corporate-audiences article:last-child { background: #fff; }
 .corporate-audiences article > span { color: #167c9f; font-size: .68rem; font-weight: 850; letter-spacing: .12em; }
@@ -645,6 +654,12 @@
   .company-avatar-presets {
     padding: 14px;
   }
+  .cp-logo-uploader { padding: 18px; }
+  .cp-logo-upload-heading { align-items: flex-start; flex-direction: column; }
+  .cp-logo-upload-body { grid-template-columns: 1fr; }
+  .cp-logo-upload-preview { width: 96px; height: 96px; }
+  .cp-logo-remove { align-items: stretch; flex-direction: column; }
+  .cp-logo-remove .cp-button { width: 100%; }
   .company-avatar-presets > div {
     grid-template-columns: 1fr;
   }

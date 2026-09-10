@@ -6,6 +6,7 @@ from .views import (
     SecureLogoutView,
     SecurePasswordChangeView,
     account_entry,
+    invalidate_history_session,
     profile,
     profile_edit,
 )
@@ -18,6 +19,7 @@ urlpatterns = [
     path("kayit/", RegisterView.as_view(), name="register"),
     path("giris/", SecureLoginView.as_view(), name="login"),
     path("cikis/", SecureLogoutView.as_view(), name="logout"),
+    path("oturum/gecmis-sonlandir/", invalidate_history_session, name="history_invalidate"),
     path("profil/", profile, name="profile"),
     path("profil/duzenle/", profile_edit, name="profile_edit"),
     path(

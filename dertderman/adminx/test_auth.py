@@ -25,7 +25,7 @@ class AdminLoginTests(TestCase):
         self.assertNotContains(response, "/hesap/kayit/")
         self.assertNotContains(response, "data-motion-region")
 
-    def test_admin_login_rotates_session_and_ignores_all_next_values(self):
+    def test_admin_login_rotates_session_and_only_preserves_safe_admin_next(self):
         admin = self.users["ADMIN"]
         self.assertFalse(admin.is_staff)
         self.assertFalse(admin.is_superuser)
@@ -41,7 +41,8 @@ class AdminLoginTests(TestCase):
                     "username": admin.username, "password": self.password, "next": next_url,
                     "csrfmiddlewaretoken": client.cookies["csrftoken"].value,
                 })
-                self.assertRedirects(response, "/yonetim/")
+                expected = next_url if next_url == "/yonetim/blog/" else "/yonetim/"
+                self.assertRedirects(response, expected)
                 self.assertIn("no-store", response["Cache-Control"])
                 self.assertEqual(int(client.session["_auth_user_id"]), admin.pk)
                 self.assertNotEqual(client.session.session_key, old_key)
