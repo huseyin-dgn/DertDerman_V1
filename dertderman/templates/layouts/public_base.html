@@ -1,14 +1,64 @@
 {% load static %}
 <!doctype html>
-<html lang="tr" data-auth-role="{% if request.user.is_authenticated %}{{ request.user.user_type }}{% endif %}" data-history-invalidate-url="{% url 'accounts:history_invalidate' %}">
+<html lang="tr"
+      data-auth-role="{% if request.user.is_authenticated %}{{ request.user.user_type }}{% endif %}"
+      data-history-invalidate-url="{% url 'accounts:history_invalidate' %}">
+
 <head>
     <meta charset="utf-8">
+
     {% block pre_paint %}{% endblock %}
+
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#1d5fa7">
-    <script src="{% static 'js/history-session.js' %}"></script>
 
     <title>{% block title %}DertDerman{% endblock %}</title>
+
+    <meta
+        name="description"
+        content="{% block meta_description %}DertDerman; tüketicilerin deneyimlerini paylaşabildiği, şirketlerin yanıt verebildiği ve çözüm süreçlerinin takip edilebildiği bir tüketici deneyimleri platformudur.{% endblock %}"
+    >
+
+    {% block canonical %}
+    <link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
+    {% endblock %}
+
+    <meta property="og:site_name" content="DertDerman">
+    <meta property="og:locale" content="tr_TR">
+
+    <meta
+        property="og:title"
+        content="{% block og_title %}DertDerman{% endblock %}"
+    >
+
+    <meta
+        property="og:description"
+        content="{% block og_description %}Tüketici deneyimlerini paylaşın, şirket yanıtlarını görün ve çözüm sürecini takip edin.{% endblock %}"
+    >
+
+    <meta
+        property="og:url"
+        content="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}"
+    >
+
+    <meta
+        property="og:type"
+        content="{% block og_type %}website{% endblock %}"
+    >
+
+    <meta name="twitter:card" content="summary_large_image">
+
+    <meta
+        name="twitter:title"
+        content="{% block twitter_title %}DertDerman{% endblock %}"
+    >
+
+    <meta
+        name="twitter:description"
+        content="{% block twitter_description %}Tüketici deneyimlerini paylaşın, şirket yanıtlarını görün ve çözüm sürecini takip edin.{% endblock %}"
+    >
+
+    <script src="{% static 'js/history-session.js' %}"></script>
 
     <link rel="stylesheet" href="{% static 'css/tokens.css' %}">
     <link rel="stylesheet" href="{% static 'css/base.css' %}">
@@ -21,25 +71,25 @@
     <script src="{% static 'js/ui-motion.js' %}" defer></script>
 
     {% block extra_head %}{% endblock %}
+
     <link rel="stylesheet" href="{% static 'css/experience-v2.css' %}">
     <link rel="stylesheet" href="{% static 'css/identity-v1.css' %}">
 </head>
 
 <body class="{% block body_class %}{% endblock %}">
 
-<a class="skip-link" href="#main-content">İçeriğe geç</a>
+<a class="skip-link" href="#main-content">
+    İçeriğe geç
+</a>
 
 {% block navbar %}
-{% include 'components/site_header.html' %}
+    {% include 'components/site_header.html' %}
 {% endblock %}
-
 
 {% include 'components/feedback.html' %}
 
-
 {% block content %}
 {% endblock %}
-
 
 {% block footer %}
 
@@ -49,7 +99,9 @@
 
         <div class="footer-story">
 
-            <div class="footer-brand-lockup">{% include 'components/brand.html' with compact_brand=True %}</div>
+            <div class="footer-brand-lockup">
+                {% include 'components/brand.html' with compact_brand=True %}
+            </div>
 
             <p class="footer-statement">
                 Bir sözle başlar.<br>
@@ -85,34 +137,37 @@
                         Blog &amp; Rehber
                     </a>
 
-<a href="{% url 'core:about' %}">Hakkımızda</a>
+                    <a href="{% url 'core:about' %}">
+                        Hakkımızda
+                    </a>
 
-<a href="{% url 'core:privacy_policy' %}">
-    Gizlilik Politikası
-</a>
+                    <a href="{% url 'core:privacy_policy' %}">
+                        Gizlilik Politikası
+                    </a>
 
-<a href="{% url 'core:disclosure_notice' %}">
-    KVKK Aydınlatma Metni
-</a>
+                    <a href="{% url 'core:disclosure_notice' %}">
+                        KVKK Aydınlatma Metni
+                    </a>
 
-<a href="{% url 'core:cookie_policy' %}">
-    Çerez Politikası
-</a>
+                    <a href="{% url 'core:cookie_policy' %}">
+                        Çerez Politikası
+                    </a>
 
-<a href="{% url 'core:terms_of_use' %}">
-    Kullanıcı Hizmet Sözleşmesi
-</a>
+                    <a href="{% url 'core:terms_of_use' %}">
+                        Kullanıcı Hizmet Sözleşmesi
+                    </a>
 
-<a href="{% url 'core:community_rules' %}">
-    Topluluk Kuralları
-</a>
+                    <a href="{% url 'core:community_rules' %}">
+                        Topluluk Kuralları
+                    </a>
 
-<a href="{% url 'core:contact' %}">
-    Bize Ulaşın
-</a>
-<a href="{% url 'core:faq' %}">
-    Sıkça Sorulan Sorular
-</a>
+                    <a href="{% url 'core:faq' %}">
+                        Sıkça Sorulan Sorular
+                    </a>
+
+                    <a href="{% url 'core:contact' %}">
+                        Bize Ulaşın
+                    </a>
 
                 </div>
 
@@ -126,9 +181,11 @@
 
                 <div class="footer-links">
 
-                    {% if not request.user.is_authenticated or request.user.user_type == 'USER' %}<a href="{% url 'complaints:create' %}">
-                        Şikayet Yaz
-                    </a>{% endif %}
+                    {% if not request.user.is_authenticated or request.user.user_type == 'USER' %}
+                        <a href="{% url 'complaints:create' %}">
+                            Şikayet Yaz
+                        </a>
+                    {% endif %}
 
                     {% if not request.user.is_authenticated %}
 
@@ -149,7 +206,11 @@
             <div>
 
                 <p class="footer-label">
-                    {% if request.user.is_authenticated and request.user.user_type == 'USER' %}Keşfet{% else %}Kurumsal{% endif %}
+                    {% if request.user.is_authenticated and request.user.user_type == 'USER' %}
+                        Keşfet
+                    {% else %}
+                        Kurumsal
+                    {% endif %}
                 </p>
 
                 <div class="footer-links">
@@ -182,9 +243,11 @@
                         Şirketler
                     </a>
 
-                    {% if not request.user.is_authenticated %}<a href="{% url 'companies_public:company_list' %}#kurumsal-katilim">
-                        Şirketler için DertDerman
-                    </a>{% endif %}
+                    {% if not request.user.is_authenticated %}
+                        <a href="{% url 'companies_public:company_list' %}#kurumsal-katilim">
+                            Şirketler için DertDerman
+                        </a>
+                    {% endif %}
 
                 </div>
 
