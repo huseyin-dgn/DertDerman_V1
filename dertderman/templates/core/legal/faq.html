@@ -1,0 +1,337 @@
+{% extends 'layouts/public_base.html' %}
+
+{% block title %}Sıkça Sorulan Sorular | DertDerman{% endblock %}
+
+{% block body_class %}public-site corporate-page{% endblock %}
+
+{% block extra_head %}
+<style>
+    .faq-page .corporate-heading {
+        margin-bottom: 2rem;
+    }
+
+    .faq-page .corporate-principles {
+        margin-top: 2.5rem;
+        margin-bottom: 2.5rem;
+    }
+
+    .faq-page .faq-list {
+        display: grid;
+        gap: 1.25rem;
+        margin-top: 2rem;
+    }
+
+    .faq-page details {
+        border: 1px solid rgba(29, 95, 167, 0.18);
+        border-radius: 18px;
+        padding: 1.1rem 1.25rem;
+        background: #fff;
+    }
+
+    .faq-page summary {
+        cursor: pointer;
+        font-weight: 700;
+        line-height: 1.5;
+        color: #0f2f4f;
+    }
+
+    .faq-page details p {
+        margin: 1rem 0 0;
+        line-height: 1.75;
+    }
+
+    .faq-page .corporate-closing {
+        margin-top: 3.5rem;
+    }
+
+    @media (max-width: 767px) {
+        .faq-page details {
+            padding: 1rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<main id="main-content" class="faq-page">
+
+    <section class="corporate-hero">
+        <div class="section-inner corporate-hero-grid">
+
+            <div>
+                <p class="section-kicker">SIKÇA SORULAN SORULAR</p>
+
+                <h1>DertDerman hakkında merak edilenler.</h1>
+
+                <p class="corporate-lead">
+                    Şikayet oluşturma, hesap kullanımı, şirket yanıtları,
+                    moderasyon ve gizlilik süreçleriyle ilgili temel soruların
+                    yanıtlarını burada bulabilirsiniz.
+                </p>
+            </div>
+
+            <aside class="corporate-manifesto">
+                <span aria-hidden="true">DD</span>
+                <p>
+                    Sorular net olduğunda süreç de daha kolay ilerler.
+                </p>
+            </aside>
+
+        </div>
+    </section>
+
+    <section class="content-section corporate-content">
+        <div class="section-inner">
+
+            <header class="corporate-heading">
+                <p class="section-kicker">01 · HESAP VE ÜYELİK</p>
+                <h2>Hesabınızı ve platform kullanımınızı yönetin.</h2>
+            </header>
+
+            <div class="faq-list">
+
+                <details>
+                    <summary>DertDerman'a üye olmak zorunlu mu?</summary>
+                    <p>
+                        Şikayet oluşturma, yorum yapma, tepki verme ve kişisel
+                        süreçlerinizi takip etme gibi kullanıcı işlemleri için
+                        bir kullanıcı hesabı gerekir.
+                    </p>
+                </details>
+
+                <details>
+                    <summary>Şirket hesabı ile kullanıcı hesabı aynı mı?</summary>
+                    <p>
+                        Hayır. Bireysel kullanıcı hesapları tüketici işlemleri
+                        için, şirket hesapları ise şirket adına resmi yanıt ve
+                        operasyon süreçleri için kullanılır.
+                    </p>
+                </details>
+
+                <details>
+                    <summary>Hesabımı kapatabilir miyim?</summary>
+                    <p>
+                        Platformun sunduğu hesap yönetimi imkanları kapsamında
+                        hesabınızla ilgili kapatma veya silme taleplerinde
+                        bulunabilirsiniz.
+                    </p>
+                </details>
+
+            </div>
+
+            <header class="corporate-heading">
+                <p class="section-kicker">02 · ŞİKAYETLER</p>
+                <h2>Şikayet oluşturma ve yayın süreci.</h2>
+            </header>
+
+            <div class="faq-list">
+
+                <details>
+                    <summary>Nasıl şikayet oluşturabilirim?</summary>
+                    <p>
+                        Giriş yaptıktan sonra ilgili şirketi seçerek başlık ve
+                        açıklama alanlarını doldurabilir ve şikayetinizi incelemeye
+                        gönderebilirsiniz.
+                    </p>
+                </details>
+
+                <details>
+                    <summary>Şikayetim neden hemen yayınlanmıyor?</summary>
+                    <p>
+                        Gönderilen şikayetler yayın ve güvenlik kurallarına
+                        uygunluk açısından inceleme sürecinden geçebilir.
+                    </p>
+                </details>
+
+                <details>
+                    <summary>Şikayetimi düzenleyebilir miyim?</summary>
+                    <p>
+                        Uygun durumdaki kendi şikayetlerinizi düzenleyebilirsiniz.
+                        Yayınlanmış bir şikayette önemli değişiklik yapılması
+                        halinde içerik yeniden incelemeye alınabilir.
+                    </p>
+                </details>
+
+                <details>
+                    <summary>Şikayetimi geri çekebilir miyim?</summary>
+                    <p>
+                        Platformun izin verdiği durumlarda kendi şikayetinizi
+                        geri çekebilirsiniz. Geri çekilen içerik kamuya açık
+                        görünümden kaldırılır.
+                    </p>
+                </details>
+
+                <details>
+                    <summary>Çözülen bir şikayet silinir mi?</summary>
+                    <p>
+                        Hayır. Çözülen şikayetler çözüm durumu ile birlikte
+                        platformda görünmeye devam edebilir.
+                    </p>
+                </details>
+
+            </div>
+
+            <header class="corporate-heading">
+                <p class="section-kicker">03 · ŞİRKET YANITLARI</p>
+                <h2>Şirketler şikayetlere nasıl yanıt verir?</h2>
+            </header>
+
+            <div class="faq-list">
+
+                <details>
+                    <summary>Şirketler her şikayete cevap verebilir mi?</summary>
+                    <p>
+                        Yetkilendirilmiş şirket hesapları, kendi şirketleriyle
+                        ilişkili uygun şikayetlere resmi yanıt verebilir.
+                    </p>
+                </details>
+
+                <details>
+                    <summary>Şirket yanıtları kullanıcı yorumlarından farklı mı?</summary>
+                    <p>
+                        Evet. Şirket yanıtları resmi cevap olarak ayrı gösterilir;
+                        topluluk yorumları ise bireysel kullanıcıların paylaşımlarıdır.
+                    </p>
+                </details>
+
+                <details>
+                    <summary>Şirket yanıtlarında kişisel veri paylaşılabilir mi?</summary>
+                    <p>
+                        Hayır. Telefon, adres, e-posta, T.C. kimlik numarası gibi
+                        kişisel verilerin açık şekilde paylaşılmaması gerekir.
+                    </p>
+                </details>
+
+            </div>
+
+            <header class="corporate-heading">
+                <p class="section-kicker">04 · YORUM VE TOPLULUK</p>
+                <h2>Topluluk etkileşimleri nasıl çalışır?</h2>
+            </header>
+
+            <div class="faq-list">
+
+                <details>
+                    <summary>Şikayetlere yorum yapabilir miyim?</summary>
+                    <p>
+                        Uygun kullanıcı hesapları, yayınlanmış şikayetlere
+                        topluluk kuralları çerçevesinde yorum yapabilir.
+                    </p>
+                </details>
+
+                <details>
+                    <summary>Yorumumu silebilir miyim?</summary>
+                    <p>
+                        Kendi yorumlarınızı platformun sunduğu imkanlar dahilinde
+                        kaldırabilirsiniz.
+                    </p>
+                </details>
+
+                <details>
+                    <summary>Hangi içerikler kaldırılabilir?</summary>
+                    <p>
+                        Hakaret, tehdit, spam, yanıltıcı bilgi, kişisel veri
+                        ifşası veya topluluk kurallarına aykırı diğer içerikler
+                        kaldırılabilir ya da görünürlüğü sınırlandırılabilir.
+                    </p>
+                </details>
+
+            </div>
+
+            <header class="corporate-heading">
+                <p class="section-kicker">05 · GİZLİLİK VE GÜVENLİK</p>
+                <h2>Kişisel veriler ve hesap güvenliği.</h2>
+            </header>
+
+            <div class="faq-list">
+
+                <details>
+                    <summary>Kişisel verilerim herkese açık mı?</summary>
+                    <p>
+                        Hayır. Kamuya açık alanlarda yalnızca yayınlanması uygun
+                        görülen içerikler gösterilir. Hesap ve özel kullanıcı
+                        bilgileri yetkilendirilmiş alanlarda tutulur.
+                    </p>
+                </details>
+
+                <details>
+                    <summary>Şikayetimde kişisel bilgi paylaşmalı mıyım?</summary>
+                    <p>
+                        Hayır. T.C. kimlik numarası, telefon, açık adres, IBAN,
+                        e-posta ve üçüncü kişilere ait özel bilgiler şikayet veya
+                        yorum metinlerine yazılmamalıdır.
+                    </p>
+                </details>
+
+                <details>
+                    <summary>Kişisel verilerim hakkında nasıl başvuru yapabilirim?</summary>
+                    <p>
+                        Ayrıntılı bilgi ve başvuru yöntemleri için KVKK Aydınlatma
+                        Metni'ni inceleyebilir veya DertDerman iletişim kanallarını
+                        kullanabilirsiniz.
+                    </p>
+                </details>
+
+            </div>
+
+            <div class="corporate-principles">
+
+                <div>
+                    <p class="section-kicker">06 · DAHA FAZLA BİLGİ</p>
+
+                    <h2>Politikalar ve kurallar ayrı sayfalarda açıklanır.</h2>
+
+                    <p>
+                        Gizlilik, çerezler, topluluk kullanımı ve hizmet şartları
+                        hakkında daha ayrıntılı bilgiye ilgili politika sayfalarından
+                        ulaşabilirsiniz.
+                    </p>
+                </div>
+
+                <dl>
+
+                    <div>
+                        <dt>Topluluk Kuralları</dt>
+                        <dd>
+                            Şikayet, yorum ve şirket yanıtları için geçerli
+                            içerik kurallarını açıklar.
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt>Kullanıcı Hizmet Sözleşmesi</dt>
+                        <dd>
+                            Platform kullanımına ilişkin temel hak ve
+                            yükümlülükleri açıklar.
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt>KVKK ve Gizlilik</dt>
+                        <dd>
+                            Kişisel verilerin işlenmesi ve kullanıcı haklarına
+                            ilişkin bilgileri açıklar.
+                        </dd>
+                    </div>
+
+                </dl>
+
+            </div>
+
+            <footer class="corporate-closing">
+
+                <p class="section-kicker">07 · DESTEK</p>
+
+                <h2>Aradığınız yanıtı bulamadınız mı?</h2>
+
+                <a class="primary-action" href="{% url 'core:contact' %}">
+                    Bize Ulaşın
+                </a>
+
+            </footer>
+
+        </div>
+    </section>
+
+</main>
+{% endblock %}

@@ -4,8 +4,51 @@
 
 {% block body_class %}public-site corporate-page{% endblock %}
 
+{% block extra_head %}
+<style>
+    .privacy-page .corporate-heading {
+        margin-bottom: 2rem;
+    }
+
+    .privacy-page .corporate-story-grid {
+        margin-bottom: 3rem;
+    }
+
+    .privacy-page .corporate-principles {
+        margin-top: 3rem;
+        margin-bottom: 3rem;
+    }
+
+    .privacy-page .corporate-heading + .corporate-heading {
+        margin-top: 3rem;
+    }
+
+    .privacy-page .corporate-closing {
+        margin-top: 3.5rem;
+    }
+
+    .privacy-page .corporate-heading p,
+    .privacy-page .corporate-story-grid p,
+    .privacy-page .corporate-principles dd,
+    .privacy-page .corporate-closing p {
+        line-height: 1.75;
+    }
+
+    @media (max-width: 767px) {
+        .privacy-page .corporate-heading + .corporate-heading {
+            margin-top: 2.25rem;
+        }
+
+        .privacy-page .corporate-story-grid,
+        .privacy-page .corporate-principles {
+            margin-bottom: 2.25rem;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<main id="main-content">
+<main id="main-content" class="privacy-page">
 
     <section class="corporate-hero">
         <div class="section-inner corporate-hero-grid">
@@ -13,19 +56,15 @@
             <div>
                 <p class="section-kicker">GİZLİLİK POLİTİKASI</p>
 
-                <h1>Verilerinizin gizliliğini önemsiyoruz.</h1>
+                <h1>Verilerinizi nasıl kullandığımızı açıkça anlatıyoruz.</h1>
 
                 <p class="corporate-lead">
-                    Bu sayfa, DertDerman platformunun kullanıcı verilerini hangi amaçlarla
-                    işlediğini, hangi durumlarda sakladığını ve kullanıcıların verileri
-                    üzerindeki temel haklarını genel hatlarıyla açıklar.
+                    Bu Gizlilik Politikası; DertDerman platformunu kullanırken
+                    hangi bilgilerin işlenebileceğini, bu bilgilerin hangi amaçlarla
+                    kullanılabileceğini ve verilerin korunmasına yönelik temel
+                    yaklaşımımızı açıklar.
                 </p>
             </div>
-
-            <aside class="corporate-manifesto">
-                <span aria-hidden="true">DD</span>
-                <p>Şeffaflık yalnızca şikayetlerde değil, veri kullanımında da önemlidir.</p>
-            </aside>
 
         </div>
     </section>
@@ -34,43 +73,56 @@
         <div class="section-inner">
 
             <header class="corporate-heading">
-                <p class="section-kicker">VERİ GÜVENLİĞİ</p>
+                <p class="section-kicker">01 · KAPSAM</p>
 
-                <h2>Hangi veriler işlenebilir?</h2>
+                <h2>Bu politika kimleri kapsar?</h2>
 
                 <p>
-                    DertDerman üzerinde hesap oluşturulması, şikayet paylaşılması,
-                    şirketlerle iletişim kurulması ve platform özelliklerinin kullanılması
-                    sırasında belirli kişisel ve teknik veriler işlenebilir.
+                    Bu politika; DertDerman internet sitesini ziyaret eden,
+                    hesap oluşturan, şikayet paylaşan, yorum yapan, şirket hesabı
+                    kullanan veya platform üzerinden bizimle iletişime geçen
+                    kullanıcıları kapsar.
                 </p>
+            </header>
+
+            <header class="corporate-heading">
+                <p class="section-kicker">02 · TOPLANABİLEN VERİLER</p>
+
+                <h2>Hangi bilgiler işlenebilir?</h2>
             </header>
 
             <div class="corporate-story-grid corporate-story-grid--process">
 
                 <article>
                     <span>01</span>
+
                     <h3>Hesap bilgileri</h3>
+
                     <p>
-                        Ad, soyad, e-posta adresi, telefon bilgisi ve hesap güvenliği için
-                        gerekli kimlik doğrulama verileri işlenebilir.
+                        Ad, soyad, e-posta adresi, telefon numarası ve kullanıcı
+                        hesabıyla ilişkili diğer temel bilgiler.
                     </p>
                 </article>
 
                 <article>
                     <span>02</span>
+
                     <h3>Platform içerikleri</h3>
+
                     <p>
-                        Kullanıcıların oluşturduğu şikayetler, yorumlar, tepkiler ve
-                        platform içindeki diğer etkileşimler sistemde saklanabilir.
+                        Şikayetler, yorumlar, değerlendirmeler, şirket yanıtları,
+                        mesajlar ve platform üzerinde oluşturulan diğer içerikler.
                     </p>
                 </article>
 
                 <article>
                     <span>03</span>
-                    <h3>Teknik veriler</h3>
+
+                    <h3>Teknik bilgiler</h3>
+
                     <p>
-                        Güvenlik, hata tespiti ve sistem performansı amacıyla IP adresi,
-                        oturum bilgileri ve teknik kayıtlar işlenebilir.
+                        IP adresi, oturum kayıtları, tarayıcı bilgileri,
+                        güvenlik logları ve çerez verileri.
                     </p>
                 </article>
 
@@ -79,40 +131,52 @@
             <div class="corporate-principles">
 
                 <div>
-                    <p class="section-kicker">KULLANIM AMAÇLARI</p>
+                    <p class="section-kicker">03 · KULLANIM AMAÇLARI</p>
 
-                    <h2>Veriler neden kullanılır?</h2>
+                    <h2>Bu bilgiler neden kullanılır?</h2>
 
                     <p>
-                        Veriler; hesabın çalıştırılması, şikayet süreçlerinin yönetilmesi,
-                        güvenliğin sağlanması, kötüye kullanımın önlenmesi ve platformun
-                        geliştirilmesi amacıyla kullanılabilir.
+                        Veriler yalnızca platformun çalışması, güvenliğinin
+                        sağlanması ve kullanıcı deneyiminin sürdürülebilmesi
+                        için gerekli amaçlarla kullanılır.
                     </p>
                 </div>
 
                 <dl>
 
                     <div>
-                        <dt>Hesap ve kimlik doğrulama</dt>
+                        <dt>Hesap ve oturum yönetimi</dt>
+
                         <dd>
-                            Kullanıcı hesabının oluşturulması, korunması ve yetkilendirme
-                            işlemlerinin yürütülmesi için.
+                            Kullanıcı hesaplarının oluşturulması, giriş işlemlerinin
+                            gerçekleştirilmesi ve yetkilendirme süreçlerinin yürütülmesi.
                         </dd>
                     </div>
 
                     <div>
-                        <dt>Şikayet süreci</dt>
+                        <dt>Şikayet süreçleri</dt>
+
                         <dd>
-                            Şikayetlerin ilgili şirketlerle eşleştirilmesi, yayınlanması ve
-                            çözüm durumunun takip edilmesi için.
+                            Şikayetlerin ilgili şirketlerle eşleştirilmesi,
+                            yayınlanması ve çözüm sürecinin takip edilmesi.
                         </dd>
                     </div>
 
                     <div>
                         <dt>Güvenlik</dt>
+
                         <dd>
-                            Yetkisiz erişim, kötüye kullanım ve sistem güvenliğini tehdit
-                            eden davranışların tespit edilmesi için.
+                            Yetkisiz erişim, kötüye kullanım, sahte hesap ve
+                            güvenlik olaylarının tespit edilmesi.
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt>İletişim</dt>
+
+                        <dd>
+                            Kullanıcı taleplerinin, iletişim formu başvurularının
+                            ve destek süreçlerinin yürütülmesi.
                         </dd>
                     </div>
 
@@ -120,15 +184,180 @@
 
             </div>
 
+            <header class="corporate-heading">
+
+                <p class="section-kicker">04 · ŞİKAYET VE YORUM İÇERİKLERİ</p>
+
+                <h2>Hangi bilgiler herkese açık olabilir?</h2>
+
+                <p>
+                    Yayınlanan şikayetler, yorumlar ve şirket yanıtlarının
+                    kamuya açık olarak gösterilmesi amaçlanabilir.
+                    Kullanıcıların şikayet veya yorumlarında T.C. kimlik numarası,
+                    adres, telefon, IBAN veya üçüncü kişilere ait özel bilgiler
+                    paylaşmaması gerekir.
+                </p>
+
+                <p>
+                    Platform, güvenlik ve gizlilik kurallarına aykırı kişisel
+                    verilerin görünürlüğünü sınırlandırabilir veya ilgili içeriği
+                    yayından kaldırabilir.
+                </p>
+
+            </header>
+
+            <header class="corporate-heading">
+
+                <p class="section-kicker">05 · ÇEREZLER</p>
+
+                <h2>Çerezler ve benzeri teknolojiler kullanılabilir.</h2>
+
+                <p>
+                    DertDerman; oturumların yönetilmesi, temel platform
+                    fonksiyonlarının çalışması, güvenlik ve kullanıcı tercihlerinin
+                    hatırlanması amacıyla çerezler kullanabilir.
+                </p>
+
+                <p>
+                    Analitik, performans veya reklam amaçlı çerezlerin kullanılması
+                    halinde bu işlemler ayrıca Çerez Politikası kapsamında açıklanır.
+                </p>
+
+                <a class="detail-cta" href="{% url 'core:cookie_policy' %}">
+                    Çerez Politikasını İncele →
+                </a>
+
+            </header>
+
+            <header class="corporate-heading">
+
+                <p class="section-kicker">06 · ÜÇÜNCÜ TARAF HİZMETLER</p>
+
+                <h2>Teknik hizmet sağlayıcılardan yararlanılabilir.</h2>
+
+                <p>
+                    Platformun çalıştırılması, ödeme işlemlerinin gerçekleştirilmesi,
+                    güvenliğinin sağlanması veya performansının ölçülmesi amacıyla
+                    üçüncü taraf teknik hizmet sağlayıcılarla çalışılabilir.
+                </p>
+
+                <p>
+                    Bu hizmetler kapsamında gerçekleştirilen veri işlemleri,
+                    ilgili hizmetin gerektirdiği ölçüyle sınırlı tutulur.
+                </p>
+
+            </header>
+
+            <header class="corporate-heading">
+
+                <p class="section-kicker">07 · VERİ GÜVENLİĞİ</p>
+
+                <h2>Kişisel verilerin korunması için teknik önlemler uygulanır.</h2>
+
+                <p>
+                    Yetkisiz erişimin, veri kaybının ve kötüye kullanımın
+                    önlenmesine yönelik erişim kontrolleri, oturum güvenliği,
+                    yetkilendirme mekanizmaları ve teknik güvenlik tedbirleri
+                    uygulanabilir.
+                </p>
+
+            </header>
+
+            <header class="corporate-heading">
+
+                <p class="section-kicker">08 · VERİLERİN SAKLANMASI</p>
+
+                <h2>Veriler gerekli olduğu süre boyunca saklanır.</h2>
+
+                <p>
+                    Kişisel veriler; hizmetlerin sunulması, hukuki yükümlülüklerin
+                    yerine getirilmesi ve gerekli güvenlik kayıtlarının tutulması
+                    için ihtiyaç duyulan süre boyunca saklanabilir.
+                </p>
+
+                <p>
+                    Saklama ihtiyacının sona ermesi halinde veriler, ilgili mevzuat
+                    ve veri saklama politikaları doğrultusunda silinebilir,
+                    yok edilebilir veya anonim hale getirilebilir.
+                </p>
+
+            </header>
+
+            <div class="corporate-principles">
+
+                <div>
+                    <p class="section-kicker">09 · HAKLARINIZ</p>
+
+                    <h2>Kişisel verileriniz üzerinde hak sahibisiniz.</h2>
+
+                    <p>
+                        Kişisel verilerinize ilişkin ayrıntılı haklarınız ve
+                        başvuru yöntemleri KVKK Aydınlatma Metni'nde açıklanmaktadır.
+                    </p>
+                </div>
+
+                <dl>
+
+                    <div>
+                        <dt>Bilgi edinme</dt>
+
+                        <dd>
+                            Verilerinizin işlenmesine ilişkin bilgi talep edebilirsiniz.
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt>Düzeltme</dt>
+
+                        <dd>
+                            Eksik veya yanlış bilgilerin düzeltilmesini talep edebilirsiniz.
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt>Silme ve diğer talepler</dt>
+
+                        <dd>
+                            İlgili mevzuatta öngörülen şartlar kapsamında
+                            verilerinizle ilgili taleplerde bulunabilirsiniz.
+                        </dd>
+                    </div>
+
+                </dl>
+
+            </div>
+
+            <header class="corporate-heading">
+
+                <p class="section-kicker">10 · POLİTİKA DEĞİŞİKLİKLERİ</p>
+
+                <h2>Bu politika gerektiğinde güncellenebilir.</h2>
+
+                <p>
+                    Platformun özelliklerinin, veri işleme süreçlerinin veya
+                    ilgili mevzuatın değişmesi halinde Gizlilik Politikası
+                    güncellenebilir.
+                </p>
+
+            </header>
+
             <footer class="corporate-closing">
 
-                <p class="section-kicker">İLETİŞİM</p>
+                <p class="section-kicker">11 · DAHA FAZLA BİLGİ</p>
 
-                <h2>Gizlilikle ilgili sorularınız için bizimle iletişime geçebilirsiniz.</h2>
+                <h2>Kişisel verilerinizle ilgili ayrıntılı bilgiye ulaşabilirsiniz.</h2>
 
-                <a class="primary-action" href="{% url 'core:contact' %}">
-                    Bize Ulaşın
-                </a>
+                <div class="hero-actions">
+
+                    <a class="primary-action" href="{% url 'core:disclosure_notice' %}">
+                        KVKK Aydınlatma Metni
+                    </a>
+
+                    <a class="detail-cta" href="{% url 'core:contact' %}">
+                        Bize Ulaşın
+                    </a>
+
+                </div>
 
             </footer>
 

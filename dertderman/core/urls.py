@@ -2,12 +2,16 @@ from django.urls import path
 
 from .views import (
     about,
+    community_rules,
     contact,
+    cookie_policy,
     disclosure_notice,
     home,
     intro,
     intro_reset,
     privacy_policy,
+    terms_of_use,
+    faq
 )
 
 app_name = "core"
@@ -23,5 +27,25 @@ urlpatterns = [
     "kvkk-aydinlatma-metni/",
     disclosure_notice,
     name="disclosure_notice",
+),
+path(
+    "cerez-politikasi/",
+    cookie_policy,
+    name="cookie_policy",
+),
+path(
+    "kullanici-hizmet-sozlesmesi/",
+    terms_of_use,
+    name="terms_of_use",
+),
+path(
+    "topluluk-kurallari/",
+    community_rules,
+    name="community_rules",
+),
+path(
+    "sss/",
+    faq,
+    name="faq",
 ),
 ]

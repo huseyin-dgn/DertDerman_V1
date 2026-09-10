@@ -111,3 +111,30 @@ def disclosure_notice(request):
         request,
         "core/legal/disclosure.html",
     )
+
+@require_safe
+def cookie_policy(request):
+    return render(
+        request,
+        "core/legal/cookies.html",
+    )
+
+@require_safe
+def terms_of_use(request):
+    return render(
+        request,
+        "core/legal/terms.html",
+    )
+
+@require_safe
+def community_rules(request):
+    return render(
+        request,
+        "core/legal/community_rules.html",
+    )
+@require_safe
+def faq(request):
+    return render(
+        request,
+        "core/legal/faq.html",
+    )

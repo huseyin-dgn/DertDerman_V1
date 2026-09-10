@@ -1,0 +1,264 @@
+{% extends 'layouts/public_base.html' %}
+
+{% block title %}Çerez Politikası | DertDerman{% endblock %}
+
+{% block body_class %}public-site corporate-page{% endblock %}
+
+{% block extra_head %}
+<style>
+    .cookie-page .corporate-heading {
+        margin-bottom: 2rem;
+    }
+
+    .cookie-page .corporate-story-grid {
+        margin-bottom: 3rem;
+    }
+
+    .cookie-page .corporate-principles {
+        margin-top: 3rem;
+        margin-bottom: 3rem;
+    }
+
+    .cookie-page .corporate-heading + .corporate-heading {
+        margin-top: 3rem;
+    }
+
+    .cookie-page .corporate-closing {
+        margin-top: 3.5rem;
+    }
+
+    .cookie-page .corporate-heading p,
+    .cookie-page .corporate-story-grid p,
+    .cookie-page .corporate-principles dd,
+    .cookie-page .corporate-closing p {
+        line-height: 1.75;
+    }
+
+    @media (max-width: 767px) {
+        .cookie-page .corporate-heading + .corporate-heading {
+            margin-top: 2.25rem;
+        }
+
+        .cookie-page .corporate-story-grid,
+        .cookie-page .corporate-principles {
+            margin-bottom: 2.25rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<main id="main-content" class="cookie-page">
+
+    <section class="corporate-hero">
+        <div class="section-inner corporate-hero-grid">
+
+            <div>
+                <p class="section-kicker">ÇEREZ POLİTİKASI</p>
+
+                <h1>Çerezleri neden ve nasıl kullandığımızı açıklıyoruz.</h1>
+
+                <p class="corporate-lead">
+                    Bu Çerez Politikası, DertDerman platformunu kullanırken
+                    cihazınıza kaydedilebilen çerezlerin hangi amaçlarla
+                    kullanıldığını ve nasıl yönetilebileceğini açıklar.
+                </p>
+            </div>
+
+
+
+        </div>
+    </section>
+
+    <section class="content-section corporate-content">
+        <div class="section-inner">
+
+            <header class="corporate-heading">
+                <p class="section-kicker">01 · ÇEREZ NEDİR?</p>
+
+                <h2>Çerezler küçük veri dosyalarıdır.</h2>
+
+                <p>
+                    Çerezler, ziyaret ettiğiniz internet siteleri tarafından
+                    cihazınıza kaydedilen küçük veri dosyalarıdır.
+                </p>
+
+                <p>
+                    Çerezler sayesinde site tercihleri hatırlanabilir, oturumlar
+                    yönetilebilir, platform performansı ölçülebilir ve kullanıcı
+                    deneyimi geliştirilebilir.
+                </p>
+
+                <p>
+                    Çerezler tek başına her zaman kişisel veri niteliğinde olmayabilir;
+                    ancak belirli durumlarda kullanıcıyla ilişkilendirilmeleri halinde
+                    kişisel veri kapsamında değerlendirilebilir.
+                </p>
+            </header>
+
+            <header class="corporate-heading">
+                <p class="section-kicker">02 · ÇEREZ TÜRLERİ</p>
+
+                <h2>Platformda farklı amaçlara yönelik çerezler kullanılabilir.</h2>
+            </header>
+
+            <div class="corporate-story-grid corporate-story-grid--process">
+
+                <article>
+                    <span>01</span>
+                    <h3>Zorunlu çerezler</h3>
+                    <p>
+                        Platformun temel işlevlerini yerine getirmesi, oturumların
+                        yönetilmesi, güvenlik kontrollerinin uygulanması ve şikayet
+                        veya yorum gibi temel özelliklerin çalışması için kullanılır.
+                    </p>
+                </article>
+
+                <article>
+                    <span>02</span>
+                    <h3>Performans ve analitik çerezleri</h3>
+                    <p>
+                        Ziyaretçi sayısı, kullanılan sayfalar, kullanıcı hareketleri
+                        ve platform performansının değerlendirilmesi amacıyla kullanılabilir.
+                    </p>
+                </article>
+
+                <article>
+                    <span>03</span>
+                    <h3>Fonksiyonel çerezler</h3>
+                    <p>
+                        Kullanıcı tercihlerini hatırlamak, oturum deneyimini kolaylaştırmak
+                        ve kişiselleştirilmiş ayarları korumak amacıyla kullanılabilir.
+                    </p>
+                </article>
+
+            </div>
+
+            <div class="corporate-principles">
+
+                <div>
+                    <p class="section-kicker">03 · REKLAM VE HEDEFLEME</p>
+
+                    <h2>Reklam çerezleri kullanılabilir.</h2>
+
+                    <p>
+                        Platformda reklam gösterimi veya kullanıcı ilgi alanlarına
+                        göre içerik sunumu yapılması halinde reklam ve hedefleme
+                        çerezleri kullanılabilir.
+                    </p>
+                </div>
+
+                <dl>
+
+                    <div>
+                        <dt>Reklam gösterimi</dt>
+                        <dd>
+                            Sayfa içi reklamların görüntülenmesi ve reklam
+                            hizmetlerinin sunulması amacıyla kullanılabilir.
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt>Kişiselleştirme</dt>
+                        <dd>
+                            Kullanıcının ilgi alanlarına uygun reklam veya içerik
+                            sunulmasını desteklemek amacıyla kullanılabilir.
+                        </dd>
+                    </div>
+
+                </dl>
+
+            </div>
+
+            <header class="corporate-heading">
+                <p class="section-kicker">04 · ÇEREZLERİN KULLANIM AMAÇLARI</p>
+
+                <h2>Çerezler neden kullanılır?</h2>
+
+                <p>
+                    Çerezler; kullanıcı girişlerini ve oturumlarını yönetmek,
+                    platform güvenliğini sağlamak, kötüye kullanımı tespit etmek,
+                    hizmetleri geliştirmek, performans ölçümü yapmak ve kullanıcı
+                    tercihlerini hatırlamak amacıyla kullanılabilir.
+                </p>
+            </header>
+
+            <header class="corporate-heading">
+                <p class="section-kicker">05 · ÇEREZLERİN YÖNETİMİ</p>
+
+                <h2>Çerezleri tarayıcınız üzerinden yönetebilirsiniz.</h2>
+
+                <p>
+                    Tarayıcı ayarlarınız üzerinden çerezleri görüntüleyebilir,
+                    silebilir veya belirli çerez türlerini engelleyebilirsiniz.
+                </p>
+
+                <p>
+                    Ancak zorunlu çerezlerin engellenmesi halinde giriş, oturum
+                    yönetimi veya bazı temel platform özellikleri düzgün çalışmayabilir.
+                </p>
+            </header>
+
+            <header class="corporate-heading">
+                <p class="section-kicker">06 · KİŞİSEL VERİLERİN İŞLENMESİ</p>
+
+                <h2>Çerezlerden elde edilen veriler mevzuata uygun şekilde işlenir.</h2>
+
+                <p>
+                    Çerezler aracılığıyla elde edilen kişisel veriler;
+                    hukuki yükümlülüklerin yerine getirilmesi, platformun korunması,
+                    hizmetlerin geliştirilmesi ve kullanıcı tercihlerinin
+                    hatırlanması gibi amaçlarla işlenebilir.
+                </p>
+            </header>
+
+            <header class="corporate-heading">
+                <p class="section-kicker">07 · ÜÇÜNCÜ TARAF HİZMETLER</p>
+
+                <h2>Üçüncü taraf hizmet sağlayıcılar kullanılabilir.</h2>
+
+                <p>
+                    Analitik, reklam, ödeme veya diğer teknik hizmetlerin
+                    sağlanması amacıyla üçüncü taraf hizmet sağlayıcılarla
+                    çalışılabilir.
+                </p>
+
+                <p>
+                    Bu sağlayıcılar kendi gizlilik ve çerez politikalarına tabi olabilir.
+                </p>
+            </header>
+
+            <header class="corporate-heading">
+                <p class="section-kicker">08 · POLİTİKA GÜNCELLEMELERİ</p>
+
+                <h2>Bu politika gerektiğinde güncellenebilir.</h2>
+
+                <p>
+                    Platformun kullandığı teknolojiler, çerez türleri veya
+                    ilgili mevzuat değiştiğinde bu Çerez Politikası güncellenebilir.
+                </p>
+            </header>
+
+            <footer class="corporate-closing">
+
+                <p class="section-kicker">09 · İLETİŞİM</p>
+
+                <h2>Çerezlerle ilgili sorularınız için bizimle iletişime geçebilirsiniz.</h2>
+
+                <div class="hero-actions">
+                    <a class="primary-action" href="{% url 'core:contact' %}">
+                        Bize Ulaşın
+                    </a>
+
+                    <a class="detail-cta" href="{% url 'core:disclosure_notice' %}">
+                        KVKK Aydınlatma Metni
+                    </a>
+                </div>
+
+            </footer>
+
+        </div>
+    </section>
+
+</main>
+{% endblock %}

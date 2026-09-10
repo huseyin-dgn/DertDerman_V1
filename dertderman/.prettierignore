@@ -7,3 +7,7 @@ templates/400.html
 templates/core/legal/privacy.html
 templates/layouts/public_base.html
 templates/core/legal/disclosure.html
+templates/core/legal/cookies.html
+templates/core/legal/terms.html
+templates/core/legal/community_rules.html
+templates/core/legal/faq.html

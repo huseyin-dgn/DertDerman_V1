@@ -1,0 +1,346 @@
+{% extends 'layouts/public_base.html' %}
+
+{% block title %}Kullanıcı Hizmet Sözleşmesi | DertDerman{% endblock %}
+
+{% block body_class %}public-site corporate-page{% endblock %}
+
+{% block extra_head %}
+<style>
+    .terms-page .corporate-heading {
+        margin-bottom: 2rem;
+    }
+
+    .terms-page .corporate-story-grid {
+        margin-bottom: 3rem;
+    }
+
+    .terms-page .corporate-principles {
+        margin-top: 3rem;
+        margin-bottom: 3rem;
+    }
+
+    .terms-page .corporate-heading + .corporate-heading {
+        margin-top: 3rem;
+    }
+
+    .terms-page .corporate-closing {
+        margin-top: 3.5rem;
+    }
+
+    .terms-page .corporate-heading p,
+    .terms-page .corporate-story-grid p,
+    .terms-page .corporate-principles dd,
+    .terms-page .corporate-closing p {
+        line-height: 1.75;
+    }
+
+    @media (max-width: 767px) {
+        .terms-page .corporate-heading + .corporate-heading {
+            margin-top: 2.25rem;
+        }
+
+        .terms-page .corporate-story-grid,
+        .terms-page .corporate-principles {
+            margin-bottom: 2.25rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<main id="main-content" class="terms-page">
+
+    <section class="corporate-hero">
+        <div class="section-inner corporate-hero-grid">
+
+            <div>
+                <p class="section-kicker">KULLANICI HİZMET SÖZLEŞMESİ</p>
+
+                <h1>DertDerman kullanımına ilişkin sözleşme şartları.</h1>
+
+                <p class="corporate-lead">
+                    Bu sözleşme, DertDerman platformu üzerinden sunulan hizmetleri
+                    kullanan gerçek ve tüzel kişiler ile DertDerman arasındaki
+                    kullanım şartlarını düzenler.
+                </p>
+
+                <p>
+                    Platformu kullanarak bu sözleşmede belirtilen şartları
+                    kabul etmiş sayılırsınız.
+                </p>
+            </div>
+
+
+        </div>
+    </section>
+
+    <section class="content-section corporate-content">
+        <div class="section-inner">
+
+            <header class="corporate-heading">
+                <p class="section-kicker">01 · TANIMLAR</p>
+
+                <h2>Sözleşmede kullanılan temel kavramlar</h2>
+
+                <p>
+                    <strong>Platform:</strong> DertDerman internet sitesi ve
+                    platform kapsamında sunulan dijital hizmetlerdir.
+                </p>
+
+                <p>
+                    <strong>Kullanıcı:</strong> Platforma kayıt olan veya herhangi
+                    bir şekilde platformu kullanan gerçek veya tüzel kişidir.
+                </p>
+
+                <p>
+                    <strong>Firma:</strong> Platform üzerinde kullanıcı
+                    şikayetlerine yanıt veren ve sistemde resmi kaydı bulunan
+                    ticari işletmedir.
+                </p>
+
+                <p>
+                    <strong>İçerik:</strong> Kullanıcı veya firma tarafından
+                    oluşturulan şikayet, yorum, yanıt, görsel ve diğer verilerdir.
+                </p>
+            </header>
+
+            <div class="corporate-story-grid corporate-story-grid--process">
+
+                <article>
+                    <span>02</span>
+                    <h3>Doğru bilgi</h3>
+                    <p>
+                        Kullanıcı kayıt sırasında doğru ve güncel bilgiler
+                        vermekle yükümlüdür.
+                    </p>
+                </article>
+
+                <article>
+                    <span>03</span>
+                    <h3>Hesap güvenliği</h3>
+                    <p>
+                        Kullanıcı, parola ve erişim bilgilerinin güvenliğinden
+                        sorumludur.
+                    </p>
+                </article>
+
+                <article>
+                    <span>04</span>
+                    <h3>Hesabın devri</h3>
+                    <p>
+                        Kullanıcı hesabı başkasına devredilemez veya satılamaz.
+                    </p>
+                </article>
+
+            </div>
+
+            <div class="corporate-principles">
+
+                <div>
+                    <p class="section-kicker">05 · KULLANIM KURALLARI</p>
+
+                    <h2>Platform hukuka ve topluluk kurallarına uygun kullanılmalıdır.</h2>
+
+                    <p>
+                        Kullanıcılar platformu kullanırken hukuka, üçüncü kişilerin
+                        haklarına ve güvenli kullanım esaslarına uymakla yükümlüdür.
+                    </p>
+                </div>
+
+                <dl>
+
+                    <div>
+                        <dt>Hukuka aykırı içerik</dt>
+                        <dd>
+                            Hukuka, ahlaka veya genel adaba aykırı içerik
+                            paylaşılamaz.
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt>Hakaret ve tehdit</dt>
+                        <dd>
+                            Hakaret, iftira, tehdit, küfür, şiddet veya ayrımcı
+                            içeriklere izin verilmez.
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt>Fikri haklar</dt>
+                        <dd>
+                            Telif, marka ve üçüncü kişilere ait diğer hakların
+                            ihlal edilmemesi gerekir.
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt>Zararlı faaliyetler</dt>
+                        <dd>
+                            Virüs, kötü amaçlı yazılım, spam veya platformun
+                            işleyişini bozabilecek faaliyetler yasaktır.
+                        </dd>
+                    </div>
+
+                </dl>
+
+            </div>
+
+            <header class="corporate-heading">
+                <p class="section-kicker">06 · İÇERİK SORUMLULUĞU</p>
+
+                <h2>Paylaşılan içerikten içeriği oluşturan taraf sorumludur.</h2>
+
+                <p>
+                    Platformda kullanıcılar veya firmalar tarafından oluşturulan
+                    içeriklerin doğruluğu, hukuka uygunluğu ve üçüncü kişilerin
+                    haklarını ihlal edip etmediğine ilişkin sorumluluk içeriği
+                    paylaşan tarafa aittir.
+                </p>
+
+                <p>
+                    DertDerman, hukuka veya platform kurallarına aykırı olduğu
+                    değerlendirilen içerikleri bildirim üzerine veya gerekli
+                    durumlarda re'sen inceleyebilir, görünürlüğünü
+                    sınırlandırabilir veya kaldırabilir.
+                </p>
+            </header>
+
+            <header class="corporate-heading">
+                <p class="section-kicker">07 · DERTDERMAN'IN HAK VE YÜKÜMLÜLÜKLERİ</p>
+
+                <h2>Platformun güvenli ve sürdürülebilir çalışması amaçlanır.</h2>
+
+                <p>
+                    DertDerman, kullanıcı deneyimini geliştirmek, hizmet
+                    sürekliliğini sağlamak ve platform güvenliğini korumak için
+                    gerekli teknik tedbirleri alabilir.
+                </p>
+
+                <p>
+                    Platform özellikleri ve sunulan hizmetler zaman içinde
+                    değiştirilebilir veya geliştirilebilir.
+                </p>
+            </header>
+
+            <header class="corporate-heading">
+                <p class="section-kicker">08 · KULLANICI HAK VE YÜKÜMLÜLÜKLERİ</p>
+
+                <h2>Kullanıcı kendi hesabı ve içerikleri üzerinde belirli haklara sahiptir.</h2>
+
+                <p>
+                    Kullanıcı, kişisel verilerinin işlenmesine ilişkin
+                    bilgilendirmelere erişebilir ve mevzuat kapsamında gerekli
+                    başvuruları yapabilir.
+                </p>
+
+                <p>
+                    Kullanıcı, platformda oluşturduğu içeriklerin kaldırılmasını
+                    veya kendi hesabıyla ilgili işlemlerin gerçekleştirilmesini
+                    talep edebilir.
+                </p>
+            </header>
+
+            <div class="corporate-principles">
+
+                <div>
+                    <p class="section-kicker">09 · TELİF VE FİKRİ HAKLAR</p>
+
+                    <h2>Platform ve kullanıcı içerikleri üzerindeki haklar korunur.</h2>
+
+                    <p>
+                        Kullanıcı, platforma yüklediği içeriklerin üçüncü
+                        kişilerin telif, marka veya diğer fikri haklarını ihlal
+                        etmemesinden sorumludur.
+                    </p>
+                </div>
+
+                <dl>
+
+                    <div>
+                        <dt>Kullanıcı içerikleri</dt>
+                        <dd>
+                            Kullanıcı yalnızca paylaşma hakkına sahip olduğu
+                            içerikleri platforma yüklemelidir.
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt>Platform hakları</dt>
+                        <dd>
+                            DertDerman'ın yazılımı, tasarımı, marka unsurları
+                            ve platforma ait diğer özgün içerikler üzerindeki
+                            haklar saklıdır.
+                        </dd>
+                    </div>
+
+                </dl>
+
+            </div>
+
+            <header class="corporate-heading">
+                <p class="section-kicker">10 · HESABIN KAPATILMASI VE FESİH</p>
+
+                <h2>Kullanıcı hesabı sona erdirilebilir.</h2>
+
+                <p>
+                    Kullanıcı, sunulan hesap kapatma imkanları çerçevesinde
+                    hesabının kapatılmasını talep edebilir.
+                </p>
+
+                <p>
+                    Platform kurallarının veya sözleşme hükümlerinin ihlal edilmesi
+                    halinde hesaplara geçici veya kalıcı kısıtlamalar uygulanabilir.
+                </p>
+            </header>
+
+            <header class="corporate-heading">
+                <p class="section-kicker">11 · HİZMET SÜREKLİLİĞİ</p>
+
+                <h2>Kesintisiz hizmet garantisi verilmez.</h2>
+
+                <p>
+                    Bakım, güvenlik, teknik arıza veya DertDerman'ın kontrolü
+                    dışındaki nedenlerle platform hizmetlerinde geçici
+                    kesintiler yaşanabilir.
+                </p>
+            </header>
+
+            <header class="corporate-heading">
+                <p class="section-kicker">12 · UYGULANACAK HUKUK</p>
+
+                <h2>Sözleşme Türk hukukuna tabidir.</h2>
+
+                <p>
+                    Bu sözleşmeden doğan ilişkilerde Türkiye Cumhuriyeti
+                    mevzuatı uygulanır.
+                </p>
+            </header>
+
+            <header class="corporate-heading">
+                <p class="section-kicker">13 · YÜRÜRLÜK</p>
+
+                <h2>Sözleşme platformun kullanılmasıyla yürürlüğe girer.</h2>
+
+                <p>
+                    Kullanıcının platforma üye olması veya platform hizmetlerini
+                    kullanmaya başlamasıyla bu sözleşme hükümleri uygulanmaya başlar.
+                </p>
+            </header>
+
+            <footer class="corporate-closing">
+
+                <p class="section-kicker">İLETİŞİM</p>
+
+                <h2>Sözleşmeyle ilgili sorularınız için bizimle iletişime geçebilirsiniz.</h2>
+
+                <a class="primary-action" href="{% url 'core:contact' %}">
+                    Bize Ulaşın
+                </a>
+
+            </footer>
+
+        </div>
+    </section>
+
+</main>
+{% endblock %}
