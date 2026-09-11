@@ -6,7 +6,11 @@ from datetime import timedelta
 from core.pagination import paginate
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST, require_safe
-
+from .anti_abuse import (
+    check_complaint_submission,
+    mark_complaint_form_opened,
+    reset_complaint_form_timer,
+)
 from accounts.models import User
 from core.decorators import role_required
 
@@ -998,7 +1002,6 @@ def complaint_resolve(
         pk=pk
     )
 
-
 @role_required(User.UserType.USER)
 @transaction.atomic
 def complaint_create(request):
@@ -1008,17 +1011,27 @@ def complaint_create(request):
         )
 
         if form.is_valid():
+            # ------------------------------------------------
+            # Aynı kullanıcının eş zamanlı gönderimlerini
+            # serialize ediyoruz.
+            # ------------------------------------------------
 
-            # Serialize this user's submissions
-            # and absorb rapid identical retries.
-            User.objects.select_for_update().get(
-                pk=request.user.pk
+            locked_user = (
+                User.objects
+                .select_for_update()
+                .get(
+                    pk=request.user.pk
+                )
             )
 
-            existing = (
-                Complaint.objects
-                .filter(
-                    user=request.user,
+            # ------------------------------------------------
+            # ANTI-ABUSE KONTROLÜ
+            # ------------------------------------------------
+
+            anti_abuse_result = (
+                check_complaint_submission(
+                    request=request,
+                    user=locked_user,
                     company=form.cleaned_data[
                         "company"
                     ],
@@ -1028,32 +1041,50 @@ def complaint_create(request):
                     description=form.cleaned_data[
                         "description"
                     ],
-                    created_at__gte=(
-                        timezone.now()
-                        - timedelta(
-                            seconds=30
-                        )
-                    )
                 )
-                .first()
             )
 
-            if existing:
-                return redirect(
-                    "dashboard:home"
+            if not anti_abuse_result.allowed:
+                messages.error(
+                    request,
+                    anti_abuse_result.message
                 )
+
+                # Form yeniden gösterildiği için yeni zaman
+                # başlangıcı oluşturuyoruz.
+                mark_complaint_form_opened(
+                    request
+                )
+
+                return render(
+                    request,
+                    "complaints/complaint_create.html",
+                    {
+                        "form": form
+                    },
+                    status=429,
+                )
+
+            # ------------------------------------------------
+            # ŞİKAYET OLUŞTUR
+            # ------------------------------------------------
 
             complaint = form.save(
                 commit=False
             )
 
-            complaint.user = request.user
+            complaint.user = locked_user
 
             complaint.status = (
                 Complaint.Status.PENDING
             )
 
             complaint.save()
+
+            # Başarılı gönderimden sonra form timer temizlenir.
+            reset_complaint_form_timer(
+                request
+            )
 
             messages.success(
                 request,
@@ -1066,6 +1097,14 @@ def complaint_create(request):
             )
 
     else:
+        # ----------------------------------------------------
+        # FORM GET İLE AÇILDI
+        # ----------------------------------------------------
+
+        mark_complaint_form_opened(
+            request
+        )
+
         initial_company = None
 
         company_id = request.GET.get(

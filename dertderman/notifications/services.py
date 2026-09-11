@@ -17,6 +17,7 @@ def send(
     company=None,
     content_report=None,
     user_report=None,
+    abuse_attempt=None,
 ):
     if not recipient.is_active or recipient.user_type != scope:
         return None
@@ -33,6 +34,7 @@ def send(
             "company": None if complaint else company,
             "content_report": content_report,
             "user_report": user_report,
+            "abuse_attempt": abuse_attempt,
         },
     )
 
@@ -237,6 +239,74 @@ def notify_admins_user_report(report):
         ),
         user_report=report,
     )
+
+
+def notify_admins_abuse_attempt(attempt):
+    from datetime import timedelta
+    from core.models import AbuseAttempt
+
+    user = attempt.user
+    if not user:
+        return None
+
+    immediate_events = {
+        AbuseAttempt.EventType.COMPLAINT_RATE_LIMIT_10M,
+        AbuseAttempt.EventType.COMPLAINT_RATE_LIMIT_1H,
+        AbuseAttempt.EventType.COMPLAINT_RATE_LIMIT_24H,
+        AbuseAttempt.EventType.NEW_ACCOUNT_LIMIT,
+        AbuseAttempt.EventType.REJECTION_RESTRICTION,
+        AbuseAttempt.EventType.IP_ABUSE_BLOCK,
+    }
+
+    repeated_content_events = {
+        AbuseAttempt.EventType.DUPLICATE_COMPLAINT,
+        AbuseAttempt.EventType.SIMILAR_COMPLAINT,
+    }
+
+    if attempt.event_type in immediate_events:
+        bucket = attempt.created_at.strftime("%Y%m%d%H")
+        send_admins(
+            kind=Notification.Type.ABUSE_ALERT,
+            event_key=f"abuse:{user.pk}:{attempt.event_type}:{bucket}",
+            title="Güvenlik kısıtı tetiklendi",
+            message=(
+                f"@{user.username} kullanıcısı "
+                f"{attempt.get_event_type_display()} kuralına takıldı. "
+                "İşlem engellendi."
+            ),
+            abuse_attempt=attempt,
+        )
+        return None
+
+    if attempt.event_type in repeated_content_events:
+        since = attempt.created_at - timedelta(hours=24)
+        repeat_count = (
+            AbuseAttempt.objects
+            .filter(
+                user=user,
+                event_type__in=repeated_content_events,
+                created_at__gte=since,
+            )
+            .count()
+        )
+
+        if repeat_count < 3:
+            return None
+
+        day_bucket = attempt.created_at.strftime("%Y%m%d")
+        send_admins(
+            kind=Notification.Type.ABUSE_ALERT,
+            event_key=f"abuse:{user.pk}:repeated-content:{day_bucket}",
+            title="Tekrarlanan şikayet denemeleri",
+            message=(
+                f"@{user.username} kullanıcısının son 24 saatte "
+                f"{repeat_count} adet aynı veya çok benzer şikayet "
+                "gönderme denemesi engellendi."
+            ),
+            abuse_attempt=attempt,
+        )
+
+    return None
 
 
 def mark_read(queryset):

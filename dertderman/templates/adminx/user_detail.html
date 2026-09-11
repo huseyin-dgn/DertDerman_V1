@@ -663,6 +663,80 @@
     </section>
 
 
+
+    <!-- ANTI-ABUSE / GÜVENLİK GEÇMİŞİ -->
+    <section class="admin-card">
+        <div class="card-header">
+            <div>
+                <h2>Güvenlik İhlalleri Geçmişi</h2>
+                <p>Kullanıcının otomatik güvenlik kurallarına takılan son işlemleri</p>
+            </div>
+            <a class="back-button" href="{% url 'adminx:security_event_list' %}?q={{ account.username|urlencode }}">
+                Tüm olayları görüntüle ↗
+            </a>
+        </div>
+
+        <div class="card-body">
+            <div class="report-grid">
+                <div class="report-stat">
+                    <span class="report-number">{{ abuse_attempts_24h }}</span>
+                    <span class="report-label">Son 24 saat</span>
+                </div>
+                <div class="report-stat">
+                    <span class="report-number">{{ abuse_attempts_7d }}</span>
+                    <span class="report-label">Son 7 gün</span>
+                </div>
+                <div class="report-stat">
+                    <span class="report-number">{{ recent_abuse_attempts|length }}</span>
+                    <span class="report-label">Gösterilen son kayıt</span>
+                </div>
+                <div class="report-stat">
+                    <span class="report-number">
+                        {% if abuse_attempts_24h >= 3 %}Dikkat{% else %}Normal{% endif %}
+                    </span>
+                    <span class="report-label">Otomatik sinyal</span>
+                </div>
+            </div>
+        </div>
+
+        {% if recent_abuse_attempts %}
+        <div class="table-wrapper">
+            <table class="violation-table">
+                <thead>
+                    <tr>
+                        <th>Tarih</th>
+                        <th>Olay</th>
+                        <th>IP</th>
+                        <th>Detay</th>
+                        <th>Aksiyon</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for event in recent_abuse_attempts %}
+                    <tr>
+                        <td>{{ event.created_at|date:'d.m.Y H:i' }}</td>
+                        <td><span class="source-badge">{{ event.get_event_type_display }}</span></td>
+                        <td>{{ event.ip_address|default:'—' }}</td>
+                        <td>{{ event.detail|truncatechars:110 }}</td>
+                        <td>
+                            <a class="back-button" style="padding:7px 10px;font-size:12px"
+                               href="{% url 'adminx:security_event_detail' event.pk %}">
+                                İncele ↗
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            Bu kullanıcı için kayıtlı güvenlik ihlalı olayı bulunmuyor.
+        </div>
+        {% endif %}
+    </section>
+
+
     <!-- İHLAL GEÇMİŞİ -->
     <section class="admin-card">
 

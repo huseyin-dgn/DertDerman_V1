@@ -12,7 +12,8 @@ SECTIONS = [
     ("contact_list", "İletişim Talepleri", "note"),
     ("activity", "Sistem / Aktivite", "clock"),
     ("report_list", "Raporlar", "shield"),
-    ("audit_log_list", "Yönetici İşlem Geçmişi", "shield"),
+    ("security_event_list", "Güvenlik İhlalleri", "shield"),
+    ("audit_log_list", "Yönetim İşlem Geçmişi", "shield"),
     ("homepage_content", "Site İçerikleri", "settings"),
 ]
 
@@ -39,6 +40,7 @@ def admin_shell(request):
         "contact_status": "contact_list",
         "report_detail": "report_list",
         "report_status": "report_list",
+        "security_event_detail": "security_event_list",
     }
 
     current = parents.get(route, route)

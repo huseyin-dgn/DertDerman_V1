@@ -1,0 +1,614 @@
+{% extends 'adminx/content_base.html' %}
+
+{% block title %}
+Güvenlik Olayı #{{ event.pk }} | DertDerman Yönetim
+{% endblock %}
+
+{% block content_heading %}
+
+<div class="event-heading">
+
+    <div>
+
+        <p class="event-eyebrow">
+            GÜVENLİK OLAYI #{{ event.pk }}
+        </p>
+
+        <h1>
+            {{ event.get_event_type_display }}
+        </h1>
+
+        <p>
+            {{ event.created_at|date:'d.m.Y H:i' }}
+            tarihinde kaydedildi.
+        </p>
+
+    </div>
+
+
+    <a
+        class="event-back"
+        href="{% url 'adminx:security_event_list' %}"
+    >
+        ← Güvenlik olaylarına dön
+    </a>
+
+</div>
+
+{% endblock %}
+
+
+{% block management_content %}
+
+<style>
+
+    .event-heading {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        align-items: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .event-heading h1 {
+        margin: 0;
+        color: #0f172a;
+        font-size: 28px;
+    }
+
+    .event-heading p {
+        margin: 7px 0 0;
+        color: #64748b;
+    }
+
+    .event-eyebrow {
+        font-size: 12px !important;
+        font-weight: 900;
+        letter-spacing: .09em;
+        color: #1d5fa7 !important;
+    }
+
+    .event-back {
+        padding: 10px 14px;
+        border:
+            1px solid #dbe3ee;
+        border-radius: 10px;
+        color: #334155;
+        text-decoration: none;
+        font-weight: 800;
+        background: #fff;
+    }
+
+    .event-back:hover {
+        background: #f8fafc;
+    }
+
+    .event-page {
+        display: grid;
+        grid-template-columns:
+            minmax(0, 1.6fr)
+            minmax(300px, .8fr);
+        gap: 20px;
+    }
+
+    .event-card {
+        background: #fff;
+        border:
+            1px solid #e2e8f0;
+        border-radius: 16px;
+        box-shadow:
+            0 8px 24px
+            rgba(15, 23, 42, .05);
+        overflow: hidden;
+    }
+
+    .event-card + .event-card {
+        margin-top: 20px;
+    }
+
+    .event-card-head {
+        padding: 18px 20px;
+        border-bottom:
+            1px solid #eef2f7;
+    }
+
+    .event-card-head h2 {
+        margin: 0;
+        font-size: 17px;
+        color: #0f172a;
+    }
+
+    .event-card-head p {
+        margin: 5px 0 0;
+        font-size: 13px;
+        color: #64748b;
+    }
+
+    .event-body {
+        padding: 20px;
+    }
+
+    .event-summary {
+        display: grid;
+        grid-template-columns:
+            repeat(
+                2,
+                minmax(0, 1fr)
+            );
+        gap: 13px;
+    }
+
+    .event-info {
+        padding: 14px;
+        border-radius: 12px;
+        background: #f8fafc;
+        border:
+            1px solid #e8edf3;
+    }
+
+    .event-label {
+        display: block;
+        font-size: 11px;
+        font-weight: 900;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        margin-bottom: 6px;
+    }
+
+    .event-value {
+        display: block;
+        font-size: 14px;
+        font-weight: 800;
+        color: #0f172a;
+        word-break: break-word;
+    }
+
+    .event-detail {
+        line-height: 1.75;
+        color: #334155;
+        margin: 0;
+        font-size: 15px;
+    }
+
+    .event-pill {
+        display: inline-flex;
+        padding: 7px 10px;
+        border-radius: 999px;
+        background: #fff7ed;
+        color: #c2410c;
+        font-size: 12px;
+        font-weight: 900;
+    }
+
+    .event-link {
+        color: #1d5fa7;
+        text-decoration: none;
+        font-weight: 900;
+    }
+
+    .event-link:hover {
+        text-decoration: underline;
+    }
+
+    .event-highlight {
+        padding: 18px;
+        border-radius: 14px;
+        background: #eff6ff;
+        border:
+            1px solid #bfdbfe;
+    }
+
+    .event-highlight strong {
+        display: block;
+        color: #1e3a8a;
+        font-size: 13px;
+        margin-bottom: 6px;
+    }
+
+    .event-highlight span {
+        color: #1e40af;
+        font-size: 15px;
+        line-height: 1.6;
+    }
+
+    .event-complaint {
+        padding: 16px;
+        border:
+            1px solid #e2e8f0;
+        border-radius: 13px;
+        background: #fff;
+    }
+
+    .event-complaint-title {
+        font-weight: 900;
+        color: #0f172a;
+        margin-bottom: 6px;
+    }
+
+    .event-complaint-meta {
+        font-size: 12px;
+        color: #64748b;
+        margin-bottom: 10px;
+    }
+
+    .event-complaint-text {
+        font-size: 14px;
+        line-height: 1.65;
+        color: #475569;
+    }
+
+    @media (
+        max-width: 900px
+    ) {
+        .event-page {
+            grid-template-columns:
+                1fr;
+        }
+
+        .event-summary {
+            grid-template-columns:
+                1fr;
+        }
+    }
+
+</style>
+
+
+<div class="event-page">
+
+    <div>
+
+        <section class="event-card">
+
+            <div class="event-card-head">
+
+                <h2>
+                    Ne oldu?
+                </h2>
+
+                <p>
+                    Admin için anlamlı
+                    güvenlik özeti
+                </p>
+
+            </div>
+
+
+            <div class="event-body">
+
+                <p class="event-detail">
+                    {{ event.detail }}
+                </p>
+
+
+                {% if similarity_percent %}
+
+                    <div
+                        class="event-highlight"
+                        style="margin-top:18px"
+                    >
+
+                        <strong>
+                            İçerik benzerliği
+                        </strong>
+
+                        <span>
+                            Bu deneme önceki
+                            şikayetle
+                            %{{ similarity_percent }}
+                            oranında eşleşti.
+                        </span>
+
+                    </div>
+
+                {% endif %}
+
+
+                {% if limit_value %}
+
+                    <div
+                        class="event-highlight"
+                        style="margin-top:18px"
+                    >
+
+                        <strong>
+                            Limit bilgisi
+                        </strong>
+
+                        <span>
+
+                            Tanımlı limit:
+                            {{ limit_value }}
+
+                            {% if observed_value %}
+
+                                · Mevcut sayı:
+                                {{ observed_value }}
+
+                            {% endif %}
+
+                        </span>
+
+                    </div>
+
+                {% endif %}
+
+
+                {% if restriction_until %}
+
+                    <div
+                        class="event-highlight"
+                        style="margin-top:18px"
+                    >
+
+                        <strong>
+                            Kısıt bitiş zamanı
+                        </strong>
+
+                        <span>
+                            {{ restriction_until }}
+                        </span>
+
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+        </section>
+
+
+        {% if related_complaint %}
+
+        <section class="event-card">
+
+            <div class="event-card-head">
+
+                <h2>
+                    İlgili şikayet
+                </h2>
+
+                <p>
+                    Bu güvenlik olayının
+                    eşleştiği kayıt
+                </p>
+
+            </div>
+
+
+            <div class="event-body">
+
+                <div class="event-complaint">
+
+                    <div class="event-complaint-title">
+
+                        #{{ related_complaint.pk }}
+                        ·
+                        {{ related_complaint.title }}
+
+                    </div>
+
+
+                    <div class="event-complaint-meta">
+
+                        {{ related_complaint.company.name }}
+
+                        ·
+
+                        @{{ related_complaint.user.username }}
+
+                        ·
+
+                        {{ related_complaint.created_at|date:'d.m.Y H:i' }}
+
+                    </div>
+
+
+                    <div class="event-complaint-text">
+
+                        {{ related_complaint.description|truncatechars:280 }}
+
+                    </div>
+
+
+                    <div style="margin-top:14px">
+
+                        <a
+                            class="event-link"
+                            href="{% url 'adminx:complaint_detail' related_complaint.pk %}"
+                        >
+                            Şikayeti incele ↗
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+        {% endif %}
+
+    </div>
+
+
+    <aside>
+
+        <section class="event-card">
+
+            <div class="event-card-head">
+
+                <h2>
+                    Olay özeti
+                </h2>
+
+            </div>
+
+
+            <div class="event-body">
+
+                <div class="event-summary">
+
+
+                    <div class="event-info">
+
+                        <span class="event-label">
+                            Kullanıcı
+                        </span>
+
+                        <span class="event-value">
+
+                            {% if event.user %}
+
+                                <a
+                                    class="event-link"
+                                    href="{% url 'adminx:user_detail' event.user.pk %}"
+                                >
+                                    @{{ event.user.username }}
+                                </a>
+
+                            {% else %}
+
+                                Anonim
+
+                            {% endif %}
+
+                        </span>
+
+                    </div>
+
+
+                    <div class="event-info">
+
+                        <span class="event-label">
+                            Tarih
+                        </span>
+
+                        <span class="event-value">
+                            {{ event.created_at|date:'d.m.Y H:i' }}
+                        </span>
+
+                    </div>
+
+
+                    <div class="event-info">
+
+                        <span class="event-label">
+                            Olay
+                        </span>
+
+                        <span class="event-value">
+
+                            <span class="event-pill">
+                                {{ event.get_event_type_display }}
+                            </span>
+
+                        </span>
+
+                    </div>
+
+
+                    {% if company %}
+
+                    <div class="event-info">
+
+                        <span class="event-label">
+                            Şirket
+                        </span>
+
+                        <span class="event-value">
+                            {{ company.name }}
+                        </span>
+
+                    </div>
+
+                    {% endif %}
+
+
+                    {% if related_complaint %}
+
+                    <div class="event-info">
+
+                        <span class="event-label">
+                            Eşleşen şikayet
+                        </span>
+
+                        <span class="event-value">
+
+                            <a
+                                class="event-link"
+                                href="{% url 'adminx:complaint_detail' related_complaint.pk %}"
+                            >
+                                #{{ related_complaint.pk }}
+                            </a>
+
+                        </span>
+
+                    </div>
+
+                    {% endif %}
+
+
+                    {% if similarity_percent %}
+
+                    <div class="event-info">
+
+                        <span class="event-label">
+                            Benzerlik
+                        </span>
+
+                        <span class="event-value">
+                            %{{ similarity_percent }}
+                        </span>
+
+                    </div>
+
+                    {% endif %}
+
+
+                    {% if limit_value %}
+
+                    <div class="event-info">
+
+                        <span class="event-label">
+                            Limit
+                        </span>
+
+                        <span class="event-value">
+                            {{ limit_value }}
+                        </span>
+
+                    </div>
+
+                    {% endif %}
+
+
+                    {% if observed_value %}
+
+                    <div class="event-info">
+
+                        <span class="event-label">
+                            Mevcut sayı
+                        </span>
+
+                        <span class="event-value">
+                            {{ observed_value }}
+                        </span>
+
+                    </div>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </aside>
+
+</div>
+
+{% endblock %}

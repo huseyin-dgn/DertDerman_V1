@@ -1,0 +1,527 @@
+{% extends 'adminx/content_base.html' %}
+
+{% block title %}
+Güvenlik Olayları | DertDerman Yönetim
+{% endblock %}
+
+{% block content_heading %}
+<div class="sec-heading">
+    <div>
+        <p class="sec-eyebrow">
+            GÜVENLİK MERKEZİ
+        </p>
+
+        <h1>
+         Güvenlik İhlalleri Olayları
+        </h1>
+
+        <p>
+ Şüpheli işlemleri, gönderim kısıtlarını ve sistem tarafından
+    engellenen davranışları inceleyin.
+        </p>
+    </div>
+</div>
+{% endblock %}
+
+{% block management_content %}
+
+<style>
+    .sec-page {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .sec-heading h1 {
+        margin: 0;
+        color: #0f172a;
+        font-size: 30px;
+    }
+
+    .sec-heading p {
+        margin: 7px 0 0;
+        color: #64748b;
+    }
+
+    .sec-eyebrow {
+        font-size: 12px !important;
+        font-weight: 900;
+        letter-spacing: .09em;
+        color: #1d5fa7 !important;
+    }
+
+    .sec-toolbar,
+    .sec-card {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        box-shadow:
+            0 8px 24px
+            rgba(15, 23, 42, .05);
+    }
+
+    .sec-toolbar {
+        padding: 16px;
+    }
+
+    .sec-filter {
+        display: grid;
+        grid-template-columns:
+            minmax(220px, 1fr)
+            minmax(220px, 320px)
+            auto
+            auto;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .sec-input,
+    .sec-select {
+        width: 100%;
+        height: 44px;
+        border:
+            1px solid #dbe3ee;
+        border-radius: 10px;
+        background: #fff;
+        padding: 0 13px;
+        color: #0f172a;
+        outline: none;
+    }
+
+    .sec-input:focus,
+    .sec-select:focus {
+        border-color: #1d5fa7;
+        box-shadow:
+            0 0 0 3px
+            rgba(29, 95, 167, .10);
+    }
+
+    .sec-btn {
+        display: inline-flex;
+        height: 44px;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        padding: 0 16px;
+        border: 0;
+        background: #1d5fa7;
+        color: #fff;
+        text-decoration: none;
+        font-weight: 800;
+        cursor: pointer;
+    }
+
+    .sec-btn:hover {
+        background: #174b85;
+    }
+
+    .sec-btn-muted {
+        background: #f8fafc;
+        color: #334155;
+        border:
+            1px solid #dbe3ee;
+    }
+
+    .sec-card {
+        overflow: hidden;
+    }
+
+    .sec-table-wrap {
+        overflow-x: auto;
+    }
+
+    .sec-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 980px;
+    }
+
+    .sec-table th {
+        background: #f8fafc;
+        color: #64748b;
+        font-size: 12px;
+        text-align: left;
+        padding: 13px 15px;
+        border-bottom:
+            1px solid #e2e8f0;
+    }
+
+    .sec-table td {
+        padding: 14px 15px;
+        border-bottom:
+            1px solid #eef2f7;
+        color: #334155;
+        font-size: 14px;
+        vertical-align: middle;
+    }
+
+    .sec-table tr:last-child td {
+        border-bottom: 0;
+    }
+
+    .sec-table tbody tr:hover {
+        background: #fbfdff;
+    }
+
+    .sec-user {
+        font-weight: 800;
+        color: #0f172a;
+    }
+
+    .sec-user small {
+        display: block;
+        font-weight: 500;
+        color: #94a3b8;
+        margin-top: 3px;
+    }
+
+    .sec-badge {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 6px 9px;
+        font-size: 11px;
+        font-weight: 900;
+        background: #eff6ff;
+        color: #1d4ed8;
+    }
+
+    .sec-badge-danger {
+        background: #fef2f2;
+        color: #b91c1c;
+    }
+
+    .sec-badge-warning {
+        background: #fff7ed;
+        color: #c2410c;
+    }
+
+    .sec-badge-muted {
+        background: #f1f5f9;
+        color: #475569;
+    }
+
+    .sec-action {
+        font-weight: 800;
+        color: #1d5fa7;
+        text-decoration: none;
+    }
+
+    .sec-action:hover {
+        text-decoration: underline;
+    }
+
+    .sec-empty {
+        padding: 48px 20px;
+        text-align: center;
+        color: #64748b;
+    }
+
+    .sec-pagination {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 14px 16px;
+        border-top:
+            1px solid #eef2f7;
+        gap: 12px;
+    }
+
+    .sec-page-links {
+        display: flex;
+        gap: 8px;
+    }
+
+    .sec-page-link {
+        padding: 8px 11px;
+        border:
+            1px solid #dbe3ee;
+        border-radius: 9px;
+        text-decoration: none;
+        color: #334155;
+        font-weight: 700;
+        background: #fff;
+    }
+
+    .sec-page-link:hover {
+        background: #f8fafc;
+    }
+
+    @media (
+        max-width: 850px
+    ) {
+        .sec-filter {
+            grid-template-columns:
+                1fr;
+        }
+
+        .sec-btn {
+            width: 100%;
+        }
+    }
+</style>
+
+<div class="sec-page">
+
+    <form
+        method="get"
+        class="sec-toolbar"
+    >
+
+        <div class="sec-filter">
+
+            <input
+                class="sec-input"
+                type="search"
+                name="q"
+                value="{{ search }}"
+                placeholder="Kullanıcı, e-posta, IP veya detay ara"
+            >
+
+            <select
+                class="sec-select"
+                name="event_type"
+            >
+
+                <option value="">
+                    Tüm olay türleri
+                </option>
+
+                {% for value, label in event_type_choices %}
+
+                    <option
+                        value="{{ value }}"
+                        {% if active_event_type == value %}
+                            selected
+                        {% endif %}
+                    >
+                        {{ label }}
+                    </option>
+
+                {% endfor %}
+
+            </select>
+
+            <button
+                class="sec-btn"
+                type="submit"
+            >
+                Filtrele
+            </button>
+
+            <a
+                class="sec-btn sec-btn-muted"
+                href="{% url 'adminx:security_event_list' %}"
+            >
+                Temizle
+            </a>
+
+        </div>
+
+    </form>
+
+
+    <section class="sec-card">
+
+        {% if page_obj.object_list %}
+
+            <div class="sec-table-wrap">
+
+                <table class="sec-table">
+
+                    <thead>
+                        <tr>
+                            <th>
+                                Tarih
+                            </th>
+
+                            <th>
+                                Kullanıcı
+                            </th>
+
+                            <th>
+                                Olay
+                            </th>
+
+                            <th>
+                                IP
+                            </th>
+
+                            <th>
+                                Detay
+                            </th>
+
+                            <th>
+                                Aksiyon
+                            </th>
+                        </tr>
+                    </thead>
+
+
+                    <tbody>
+
+                        {% for event in page_obj %}
+
+                        <tr>
+
+                            <td>
+                                {{ event.created_at|date:'d.m.Y H:i' }}
+                            </td>
+
+
+                            <td>
+
+                                {% if event.user %}
+
+                                    <span class="sec-user">
+
+                                        @{{ event.user.username }}
+
+                                        <small>
+                                            {{ event.user.email }}
+                                        </small>
+
+                                    </span>
+
+                                {% else %}
+
+                                    <span
+                                        class="sec-badge sec-badge-muted"
+                                    >
+                                        Anonim
+                                    </span>
+
+                                {% endif %}
+
+                            </td>
+
+
+                            <td>
+
+                                {% if event.event_type == 'COMPLAINT_RATE_LIMIT_10M' or event.event_type == 'COMPLAINT_RATE_LIMIT_1H' or event.event_type == 'COMPLAINT_RATE_LIMIT_24H' %}
+
+                                    <span
+                                        class="sec-badge sec-badge-danger"
+                                    >
+                                        {{ event.get_event_type_display }}
+                                    </span>
+
+                                {% elif event.event_type == 'DUPLICATE_COMPLAINT' or event.event_type == 'SIMILAR_COMPLAINT' or event.event_type == 'SAME_COMPANY_COOLDOWN' %}
+
+                                    <span
+                                        class="sec-badge sec-badge-warning"
+                                    >
+                                        {{ event.get_event_type_display }}
+                                    </span>
+
+                                {% else %}
+
+                                    <span
+                                        class="sec-badge"
+                                    >
+                                        {{ event.get_event_type_display }}
+                                    </span>
+
+                                {% endif %}
+
+                            </td>
+
+
+                            <td>
+                                {{ event.ip_address|default:'—' }}
+                            </td>
+
+
+                            <td>
+                                {{ event.detail|truncatechars:90 }}
+                            </td>
+
+
+                            <td>
+
+                                <a
+                                    class="sec-action"
+                                    href="{% url 'adminx:security_event_detail' event.pk %}"
+                                >
+                                    İncele ↗
+                                </a>
+
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+
+            {% if page_obj.has_other_pages %}
+
+            <div class="sec-pagination">
+
+                <span>
+                    Sayfa
+                    {{ page_obj.number }}
+                    /
+                    {{ page_obj.paginator.num_pages }}
+                </span>
+
+
+                <div class="sec-page-links">
+
+                    {% if page_obj.has_previous %}
+
+                        <a
+                            class="sec-page-link"
+                            href="?page={{ page_obj.previous_page_number }}&q={{ search|urlencode }}&event_type={{ active_event_type|urlencode }}"
+                        >
+                            ← Önceki
+                        </a>
+
+                    {% endif %}
+
+
+                    {% if page_obj.has_next %}
+
+                        <a
+                            class="sec-page-link"
+                            href="?page={{ page_obj.next_page_number }}&q={{ search|urlencode }}&event_type={{ active_event_type|urlencode }}"
+                        >
+                            Sonraki →
+                        </a>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+            {% endif %}
+
+
+        {% else %}
+
+            <div class="sec-empty">
+
+                <strong>
+                    Kayıt bulunamadı.
+                </strong>
+
+                <div>
+                    Seçtiğiniz filtrelere uygun
+                    bir güvenlik olayı yok.
+                </div>
+
+            </div>
+
+        {% endif %}
+
+    </section>
+
+</div>
+
+{% endblock %}

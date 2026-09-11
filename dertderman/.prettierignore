@@ -16,3 +16,5 @@ templates/complaints/public_detail.html
 templates/adminx/report_list.html
 templates/adminx/report_detail.html
 templates/adminx/user_detail.html
+templates/adminx/security_event_list.html
+templates/adminx/security_event_detail.html

@@ -1,4 +1,3 @@
-
 from django.urls import path
 from . import blog_views, content_views, views
 from .auth_views import AdminLoginView
@@ -62,6 +61,17 @@ urlpatterns = [
         "audit-log/",
         views.audit_log_list,
         name="audit_log_list",
+    ),
+
+    path(
+        "guvenlik/",
+        content_views.security_event_list,
+        name="security_event_list",
+    ),
+    path(
+        "guvenlik/<int:pk>/",
+        content_views.security_event_detail,
+        name="security_event_detail",
     ),
 
     path(
