@@ -1,438 +1,1201 @@
 {% extends 'adminx/content_base.html' %}
 
 {% block title %}
-{{ account.username }} | Yönetim
+{{ account.username }} | Kullanıcı Yönetimi
 {% endblock %}
 
 
 {% block content_heading %}
-<div class="user-page-heading">
-    <div>
-        <p class="eyebrow">KULLANICI YÖNETİMİ</p>
-        <h1>{{ account.get_full_name|default:account.username }}</h1>
-        <p class="heading-subtitle">
-            Hesap bilgileri, moderasyon geçmişi ve risk durumu
-        </p>
+
+<div class="dd-user-heading">
+
+    <div class="dd-user-heading-main">
+
+        <div class="dd-user-heading-meta">
+            <span class="dd-eyebrow">
+                KULLANICI YÖNETİMİ
+            </span>
+
+            {% if account.is_permanently_closed %}
+                <span class="dd-status dd-status--danger">
+                    Kalıcı olarak kapalı
+                </span>
+
+            {% elif not account.is_active %}
+                <span class="dd-status dd-status--danger">
+                    Pasif hesap
+                </span>
+
+            {% elif permanent_close_ready %}
+                <span class="dd-status dd-status--warning">
+                    Moderasyon incelemesi gerekli
+                </span>
+
+            {% else %}
+                <span class="dd-status dd-status--success">
+                    Aktif hesap
+                </span>
+            {% endif %}
+        </div>
+
+
+        <h1>
+            {{ account.get_full_name|default:account.username }}
+        </h1>
+
+
+        <div class="dd-user-identity">
+
+            <span>
+                @{{ account.username }}
+            </span>
+
+            <span class="dd-dot"></span>
+
+            <span>
+                {{ account.email }}
+            </span>
+
+        </div>
+
     </div>
 
-    <a
-        href="{% url 'adminx:user_list' %}"
-        class="back-button"
-    >
-        ← Kullanıcılara dön
-    </a>
+
+    <div class="dd-heading-actions">
+
+        {% if account.is_permanently_closed %}
+
+            <a
+                href="{% url 'adminx:closed_user_list' %}"
+                class="dd-button dd-button--secondary"
+            >
+                Kapatılan hesaplar
+            </a>
+
+        {% endif %}
+
+
+        <a
+            href="{% url 'adminx:user_list' %}"
+            class="dd-button dd-button--secondary"
+        >
+            ← Kullanıcılara dön
+        </a>
+
+    </div>
+
 </div>
+
 {% endblock %}
+
 
 
 {% block management_content %}
 
 <style>
-    .user-admin-page {
-        display: flex;
-        flex-direction: column;
-        gap: 24px;
+
+:root {
+    --dd-bg: #f7f9fc;
+    --dd-card: #ffffff;
+    --dd-card-soft: #f8fafc;
+
+    --dd-border: #e5eaf0;
+    --dd-border-strong: #d7dee8;
+
+    --dd-text: #172033;
+    --dd-muted: #64748b;
+    --dd-muted-2: #94a3b8;
+
+    --dd-blue: #1d5fa7;
+    --dd-blue-soft: #eef5fc;
+
+    --dd-green: #047857;
+    --dd-green-soft: #ecfdf5;
+
+    --dd-orange: #b45309;
+    --dd-orange-soft: #fff7ed;
+
+    --dd-red: #b42318;
+    --dd-red-dark: #7f1d1d;
+    --dd-red-soft: #fff1f2;
+
+    --dd-radius: 16px;
+    --dd-radius-sm: 11px;
+
+    --dd-shadow:
+        0 1px 2px rgba(15, 23, 42, .03),
+        0 10px 30px rgba(15, 23, 42, .05);
+}
+
+
+/* =====================================================
+   PAGE
+===================================================== */
+
+.dd-user-page {
+    display: grid;
+    gap: 22px;
+}
+
+
+/* =====================================================
+   HEADING
+===================================================== */
+
+.dd-user-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+}
+
+
+.dd-user-heading-main {
+    min-width: 0;
+}
+
+
+.dd-user-heading-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+}
+
+
+.dd-eyebrow {
+    color: var(--dd-muted);
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: .11em;
+}
+
+
+.dd-user-heading h1 {
+    margin: 0;
+    color: var(--dd-text);
+    font-size: clamp(26px, 3vw, 38px);
+    line-height: 1.08;
+    letter-spacing: -.025em;
+}
+
+
+.dd-user-identity {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    flex-wrap: wrap;
+
+    margin-top: 10px;
+
+    color: var(--dd-muted);
+    font-size: 14px;
+}
+
+
+.dd-dot {
+    width: 4px;
+    height: 4px;
+
+    border-radius: 50%;
+
+    background: #cbd5e1;
+}
+
+
+.dd-heading-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+
+/* =====================================================
+   BUTTONS
+===================================================== */
+
+.dd-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+
+    min-height: 40px;
+    padding: 0 14px;
+
+    border-radius: 10px;
+
+    font-size: 13px;
+    font-weight: 800;
+
+    text-decoration: none;
+
+    transition:
+        background .16s ease,
+        border-color .16s ease,
+        transform .16s ease;
+}
+
+
+.dd-button:hover {
+    transform: translateY(-1px);
+}
+
+
+.dd-button--secondary {
+    border: 1px solid var(--dd-border-strong);
+
+    background: #fff;
+
+    color: #334155;
+}
+
+
+.dd-button--secondary:hover {
+    background: #f8fafc;
+    border-color: #bec9d6;
+}
+
+
+/* =====================================================
+   STATUS PILLS
+===================================================== */
+
+.dd-status {
+    display: inline-flex;
+    align-items: center;
+
+    min-height: 28px;
+    padding: 0 10px;
+
+    border-radius: 999px;
+
+    font-size: 11px;
+    font-weight: 900;
+}
+
+
+.dd-status--success {
+    background: var(--dd-green-soft);
+    color: var(--dd-green);
+}
+
+
+.dd-status--warning {
+    background: var(--dd-orange-soft);
+    color: var(--dd-orange);
+}
+
+
+.dd-status--danger {
+    background: var(--dd-red-soft);
+    color: var(--dd-red);
+}
+
+
+/* =====================================================
+   CARD
+===================================================== */
+
+.dd-card {
+    overflow: hidden;
+
+    border: 1px solid var(--dd-border);
+    border-radius: var(--dd-radius);
+
+    background: var(--dd-card);
+
+    box-shadow: var(--dd-shadow);
+}
+
+
+.dd-card--danger {
+    border-color: #fecdd3;
+}
+
+
+.dd-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 16px;
+
+    padding: 19px 22px;
+
+    border-bottom: 1px solid #edf1f5;
+
+    flex-wrap: wrap;
+}
+
+
+.dd-card-heading {
+    min-width: 0;
+}
+
+
+.dd-card-heading h2 {
+    margin: 0;
+
+    color: var(--dd-text);
+
+    font-size: 17px;
+    font-weight: 850;
+
+    letter-spacing: -.015em;
+}
+
+
+.dd-card-heading p {
+    margin: 5px 0 0;
+
+    color: var(--dd-muted);
+
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+
+.dd-card-body {
+    padding: 22px;
+}
+
+
+/* =====================================================
+   ACCOUNT SUMMARY
+===================================================== */
+
+.dd-account-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(5, minmax(0, 1fr));
+
+    gap: 12px;
+}
+
+
+.dd-info {
+    min-width: 0;
+
+    padding: 15px;
+
+    border: 1px solid #e8edf3;
+    border-radius: 12px;
+
+    background: var(--dd-card-soft);
+}
+
+
+.dd-info-label {
+    display: block;
+
+    margin-bottom: 7px;
+
+    color: var(--dd-muted);
+
+    font-size: 11px;
+    font-weight: 800;
+
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+
+.dd-info-value {
+    display: block;
+
+    overflow: hidden;
+
+    color: var(--dd-text);
+
+    font-size: 14px;
+    font-weight: 750;
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+
+/* =====================================================
+   METRICS
+===================================================== */
+
+.dd-metric-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+
+    gap: 12px;
+}
+
+
+.dd-metric {
+    position: relative;
+
+    overflow: hidden;
+
+    padding: 17px;
+
+    border: 1px solid var(--dd-border);
+    border-radius: 13px;
+
+    background: #fff;
+}
+
+
+.dd-metric::before {
+    position: absolute;
+
+    top: 0;
+    bottom: 0;
+    left: 0;
+
+    width: 3px;
+
+    content: "";
+
+    background: #dbe3ec;
+}
+
+
+.dd-metric--normal::before {
+    background: #10b981;
+}
+
+
+.dd-metric--warning::before {
+    background: #f59e0b;
+}
+
+
+.dd-metric--high::before {
+    background: #ef4444;
+}
+
+
+.dd-metric--critical::before {
+    background: #991b1b;
+}
+
+
+.dd-metric-label {
+    color: var(--dd-muted);
+
+    font-size: 11px;
+    font-weight: 800;
+
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+
+.dd-metric-value {
+    margin-top: 9px;
+
+    color: var(--dd-text);
+
+    font-size: 26px;
+    font-weight: 900;
+
+    line-height: 1.05;
+}
+
+
+.dd-metric-value--text {
+    font-size: 17px;
+    line-height: 1.25;
+}
+
+
+.dd-metric-caption {
+    margin-top: 8px;
+
+    color: var(--dd-muted);
+
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+
+/* =====================================================
+   NOTICE
+===================================================== */
+
+.dd-notice {
+    display: flex;
+    align-items: flex-start;
+
+    gap: 13px;
+
+    margin-top: 18px;
+    padding: 15px 16px;
+
+    border: 1px solid var(--dd-border);
+    border-radius: 12px;
+
+    background: #f8fafc;
+}
+
+
+.dd-notice-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 30px;
+    height: 30px;
+
+    flex: 0 0 auto;
+
+    border-radius: 9px;
+
+    background: #e9eef5;
+
+    color: #475569;
+
+    font-size: 15px;
+    font-weight: 900;
+}
+
+
+.dd-notice-content {
+    color: #475569;
+
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+
+.dd-notice-content strong {
+    color: var(--dd-text);
+}
+
+
+.dd-notice--danger {
+    border-color: #fecaca;
+
+    background: #fff7f7;
+}
+
+
+.dd-notice--danger .dd-notice-icon {
+    background: #fee2e2;
+
+    color: var(--dd-red);
+}
+
+
+.dd-notice--danger .dd-notice-content,
+.dd-notice--danger .dd-notice-content strong {
+    color: #991b1b;
+}
+
+
+.dd-notice--warning {
+    border-color: #fed7aa;
+
+    background: #fffaf5;
+}
+
+
+.dd-notice--warning .dd-notice-icon {
+    background: #ffedd5;
+
+    color: #c2410c;
+}
+
+
+/* =====================================================
+   REPORT CARDS
+===================================================== */
+
+.dd-report-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+
+    gap: 12px;
+}
+
+
+.dd-report-stat {
+    padding: 16px;
+
+    border: 1px solid var(--dd-border);
+    border-radius: 12px;
+
+    background: var(--dd-card-soft);
+}
+
+
+.dd-report-number {
+    display: block;
+
+    color: var(--dd-text);
+
+    font-size: 24px;
+    font-weight: 900;
+
+    line-height: 1;
+}
+
+
+.dd-report-label {
+    display: block;
+
+    margin-top: 7px;
+
+    color: var(--dd-muted);
+
+    font-size: 12px;
+    font-weight: 700;
+}
+
+
+/* =====================================================
+   TABLE
+===================================================== */
+
+.dd-table-wrap {
+    overflow-x: auto;
+}
+
+
+.dd-table {
+    width: 100%;
+
+    min-width: 760px;
+
+    border-collapse: collapse;
+}
+
+
+.dd-table thead th {
+    padding: 11px 15px;
+
+    border-bottom: 1px solid var(--dd-border);
+
+    background: #f8fafc;
+
+    color: var(--dd-muted);
+
+    font-size: 11px;
+    font-weight: 900;
+
+    text-align: left;
+
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+
+.dd-table tbody td {
+    padding: 14px 15px;
+
+    border-bottom: 1px solid #edf1f5;
+
+    color: #334155;
+
+    font-size: 13px;
+
+    vertical-align: middle;
+}
+
+
+.dd-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+
+.dd-table tbody tr:hover {
+    background: #fafcff;
+}
+
+
+/* =====================================================
+   TAGS
+===================================================== */
+
+.dd-tag {
+    display: inline-flex;
+    align-items: center;
+
+    min-height: 26px;
+    padding: 0 9px;
+
+    border-radius: 999px;
+
+    font-size: 11px;
+    font-weight: 800;
+}
+
+
+.dd-tag--blue {
+    background: #eff6ff;
+    color: #1d4ed8;
+}
+
+
+.dd-tag--orange {
+    background: #fff7ed;
+    color: #c2410c;
+}
+
+
+.dd-tag--red {
+    background: #fef2f2;
+    color: #b91c1c;
+}
+
+
+/* =====================================================
+   FALSE REPORT BREAKDOWN
+===================================================== */
+
+.dd-breakdown {
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+
+    gap: 12px;
+
+    margin-top: 16px;
+}
+
+
+.dd-breakdown-item {
+    padding: 14px 15px;
+
+    border: 1px solid var(--dd-border);
+    border-radius: 12px;
+
+    background: #f8fafc;
+}
+
+
+.dd-breakdown-item span {
+    display: block;
+
+    color: var(--dd-muted);
+
+    font-size: 11px;
+    font-weight: 800;
+
+    text-transform: uppercase;
+}
+
+
+.dd-breakdown-item strong {
+    display: block;
+
+    margin-top: 7px;
+
+    color: var(--dd-text);
+
+    font-size: 24px;
+    font-weight: 900;
+}
+
+
+/* =====================================================
+   EMPTY STATE
+===================================================== */
+
+.dd-empty {
+    padding: 32px 20px;
+
+    color: var(--dd-muted);
+
+    font-size: 13px;
+
+    text-align: center;
+}
+
+
+/* =====================================================
+   CLOSED ACCOUNT HERO
+===================================================== */
+
+.dd-closed-summary {
+    display: grid;
+
+    grid-template-columns:
+        minmax(0, 1.6fr)
+        minmax(200px, .8fr);
+
+    gap: 20px;
+
+    padding: 22px;
+
+    border: 1px solid #fecaca;
+    border-radius: 16px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #fff7f7 0%,
+            #ffffff 70%
+        );
+
+    box-shadow: var(--dd-shadow);
+}
+
+
+.dd-closed-copy {
+    display: flex;
+    align-items: flex-start;
+
+    gap: 15px;
+}
+
+
+.dd-closed-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 46px;
+    height: 46px;
+
+    flex: 0 0 auto;
+
+    border-radius: 13px;
+
+    background: #fee2e2;
+
+    color: #991b1b;
+
+    font-size: 20px;
+    font-weight: 900;
+}
+
+
+.dd-closed-copy h2 {
+    margin: 0;
+
+    color: #7f1d1d;
+
+    font-size: 18px;
+}
+
+
+.dd-closed-copy p {
+    margin: 7px 0 0;
+
+    color: #9f1239;
+
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+
+.dd-closed-meta {
+    display: grid;
+
+    gap: 9px;
+
+    align-content: start;
+}
+
+
+.dd-closed-meta div {
+    padding: 11px 12px;
+
+    border: 1px solid #fecdd3;
+    border-radius: 10px;
+
+    background: rgba(255,255,255,.75);
+}
+
+
+.dd-closed-meta span {
+    display: block;
+
+    color: #9f1239;
+
+    font-size: 10px;
+    font-weight: 800;
+
+    text-transform: uppercase;
+}
+
+
+.dd-closed-meta strong {
+    display: block;
+
+    margin-top: 4px;
+
+    color: #7f1d1d;
+
+    font-size: 13px;
+}
+
+
+/* =====================================================
+   RESPONSIVE
+===================================================== */
+
+@media (max-width: 1180px) {
+
+    .dd-account-grid {
+        grid-template-columns:
+            repeat(3, minmax(0, 1fr));
     }
 
-    .user-page-heading {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        gap: 20px;
-        flex-wrap: wrap;
+
+    .dd-metric-grid,
+    .dd-report-grid {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
     }
 
-    .eyebrow {
-        margin: 0 0 6px;
-        font-size: 12px;
-        font-weight: 800;
-        letter-spacing: .08em;
-        color: #64748b;
-    }
+}
 
-    .heading-subtitle {
-        margin: 6px 0 0;
-        color: #64748b;
-        font-size: 14px;
-    }
 
-    .back-button {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        padding: 10px 16px;
-        border-radius: 10px;
-        border: 1px solid #dbe3ee;
-        background: #fff;
-        color: #334155;
-        text-decoration: none;
-        font-weight: 700;
-        transition: .2s ease;
-    }
+@media (max-width: 760px) {
 
-    .back-button:hover {
-        background: #f8fafc;
-        border-color: #cbd5e1;
-    }
-
-    .admin-card {
-        background: #fff;
-        border: 1px solid #e2e8f0;
-        border-radius: 16px;
-        overflow: hidden;
-        box-shadow: 0 8px 24px rgba(15, 23, 42, .05);
-    }
-
-    .card-header {
-        padding: 20px 22px;
-        border-bottom: 1px solid #eef2f7;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 16px;
-        flex-wrap: wrap;
-    }
-
-    .card-header h2 {
-        margin: 0;
-        font-size: 18px;
-        color: #0f172a;
-    }
-
-    .card-header p {
-        margin: 4px 0 0;
-        font-size: 13px;
-        color: #64748b;
-    }
-
-    .card-body {
-        padding: 22px;
-    }
-
-    .profile-grid {
-        display: grid;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
-        gap: 14px;
-    }
-
-    .info-box {
-        padding: 15px 16px;
-        border: 1px solid #e8edf3;
-        border-radius: 12px;
-        background: #f8fafc;
-    }
-
-    .info-label {
-        display: block;
-        margin-bottom: 6px;
-        color: #64748b;
-        font-size: 12px;
-        font-weight: 700;
-    }
-
-    .info-value {
-        display: block;
-        color: #0f172a;
-        font-size: 14px;
-        font-weight: 700;
-        word-break: break-word;
-    }
-
-    .status-pill {
-        display: inline-flex;
-        align-items: center;
-        padding: 6px 10px;
-        border-radius: 999px;
-        font-size: 12px;
-        font-weight: 800;
-    }
-
-    .status-active {
-        background: #ecfdf5;
-        color: #047857;
-    }
-
-    .status-passive {
-        background: #fef2f2;
-        color: #b91c1c;
-    }
-
-    .moderation-grid {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 16px;
-    }
-
-    .metric-card {
-        padding: 18px;
-        border-radius: 14px;
-        border: 1px solid #e2e8f0;
-        background: #fff;
-    }
-
-    .metric-label {
-        color: #64748b;
-        font-size: 12px;
-        font-weight: 700;
-        margin-bottom: 8px;
-    }
-
-    .metric-value {
-        color: #0f172a;
-        font-size: 24px;
-        font-weight: 800;
-        line-height: 1.1;
-    }
-
-    .metric-subtext {
-        margin-top: 6px;
-        color: #64748b;
-        font-size: 12px;
-    }
-
-    .risk-normal {
-        border-left: 4px solid #10b981;
-    }
-
-    .risk-warning {
-        border-left: 4px solid #f59e0b;
-    }
-
-    .risk-repeated {
-        border-left: 4px solid #f97316;
-    }
-
-    .risk-high {
-        border-left: 4px solid #ef4444;
-    }
-
-    .risk-suspend {
-        border-left: 4px solid #7f1d1d;
-    }
-
-    .notice-box {
-        margin-top: 18px;
-        padding: 14px 16px;
-        border-radius: 12px;
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        color: #475569;
-        font-size: 14px;
-        line-height: 1.6;
-    }
-
-    .notice-warning {
-        background: #fffbeb;
-        border-color: #fde68a;
-        color: #92400e;
-    }
-
-    .notice-danger {
-        background: #fef2f2;
-        border-color: #fecaca;
-        color: #991b1b;
-    }
-
-    .report-grid {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 14px;
-    }
-
-    .report-stat {
+    .dd-card-body,
+    .dd-card-head {
         padding: 16px;
-        border-radius: 12px;
-        background: #f8fafc;
-        border: 1px solid #e8edf3;
     }
 
-    .report-number {
-        display: block;
-        font-size: 22px;
-        font-weight: 800;
-        color: #0f172a;
+
+    .dd-account-grid,
+    .dd-metric-grid,
+    .dd-report-grid,
+    .dd-breakdown,
+    .dd-closed-summary {
+        grid-template-columns: 1fr;
     }
 
-    .report-label {
-        display: block;
-        margin-top: 4px;
-        font-size: 12px;
-        color: #64748b;
-        font-weight: 700;
-    }
 
-    .table-wrapper {
-        overflow-x: auto;
-    }
-
-    .violation-table {
+    .dd-heading-actions {
         width: 100%;
-        border-collapse: collapse;
-        min-width: 700px;
     }
 
-    .violation-table th {
-        padding: 12px 14px;
-        text-align: left;
-        font-size: 12px;
-        font-weight: 800;
-        color: #64748b;
-        background: #f8fafc;
-        border-bottom: 1px solid #e2e8f0;
+
+    .dd-heading-actions .dd-button {
+        flex: 1;
     }
 
-    .violation-table td {
-        padding: 14px;
-        font-size: 14px;
-        color: #334155;
-        border-bottom: 1px solid #eef2f7;
-        vertical-align: middle;
+
+    .dd-user-identity {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 4px;
     }
 
-    .violation-table tbody tr:last-child td {
-        border-bottom: 0;
+
+    .dd-dot {
+        display: none;
     }
 
-    .violation-table tbody tr:hover {
-        background: #fafcff;
-    }
+}
 
-    .source-badge {
-        display: inline-flex;
-        padding: 5px 9px;
-        border-radius: 999px;
-        background: #eff6ff;
-        color: #1d4ed8;
-        font-size: 12px;
-        font-weight: 800;
-    }
-
-    .reason-badge {
-        display: inline-flex;
-        padding: 5px 9px;
-        border-radius: 999px;
-        background: #fff7ed;
-        color: #c2410c;
-        font-size: 12px;
-        font-weight: 800;
-    }
-
-    .empty-state {
-        padding: 32px 20px;
-        text-align: center;
-        color: #64748b;
-        font-size: 14px;
-    }
-
-    @media (max-width: 1100px) {
-        .profile-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-
-        .moderation-grid,
-        .report-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-    }
-
-    @media (max-width: 650px) {
-        .profile-grid,
-        .moderation-grid,
-        .report-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .card-body,
-        .card-header {
-            padding: 16px;
-        }
-    }
 </style>
 
 
-<div class="user-admin-page">
 
-    <!-- HESAP BİLGİLERİ -->
-    <section class="admin-card">
+<div class="dd-user-page">
 
-        <div class="card-header">
-            <div>
-                <h2>Hesap Bilgileri</h2>
-                <p>Kullanıcının temel hesap bilgileri</p>
+
+    {% if account.is_permanently_closed %}
+
+        <section class="dd-closed-summary">
+
+            <div class="dd-closed-copy">
+
+                <div class="dd-closed-icon">
+                    !
+                </div>
+
+                <div>
+
+                    <h2>
+                        Bu kullanıcı hesabı kalıcı olarak kapatılmıştır
+                    </h2>
+
+                    <p>
+                        Platform erişimi sonlandırılmıştır.
+                        Hesap aktif kullanıma kapalıdır ve kullanıcının
+                        mevcut oturumları geçersiz hale getirilmiştir.
+                    </p>
+
+                </div>
+
             </div>
 
-            {% if account.is_active %}
-                <span class="status-pill status-active">
-                    Aktif hesap
+
+            <div class="dd-closed-meta">
+
+                <div>
+
+                    <span>
+                        Kapatılma
+                    </span>
+
+                    <strong>
+                        {% if account.permanently_closed_at %}
+                            {{ account.permanently_closed_at|date:'d.m.Y H:i' }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        Yönetici
+                    </span>
+
+                    <strong>
+                        {% if account.permanently_closed_by %}
+                            {{ account.permanently_closed_by.username }}
+                        {% else %}
+                            Sistem
+                        {% endif %}
+                    </strong>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    {% endif %}
+
+
+
+    <!-- ==================================================
+         HESAP BİLGİLERİ
+    =================================================== -->
+
+    <section class="dd-card">
+
+        <div class="dd-card-head">
+
+            <div class="dd-card-heading">
+
+                <h2>
+                    Hesap Bilgileri
+                </h2>
+
+                <p>
+                    Kullanıcının kimlik ve erişim durumu
+                </p>
+
+            </div>
+
+
+            {% if account.is_permanently_closed %}
+
+                <span class="dd-status dd-status--danger">
+                    Kalıcı olarak kapalı
                 </span>
+
+            {% elif account.is_active %}
+
+                <span class="dd-status dd-status--success">
+                    Aktif
+                </span>
+
             {% else %}
-                <span class="status-pill status-passive">
-                    Pasif hesap
+
+                <span class="dd-status dd-status--danger">
+                    Pasif
                 </span>
+
             {% endif %}
+
         </div>
 
 
-        <div class="card-body">
+        <div class="dd-card-body">
 
-            <div class="profile-grid">
+            <div class="dd-account-grid">
 
-                <div class="info-box">
-                    <span class="info-label">
+                <div class="dd-info">
+
+                    <span class="dd-info-label">
                         Kullanıcı adı
                     </span>
 
-                    <span class="info-value">
+                    <span class="dd-info-value">
                         {{ account.username }}
                     </span>
+
                 </div>
 
 
-                <div class="info-box">
-                    <span class="info-label">
+                <div class="dd-info">
+
+                    <span class="dd-info-label">
                         E-posta
                     </span>
 
-                    <span class="info-value">
+                    <span
+                        class="dd-info-value"
+                        title="{{ account.email }}"
+                    >
                         {{ account.email }}
                     </span>
+
                 </div>
 
 
-                <div class="info-box">
-                    <span class="info-label">
-                        Kayıt tarihi
-                    </span>
+                <div class="dd-info">
 
-                    <span class="info-value">
-                        {{ account.date_joined|date:'d.m.Y H:i' }}
-                    </span>
-                </div>
-
-
-                <div class="info-box">
-                    <span class="info-label">
+                    <span class="dd-info-label">
                         Rol
                     </span>
 
-                    <span class="info-value">
+                    <span class="dd-info-value">
                         {{ account.get_user_type_display }}
                     </span>
+
                 </div>
 
 
-                <div class="info-box">
-                    <span class="info-label">
+                <div class="dd-info">
+
+                    <span class="dd-info-label">
+                        Kayıt tarihi
+                    </span>
+
+                    <span class="dd-info-value">
+                        {{ account.date_joined|date:'d.m.Y H:i' }}
+                    </span>
+
+                </div>
+
+
+                <div class="dd-info">
+
+                    <span class="dd-info-label">
                         Hesap durumu
                     </span>
 
-                    <span class="info-value">
-                        {% if account.is_active %}
+                    <span class="dd-info-value">
+
+                        {% if account.is_permanently_closed %}
+                            Kalıcı kapalı
+                        {% elif account.is_active %}
                             Aktif
                         {% else %}
                             Pasif
                         {% endif %}
+
                     </span>
+
                 </div>
 
             </div>
@@ -442,108 +1205,225 @@
     </section>
 
 
+
     {% if account.user_type == 'USER' %}
 
-    <!-- MODERASYON DURUMU -->
-    <section class="admin-card">
 
-        <div class="card-header">
-            <div>
-                <h2>Moderasyon Durumu</h2>
+    <!-- ==================================================
+         MODERASYON DURUMU
+    =================================================== -->
+
+    <section
+        class="
+            dd-card
+            {% if account.is_permanently_closed %}
+                dd-card--danger
+            {% endif %}
+        "
+    >
+
+        <div class="dd-card-head">
+
+            <div class="dd-card-heading">
+
+                <h2>
+                    Moderasyon Durumu
+                </h2>
+
                 <p>
-                    Doğrulanmış ihlaller ve mevcut risk seviyesi
+                    Doğrulanmış ihlaller ve hesap risk görünümü
                 </p>
+
             </div>
+
+
+            {% if account.is_permanently_closed %}
+
+                <span class="dd-status dd-status--danger">
+                    Karar uygulandı
+                </span>
+
+            {% elif permanent_close_ready %}
+
+                <span class="dd-status dd-status--warning">
+                    Yönetici kararı bekliyor
+                </span>
+
+            {% endif %}
+
         </div>
 
 
-        <div class="card-body">
+        <div class="dd-card-body">
 
-            <div class="moderation-grid">
+            <div class="dd-metric-grid">
 
-                <div class="metric-card">
-                    <div class="metric-label">
+
+                <div class="dd-metric">
+
+                    <div class="dd-metric-label">
                         Doğrulanmış ihlal
                     </div>
 
-                    <div class="metric-value">
+                    <div class="dd-metric-value">
                         {{ violation_count }}
                     </div>
 
-                    <div class="metric-subtext">
-                        Admin tarafından doğrulanan
+                    <div class="dd-metric-caption">
+                        Moderasyon tarafından doğrulanan toplam kayıt
                     </div>
+
                 </div>
+
 
 
                 <div
-                    class="metric-card
-                    {% if risk_code == 'NORMAL' %}
-                        risk-normal
-                    {% elif risk_code == 'WARNING' %}
-                        risk-warning
-                    {% elif risk_code == 'REPEATED' %}
-                        risk-repeated
-                    {% elif risk_code == 'HIGH' %}
-                        risk-high
-                    {% elif risk_code == 'SUSPEND_ELIGIBLE' %}
-                        risk-suspend
-                    {% endif %}
+                    class="
+                        dd-metric
+
+                        {% if account.is_permanently_closed %}
+                            dd-metric--critical
+
+                        {% elif risk_code == 'NORMAL' %}
+                            dd-metric--normal
+
+                        {% elif risk_code == 'WARNING' %}
+                            dd-metric--warning
+
+                        {% elif risk_code == 'REPEATED' %}
+                            dd-metric--warning
+
+                        {% elif risk_code == 'HIGH' %}
+                            dd-metric--high
+
+                        {% elif risk_code == 'PERMANENT_CLOSE_ELIGIBLE' %}
+                            dd-metric--critical
+                        {% endif %}
                     "
                 >
 
-                    <div class="metric-label">
+                    <div class="dd-metric-label">
                         Risk seviyesi
                     </div>
 
-                    <div class="metric-value" style="font-size:18px;">
-                        {{ risk_level }}
+                    <div class="dd-metric-value dd-metric-value--text">
+
+                        {% if account.is_permanently_closed %}
+                            Kalıcı olarak kapatıldı
+                        {% else %}
+                            {{ risk_level }}
+                        {% endif %}
+
                     </div>
 
-                    <div class="metric-subtext">
-                        İhlal geçmişine göre
+                    <div class="dd-metric-caption">
+
+                        {% if account.is_permanently_closed %}
+                            Moderasyon kararı uygulanmış durumda
+                        {% else %}
+                            Doğrulanmış ihlal geçmişine göre
+                        {% endif %}
+
                     </div>
 
                 </div>
 
 
-                <div class="metric-card">
 
-                    <div class="metric-label">
-                        Askıya almaya uygun
-                    </div>
+                <div
+                    class="
+                        dd-metric
 
-                    <div class="metric-value" style="font-size:18px;">
-                        {% if suspension_eligible %}
-                            Evet
-                        {% else %}
-                            Hayır
+                        {% if account.is_permanently_closed or permanent_close_ready %}
+                            dd-metric--critical
                         {% endif %}
+                    "
+                >
+
+                    <div class="dd-metric-label">
+
+                        {% if account.is_permanently_closed %}
+                            Kalıcı kapatma
+                        {% else %}
+                            Kalıcı kapatma kriteri
+                        {% endif %}
+
                     </div>
 
-                    <div class="metric-subtext">
-                        5 doğrulanmış ihlal eşiği
+
+                    <div class="dd-metric-value dd-metric-value--text">
+
+                        {% if account.is_permanently_closed %}
+                            Uygulandı
+
+                        {% elif permanent_close_ready %}
+                            Uygun
+
+                        {% else %}
+                            Eşik altında
+                        {% endif %}
+
+                    </div>
+
+
+                    <div class="dd-metric-caption">
+
+                        {% if account.is_permanently_closed %}
+                            Hesap erişimi sonlandırıldı
+                        {% else %}
+                            Kategori 4+ veya toplam 9+
+                        {% endif %}
+
                     </div>
 
                 </div>
 
 
-                <div class="metric-card">
 
-                    <div class="metric-label">
-                        Son ihlal
-                    </div>
+                <div class="dd-metric">
 
-                    <div class="metric-value" style="font-size:16px;">
-                        {% if last_violation %}
-                            {{ last_violation.created_at|date:'d.m.Y H:i' }}
+                    <div class="dd-metric-label">
+
+                        {% if account.is_permanently_closed %}
+                            Kapatılma tarihi
                         {% else %}
-                            —
+                            Son ihlal
                         {% endif %}
+
                     </div>
 
-                    <div class="metric-subtext">
-                        En son doğrulanan olay
+
+                    <div class="dd-metric-value dd-metric-value--text">
+
+                        {% if account.is_permanently_closed %}
+
+                            {% if account.permanently_closed_at %}
+                                {{ account.permanently_closed_at|date:'d.m.Y H:i' }}
+                            {% else %}
+                                —
+                            {% endif %}
+
+                        {% else %}
+
+                            {% if last_violation %}
+                                {{ last_violation.created_at|date:'d.m.Y H:i' }}
+                            {% else %}
+                                —
+                            {% endif %}
+
+                        {% endif %}
+
+                    </div>
+
+
+                    <div class="dd-metric-caption">
+
+                        {% if account.is_permanently_closed %}
+                            Nihai yönetici kararı
+                        {% else %}
+                            En son doğrulanan moderasyon kaydı
+                        {% endif %}
+
                     </div>
 
                 </div>
@@ -551,32 +1431,94 @@
             </div>
 
 
-            {% if violation_count == 1 %}
 
-                <div class="notice-box notice-warning">
-                    Bu kullanıcı için bir doğrulanmış topluluk kuralı
-                    ihlali bulunmaktadır.
+            {% if account.is_permanently_closed %}
+
+                <div class="dd-notice dd-notice--danger">
+
+                    <div class="dd-notice-icon">
+                        !
+                    </div>
+
+                    <div class="dd-notice-content">
+
+                        <strong>
+                            Kalıcı kapatma kararı uygulanmıştır.
+                        </strong>
+
+                        Kullanıcının platform erişimi sonlandırılmıştır.
+                        Bu hesap artık moderasyon kararı bekleyen bir hesap değildir.
+
+                    </div>
+
                 </div>
+
+
+            {% elif permanent_close_ready %}
+
+                <div class="dd-notice dd-notice--danger">
+
+                    <div class="dd-notice-icon">
+                        !
+                    </div>
+
+                    <div class="dd-notice-content">
+
+                        <strong>
+                            Kalıcı kapatma kriteri karşılandı.
+                        </strong>
+
+                        Hesap otomatik kapatılmaz.
+                        Nihai işlem yönetici değerlendirmesi ve manuel onay gerektirir.
+
+                    </div>
+
+                </div>
+
+
+            {% elif violation_count == 1 %}
+
+                <div class="dd-notice dd-notice--warning">
+
+                    <div class="dd-notice-icon">
+                        !
+                    </div>
+
+                    <div class="dd-notice-content">
+                        Bu kullanıcı için doğrulanmış bir ihlal kaydı bulunmaktadır.
+                    </div>
+
+                </div>
+
 
             {% elif violation_count == 2 %}
 
-                <div class="notice-box notice-warning">
-                    Kullanıcıda tekrarlanan topluluk kuralı
-                    ihlalleri bulunmaktadır.
+                <div class="dd-notice dd-notice--warning">
+
+                    <div class="dd-notice-icon">
+                        !
+                    </div>
+
+                    <div class="dd-notice-content">
+                        Kullanıcıda tekrarlanan topluluk kuralı ihlalleri bulunmaktadır.
+                    </div>
+
                 </div>
 
-            {% elif violation_count >= 3 and violation_count < 5 %}
 
-                <div class="notice-box notice-danger">
-                    Kullanıcı yüksek risk seviyesindedir.
-                    Yeni ihlaller dikkatle değerlendirilmelidir.
-                </div>
+            {% elif violation_count >= 3 %}
 
-            {% elif violation_count >= 5 %}
+                <div class="dd-notice dd-notice--danger">
 
-                <div class="notice-box notice-danger">
-                    Kullanıcı askıya alma değerlendirmesi için
-                    gerekli doğrulanmış ihlal eşiğine ulaşmıştır.
+                    <div class="dd-notice-icon">
+                        !
+                    </div>
+
+                    <div class="dd-notice-content">
+                        Kullanıcı yüksek risk seviyesindedir.
+                        Yeni moderasyon olayları dikkatle değerlendirilmelidir.
+                    </div>
+
                 </div>
 
             {% endif %}
@@ -586,64 +1528,84 @@
     </section>
 
 
-    <!-- KULLANICI RAPORLARI -->
-    <section class="admin-card">
 
-        <div class="card-header">
-            <div>
-                <h2>Kullanıcı Raporları</h2>
+    <!-- ==================================================
+         KULLANICI RAPORLARI
+    =================================================== -->
+
+    <section class="dd-card">
+
+        <div class="dd-card-head">
+
+            <div class="dd-card-heading">
+
+                <h2>
+                    Kullanıcı Hakkındaki Raporlar
+                </h2>
+
                 <p>
-                    Bu hesap hakkında gönderilen kullanıcı raporları
+                    Bu hesabı hedef alan kullanıcı raporlarının durum özeti
                 </p>
+
             </div>
+
         </div>
 
 
-        <div class="card-body">
+        <div class="dd-card-body">
 
-            <div class="report-grid">
+            <div class="dd-report-grid">
 
-                <div class="report-stat">
-                    <span class="report-number">
+
+                <div class="dd-report-stat">
+
+                    <span class="dd-report-number">
                         {{ total_user_reports }}
                     </span>
 
-                    <span class="report-label">
+                    <span class="dd-report-label">
                         Toplam rapor
                     </span>
+
                 </div>
 
 
-                <div class="report-stat">
-                    <span class="report-number">
+                <div class="dd-report-stat">
+
+                    <span class="dd-report-number">
                         {{ pending_user_reports }}
                     </span>
 
-                    <span class="report-label">
+                    <span class="dd-report-label">
                         Bekleyen / incelenen
                     </span>
+
                 </div>
 
 
-                <div class="report-stat">
-                    <span class="report-number">
+                <div class="dd-report-stat">
+
+                    <span class="dd-report-number">
                         {{ confirmed_user_reports }}
                     </span>
 
-                    <span class="report-label">
+                    <span class="dd-report-label">
                         Doğrulanan
                     </span>
+
                 </div>
 
 
-                <div class="report-stat">
-                    <span class="report-number">
+                <div class="dd-report-stat">
+
+                    <span class="dd-report-number">
                         {{ rejected_user_reports }}
                     </span>
 
-                    <span class="report-label">
+                    <span class="dd-report-label">
                         İhlal bulunmayan
                     </span>
+
                 </div>
 
             </div>
@@ -651,9 +1613,8 @@
 
             {% if total_user_reports == 0 %}
 
-                <div class="empty-state">
-                    Bu kullanıcı hesabına yönelik henüz bir kullanıcı
-                    raporu bulunmuyor.
+                <div class="dd-empty">
+                    Bu kullanıcı hesabına yönelik bir kullanıcı raporu bulunmuyor.
                 </div>
 
             {% endif %}
@@ -664,187 +1625,339 @@
 
 
 
-    <!-- ANTI-ABUSE / GÜVENLİK GEÇMİŞİ -->
-    <section class="admin-card">
-        <div class="card-header">
-            <div>
-                <h2>Güvenlik İhlalleri Geçmişi</h2>
-                <p>Kullanıcının otomatik güvenlik kurallarına takılan son işlemleri</p>
+    <!-- ==================================================
+         ANTI ABUSE
+    =================================================== -->
+
+    <section class="dd-card">
+
+        <div class="dd-card-head">
+
+            <div class="dd-card-heading">
+
+                <h2>
+                    Güvenlik ve Anti-Abuse
+                </h2>
+
+                <p>
+                    Otomatik güvenlik kurallarının engellediği son işlemler
+                </p>
+
             </div>
-            <a class="back-button" href="{% url 'adminx:security_event_list' %}?q={{ account.username|urlencode }}">
-                Tüm olayları görüntüle ↗
+
+
+            <a
+                class="dd-button dd-button--secondary"
+                href="{% url 'adminx:security_event_list' %}?q={{ account.username|urlencode }}"
+            >
+                Tüm olayları görüntüle →
             </a>
+
         </div>
 
-        <div class="card-body">
-            <div class="report-grid">
-                <div class="report-stat">
-                    <span class="report-number">{{ abuse_attempts_24h }}</span>
-                    <span class="report-label">Son 24 saat</span>
-                </div>
-                <div class="report-stat">
-                    <span class="report-number">{{ abuse_attempts_7d }}</span>
-                    <span class="report-label">Son 7 gün</span>
-                </div>
-                <div class="report-stat">
-                    <span class="report-number">{{ recent_abuse_attempts|length }}</span>
-                    <span class="report-label">Gösterilen son kayıt</span>
-                </div>
-                <div class="report-stat">
-                    <span class="report-number">
-                        {% if abuse_attempts_24h >= 3 %}Dikkat{% else %}Normal{% endif %}
+
+        <div class="dd-card-body">
+
+            <div class="dd-report-grid">
+
+
+                <div class="dd-report-stat">
+
+                    <span class="dd-report-number">
+                        {{ abuse_attempts_24h }}
                     </span>
-                    <span class="report-label">Otomatik sinyal</span>
+
+                    <span class="dd-report-label">
+                        Son 24 saat
+                    </span>
+
                 </div>
+
+
+                <div class="dd-report-stat">
+
+                    <span class="dd-report-number">
+                        {{ abuse_attempts_7d }}
+                    </span>
+
+                    <span class="dd-report-label">
+                        Son 7 gün
+                    </span>
+
+                </div>
+
+
+                <div class="dd-report-stat">
+
+                    <span class="dd-report-number">
+                        {{ recent_abuse_attempts|length }}
+                    </span>
+
+                    <span class="dd-report-label">
+                        Gösterilen olay
+                    </span>
+
+                </div>
+
+
+                <div class="dd-report-stat">
+
+                    <span class="dd-report-number">
+
+                        {% if abuse_attempts_24h >= 3 %}
+                            Dikkat
+                        {% else %}
+                            Normal
+                        {% endif %}
+
+                    </span>
+
+                    <span class="dd-report-label">
+                        Otomatik sinyal
+                    </span>
+
+                </div>
+
             </div>
+
         </div>
+
 
         {% if recent_abuse_attempts %}
-        <div class="table-wrapper">
-            <table class="violation-table">
-                <thead>
-                    <tr>
-                        <th>Tarih</th>
-                        <th>Olay</th>
-                        <th>IP</th>
-                        <th>Detay</th>
-                        <th>Aksiyon</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for event in recent_abuse_attempts %}
-                    <tr>
-                        <td>{{ event.created_at|date:'d.m.Y H:i' }}</td>
-                        <td><span class="source-badge">{{ event.get_event_type_display }}</span></td>
-                        <td>{{ event.ip_address|default:'—' }}</td>
-                        <td>{{ event.detail|truncatechars:110 }}</td>
-                        <td>
-                            <a class="back-button" style="padding:7px 10px;font-size:12px"
-                               href="{% url 'adminx:security_event_detail' event.pk %}">
-                                İncele ↗
-                            </a>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+
+            <div class="dd-table-wrap">
+
+                <table class="dd-table">
+
+                    <thead>
+
+                        <tr>
+                            <th>Tarih</th>
+                            <th>Olay</th>
+                            <th>IP</th>
+                            <th>Detay</th>
+                            <th>İşlem</th>
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        {% for event in recent_abuse_attempts %}
+
+                            <tr>
+
+                                <td>
+                                    {{ event.created_at|date:'d.m.Y H:i' }}
+                                </td>
+
+                                <td>
+
+                                    <span class="dd-tag dd-tag--blue">
+                                        {{ event.get_event_type_display }}
+                                    </span>
+
+                                </td>
+
+                                <td>
+                                    {{ event.ip_address|default:'—' }}
+                                </td>
+
+                                <td>
+                                    {{ event.detail|truncatechars:105 }}
+                                </td>
+
+                                <td>
+
+                                    <a
+                                        class="dd-button dd-button--secondary"
+                                        href="{% url 'adminx:security_event_detail' event.pk %}"
+                                    >
+                                        İncele
+                                    </a>
+
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
         {% else %}
-        <div class="empty-state">
-            Bu kullanıcı için kayıtlı güvenlik ihlalı olayı bulunmuyor.
-        </div>
+
+            <div class="dd-empty">
+                Bu kullanıcı için kayıtlı anti-abuse olayı bulunmuyor.
+            </div>
+
         {% endif %}
+
     </section>
 
 
-    <!-- İHLAL GEÇMİŞİ -->
-    <section class="admin-card">
 
-        <div class="card-header">
-            <div>
-                <h2>İhlal Geçmişi</h2>
+    <!-- ==================================================
+         İHLAL GEÇMİŞİ
+    =================================================== -->
+
+    <section class="dd-card">
+
+        <div class="dd-card-head">
+
+            <div class="dd-card-heading">
+
+                <h2>
+                    İhlal Geçmişi
+                </h2>
+
                 <p>
-                    Kullanıcının son doğrulanmış moderasyon kayıtları
+                    Son doğrulanmış moderasyon kararları
                 </p>
+
             </div>
+
         </div>
 
 
         {% if recent_violations %}
 
-        <div class="table-wrapper">
+            <div class="dd-table-wrap">
 
-            <table class="violation-table">
+                <table class="dd-table">
 
-                <thead>
-                    <tr>
-                        <th>Tarih</th>
-                        <th>Kaynak</th>
-                        <th>Neden</th>
-                        <th>Yönetici</th>
-                    </tr>
-                </thead>
+                    <thead>
 
+                        <tr>
+                            <th>Tarih</th>
+                            <th>Kaynak</th>
+                            <th>Neden</th>
+                            <th>Karar veren</th>
+                        </tr>
 
-                <tbody>
-
-                    {% for violation in recent_violations %}
-
-                    <tr>
-
-                        <td>
-                            {{ violation.created_at|date:'d.m.Y H:i' }}
-                        </td>
+                    </thead>
 
 
-                        <td>
-                            <span class="source-badge">
-                                {{ violation.get_source_type_display }}
-                            </span>
-                        </td>
+                    <tbody>
+
+                        {% for violation in recent_violations %}
+
+                            <tr>
+
+                                <td>
+                                    {{ violation.created_at|date:'d.m.Y H:i' }}
+                                </td>
 
 
-                        <td>
+                                <td>
 
-                            <span class="reason-badge">
+                                    <span class="dd-tag dd-tag--blue">
+                                        {{ violation.get_source_type_display }}
+                                    </span>
 
-                                {% if violation.reason == 'SPAM' %}
-                                    Spam / reklam
-
-                                {% elif violation.reason == 'HARASSMENT' %}
-                                    Hakaret / taciz
-
-                                {% elif violation.reason == 'HATE' %}
-                                    Nefret söylemi
-
-                                {% elif violation.reason == 'PERSONAL_DATA' %}
-                                    Kişisel veri ihlali
-
-                                {% elif violation.reason == 'MISLEADING' %}
-                                    Yanıltıcı içerik
-
-                                {% elif violation.reason == 'ILLEGAL' %}
-                                    Yasa dışı içerik
-
-                                {% elif violation.reason == 'FAKE_ACCOUNT' %}
-                                    Sahte hesap
-
-                                {% elif violation.reason == 'THREAT' %}
-                                    Tehdit
-
-                                {% elif violation.reason == 'ABUSE' %}
-                                    Sistemi kötüye kullanma
-
-                                {% else %}
-                                    Diğer
-                                {% endif %}
-
-                            </span>
-
-                        </td>
+                                </td>
 
 
-                        <td>
-                            {% if violation.confirmed_by %}
-                                {{ violation.confirmed_by.username }}
-                            {% else %}
-                                Sistem
-                            {% endif %}
-                        </td>
+                                <td>
 
-                    </tr>
+                                    {% if violation.reason == 'FALSE_REPORT' %}
 
-                    {% endfor %}
+                                        <span class="dd-tag dd-tag--red">
+                                            Kötü niyetli / asılsız raporlama
+                                        </span>
 
-                </tbody>
+                                    {% elif violation.reason == 'SPAM' %}
 
-            </table>
+                                        <span class="dd-tag dd-tag--orange">
+                                            Spam / reklam
+                                        </span>
 
-        </div>
+                                    {% elif violation.reason == 'HARASSMENT' %}
+
+                                        <span class="dd-tag dd-tag--orange">
+                                            Hakaret / taciz
+                                        </span>
+
+                                    {% elif violation.reason == 'HATE' %}
+
+                                        <span class="dd-tag dd-tag--orange">
+                                            Nefret söylemi
+                                        </span>
+
+                                    {% elif violation.reason == 'PERSONAL_DATA' %}
+
+                                        <span class="dd-tag dd-tag--orange">
+                                            Kişisel veri ihlali
+                                        </span>
+
+                                    {% elif violation.reason == 'MISLEADING' %}
+
+                                        <span class="dd-tag dd-tag--orange">
+                                            Yanıltıcı içerik
+                                        </span>
+
+                                    {% elif violation.reason == 'ILLEGAL' %}
+
+                                        <span class="dd-tag dd-tag--red">
+                                            Yasa dışı içerik
+                                        </span>
+
+                                    {% elif violation.reason == 'FAKE_ACCOUNT' %}
+
+                                        <span class="dd-tag dd-tag--orange">
+                                            Sahte hesap
+                                        </span>
+
+                                    {% elif violation.reason == 'THREAT' %}
+
+                                        <span class="dd-tag dd-tag--red">
+                                            Tehdit
+                                        </span>
+
+                                    {% elif violation.reason == 'ABUSE' %}
+
+                                        <span class="dd-tag dd-tag--red">
+                                            Sistemi kötüye kullanma
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="dd-tag dd-tag--orange">
+                                            Diğer
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+
+                                <td>
+
+                                    {% if violation.confirmed_by %}
+                                        {{ violation.confirmed_by.username }}
+                                    {% else %}
+                                        Sistem
+                                    {% endif %}
+
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
 
         {% else %}
 
-            <div class="empty-state">
+            <div class="dd-empty">
                 Bu kullanıcı için doğrulanmış ihlal kaydı bulunmuyor.
             </div>
 
@@ -852,8 +1965,347 @@
 
     </section>
 
+
+
+    <!-- ==================================================
+         KALICI HESAP MODERASYONU
+    =================================================== -->
+
+    <section
+        class="
+            dd-card
+
+            {% if account.is_permanently_closed %}
+                dd-card--danger
+            {% endif %}
+        "
+    >
+
+        <div class="dd-card-head">
+
+            <div class="dd-card-heading">
+
+                <h2>
+                    Kalıcı Hesap Moderasyonu
+                </h2>
+
+                <p>
+                    Kötü niyetli raporlama kaynaklarının kategori dağılımı
+                </p>
+
+            </div>
+
+
+            {% if account.is_permanently_closed %}
+
+                <span class="dd-status dd-status--danger">
+                    Karar uygulandı
+                </span>
+
+            {% elif permanent_close_ready %}
+
+                <span class="dd-status dd-status--warning">
+                    Kapatmaya uygun
+                </span>
+
+            {% else %}
+
+                <span class="dd-status dd-status--success">
+                    Eşik altında
+                </span>
+
+            {% endif %}
+
+        </div>
+
+
+        <div class="dd-card-body">
+
+            <div class="dd-metric-grid">
+
+
+                <div
+                    class="
+                        dd-metric
+
+                        {% if false_report_violation_count >= 9 %}
+                            dd-metric--critical
+                        {% endif %}
+                    "
+                >
+
+                    <div class="dd-metric-label">
+                        Toplam ihlal
+                    </div>
+
+                    <div class="dd-metric-value">
+                        {{ false_report_violation_count }}
+                    </div>
+
+                    <div class="dd-metric-caption">
+                        Toplam kapatma eşiği: 9+
+                    </div>
+
+                </div>
+
+
+
+                <div
+                    class="
+                        dd-metric
+
+                        {% if false_report_user_count >= 4 %}
+                            dd-metric--critical
+                        {% endif %}
+                    "
+                >
+
+                    <div class="dd-metric-label">
+                        Kullanıcı raporları
+                    </div>
+
+                    <div class="dd-metric-value">
+                        {{ false_report_user_count }}
+                    </div>
+
+                    <div class="dd-metric-caption">
+                        Kategori kapatma eşiği: 4+
+                    </div>
+
+                </div>
+
+
+
+                <div
+                    class="
+                        dd-metric
+
+                        {% if false_report_content_count >= 4 %}
+                            dd-metric--critical
+                        {% endif %}
+                    "
+                >
+
+                    <div class="dd-metric-label">
+                        İçerik raporları
+                    </div>
+
+                    <div class="dd-metric-value">
+                        {{ false_report_content_count }}
+                    </div>
+
+                    <div class="dd-metric-caption">
+                        Şikayet / yorum · eşik: 4+
+                    </div>
+
+                </div>
+
+
+
+                <div
+                    class="
+                        dd-metric
+
+                        {% if false_report_company_count >= 4 %}
+                            dd-metric--critical
+                        {% endif %}
+                    "
+                >
+
+                    <div class="dd-metric-label">
+                        Şirket raporları
+                    </div>
+
+                    <div class="dd-metric-value">
+                        {{ false_report_company_count }}
+                    </div>
+
+                    <div class="dd-metric-caption">
+                        Kategori kapatma eşiği: 4+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+
+            <div class="dd-breakdown">
+
+                <div class="dd-breakdown-item">
+
+                    <span>
+                        Kullanıcı raporu
+                    </span>
+
+                    <strong>
+                        {{ false_report_user_count }}
+                    </strong>
+
+                </div>
+
+
+                <div class="dd-breakdown-item">
+
+                    <span>
+                        Şikayet / yorum
+                    </span>
+
+                    <strong>
+                        {{ false_report_content_count }}
+                    </strong>
+
+                </div>
+
+
+                <div class="dd-breakdown-item">
+
+                    <span>
+                        Şirket raporu
+                    </span>
+
+                    <strong>
+                        {{ false_report_company_count }}
+                    </strong>
+
+                </div>
+
+            </div>
+
+
+
+            {% if account.is_permanently_closed %}
+
+                <div class="dd-notice dd-notice--danger">
+
+                    <div class="dd-notice-icon">
+                        !
+                    </div>
+
+                    <div class="dd-notice-content">
+
+                        <strong>
+                            Kalıcı hesap kapatma kararı tamamlandı.
+                        </strong>
+
+                        <br>
+
+                        Kapatılma:
+                        {% if account.permanently_closed_at %}
+                            <strong>
+                                {{ account.permanently_closed_at|date:'d.m.Y H:i' }}
+                            </strong>
+                        {% else %}
+                            —
+                        {% endif %}
+
+                        {% if account.permanently_closed_by %}
+                            · Yönetici:
+                            <strong>
+                                {{ account.permanently_closed_by.username }}
+                            </strong>
+                        {% endif %}
+
+                        {% if account.permanent_closure_reason %}
+
+                            <br><br>
+
+                            <strong>
+                                Karar gerekçesi:
+                            </strong>
+
+                            {{ account.permanent_closure_reason }}
+
+                        {% endif %}
+
+                    </div>
+
+                </div>
+
+
+            {% elif permanent_close_ready %}
+
+                <div class="dd-notice dd-notice--warning">
+
+                    <div class="dd-notice-icon">
+                        !
+                    </div>
+
+                    <div class="dd-notice-content">
+
+                        <strong>
+                            Kalıcı kapatma kriteri karşılandı.
+                        </strong>
+
+                        <br>
+
+                        Kullanıcı raporu:
+                        <strong>{{ false_report_user_count }}</strong>
+                        ·
+
+                        Şikayet / yorum:
+                        <strong>{{ false_report_content_count }}</strong>
+                        ·
+
+                        Şirket:
+                        <strong>{{ false_report_company_count }}</strong>
+                        ·
+
+                        Toplam:
+                        <strong>{{ false_report_violation_count }}</strong>
+
+                        <br><br>
+
+                        Kural:
+                        herhangi bir kategoride
+                        <strong>4+</strong>
+                        veya toplam
+                        <strong>9+</strong>.
+
+                        Hesap yalnızca manuel yönetici kararıyla kapatılır.
+
+                    </div>
+
+                </div>
+
+
+            {% else %}
+
+                <div class="dd-notice">
+
+                    <div class="dd-notice-icon">
+                        i
+                    </div>
+
+                    <div class="dd-notice-content">
+
+                        Kullanıcı henüz kalıcı kapatma kriterlerine ulaşmadı.
+
+                        Herhangi bir kategoride
+                        <strong>4+</strong>
+
+                        veya toplam
+                        <strong>9+</strong>
+
+                        kötü niyetli raporlama ihlali gerekir.
+
+                    </div>
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    </section>
+
+
     {% endif %}
 
 </div>
+
+
+{% include 'adminx/_permanent_closure_action.html' %}
+
 
 {% endblock %}

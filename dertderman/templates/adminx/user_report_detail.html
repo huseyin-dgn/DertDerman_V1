@@ -1,0 +1,128 @@
+{% extends 'adminx/content_base.html' %}
+
+{% block title %}Kullanıcı Raporu #{{ report.pk }} | DertDerman Yönetim{% endblock %}
+
+{% block content_heading %}
+<div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap">
+    <div>
+        <p class="section-kicker">KULLANICI RAPORU #{{ report.pk }}</p>
+        <h1>@{{ report.reporter.username }} → @{{ report.reported_user.username }}</h1>
+        <p>{{ report.created_at|date:"d.m.Y H:i" }} tarihinde gönderildi.</p>
+    </div>
+    <a class="secondary-action" href="{% url 'adminx:user_report_list' %}">← Kullanıcı raporlarına dön</a>
+</div>
+{% endblock %}
+
+{% block management_content %}
+<style>
+    .ur-grid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(300px,.7fr);gap:20px}
+    .ur-card{background:#fff;border:1px solid #e2e8f0;border-radius:16px;box-shadow:0 8px 24px rgba(15,23,42,.05);overflow:hidden}
+    .ur-card+.ur-card{margin-top:20px}
+    .ur-head{padding:18px 20px;border-bottom:1px solid #eef2f7}
+    .ur-head h2{margin:0;font-size:17px;color:#0f172a}.ur-head p{margin:5px 0 0;color:#64748b;font-size:13px}
+    .ur-body{padding:20px}
+    .ur-info{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    .ur-box{padding:14px;border-radius:12px;background:#f8fafc;border:1px solid #e8edf3}
+    .ur-box small{display:block;color:#64748b;font-weight:800;margin-bottom:5px}.ur-box strong{color:#0f172a}
+    .ur-link{color:#1d5fa7;text-decoration:none;font-weight:900}
+    .ur-description{padding:16px;border:1px solid #e2e8f0;border-radius:12px;color:#334155;line-height:1.7}
+    .ur-actions{display:flex;flex-direction:column;gap:10px}
+    .ur-actions form{margin:0}
+    .ur-btn{width:100%;border:0;border-radius:10px;padding:11px 14px;font-weight:900;cursor:pointer}
+    .reviewing{background:#dbeafe;color:#1e40af}.resolved{background:#dcfce7;color:#166534}.rejected{background:#f1f5f9;color:#334155}.abusive{background:#fee2e2;color:#991b1b}
+    .ur-alert{padding:14px 16px;border-radius:12px;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;line-height:1.6}
+    .ur-danger{background:#fef2f2;border-color:#fecaca;color:#991b1b}
+    @media(max-width:900px){.ur-grid{grid-template-columns:1fr}.ur-info{grid-template-columns:1fr}}
+</style>
+
+<div class="ur-grid">
+    <div>
+        <section class="ur-card">
+            <div class="ur-head"><h2>Rapor Bilgileri</h2></div>
+            <div class="ur-body">
+                <div class="ur-info">
+                    <div class="ur-box">
+                        <small>Bildiren kullanıcı</small>
+                        <strong><a class="ur-link" href="{% url 'adminx:user_detail' report.reporter.pk %}">@{{ report.reporter.username }}</a></strong>
+                    </div>
+                    <div class="ur-box">
+                        <small>Raporlanan kullanıcı</small>
+                        <strong><a class="ur-link" href="{% url 'adminx:user_detail' report.reported_user.pk %}">@{{ report.reported_user.username }}</a></strong>
+                    </div>
+                    <div class="ur-box"><small>Neden</small><strong>{{ report.get_reason_display }}</strong></div>
+                    <div class="ur-box"><small>Durum</small><strong>{{ report.get_status_display }}</strong></div>
+                    <div class="ur-box"><small>Raporlanan kullanıcının toplam ihlali</small><strong>{{ reported_user_violation_count }}</strong></div>
+                    <div class="ur-box"><small>Bildirenin kötü niyetli kullanıcı raporu ihlali</small><strong>{{ reporter_false_report_count }}</strong></div>
+                </div>
+
+                <div style="margin-top:18px">
+                    <small style="display:block;color:#64748b;font-weight:800;margin-bottom:7px">Kullanıcı açıklaması</small>
+                    <div class="ur-description">{{ report.description|default:"Açıklama eklenmedi."|linebreaksbr }}</div>
+                </div>
+
+                {% if reporter_suspension_eligible %}
+                <div class="ur-alert ur-danger" style="margin-top:18px">
+                    <strong>Askıya alma eşiği aşıldı.</strong><br>
+                    @{{ report.reporter.username }} kullanıcısının 4 veya daha fazla kötü niyetli kullanıcı raporu ihlali bulunuyor.
+                    Hesap otomatik olarak askıya alınmadı; kullanıcı detayından yönetici onayı verebilirsiniz.
+                    <div style="margin-top:10px">
+                        <a class="ur-link" href="{% url 'adminx:user_detail' report.reporter.pk %}">Kullanıcı detayını aç →</a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </section>
+    </div>
+
+    <aside>
+        <section class="ur-card">
+            <div class="ur-head">
+                <h2>Moderasyon Kararı</h2>
+                <p>Terminal kararlar sonradan değiştirilemez.</p>
+            </div>
+            <div class="ur-body">
+                {% if report.status == 'RESOLVED' or report.status == 'REJECTED' or report.status == 'ABUSIVE' %}
+                    <div class="ur-alert">
+                        Bu rapor sonuçlandırılmış: <strong>{{ report.get_status_display }}</strong>
+                    </div>
+                {% else %}
+                    <div class="ur-actions">
+                        {% if report.status != 'REVIEWING' %}
+                        <form method="post" action="{% url 'adminx:user_report_status' report.pk %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="status" value="REVIEWING">
+                            <button class="ur-btn reviewing" type="submit">İncelemeye Al</button>
+                        </form>
+                        {% endif %}
+
+                        <form method="post" action="{% url 'adminx:user_report_status' report.pk %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="status" value="RESOLVED">
+                            <button class="ur-btn resolved" type="submit">İhlal Var</button>
+                        </form>
+
+                        <form method="post" action="{% url 'adminx:user_report_status' report.pk %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="status" value="REJECTED">
+                            <button class="ur-btn rejected" type="submit">İhlal Bulunmadı</button>
+                        </form>
+
+                        <form method="post" action="{% url 'adminx:user_report_status' report.pk %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="status" value="ABUSIVE">
+                            <button class="ur-btn abusive" type="submit">Kötü Niyetli / Asılsız Rapor</button>
+                        </form>
+                    </div>
+                {% endif %}
+
+                {% if report.reviewed_by or report.reviewed_at %}
+                <div style="margin-top:16px;color:#64748b;font-size:13px">
+                    {% if report.reviewed_by %}<div><strong>İnceleyen:</strong> @{{ report.reviewed_by.username }}</div>{% endif %}
+                    {% if report.reviewed_at %}<div><strong>Karar tarihi:</strong> {{ report.reviewed_at|date:"d.m.Y H:i" }}</div>{% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </section>
+    </aside>
+</div>
+{% endblock %}

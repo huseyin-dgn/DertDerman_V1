@@ -1,0 +1,173 @@
+{% extends 'adminx/content_base.html' %}
+
+{% block title %}
+Kalıcı Kapatılan Hesaplar | DertDerman Yönetim
+{% endblock %}
+
+{% block content_heading %}
+<div>
+    <p class="section-kicker">
+        HESAP MODERASYONU
+    </p>
+
+    <h1>
+        Kalıcı Kapatılan Hesaplar
+    </h1>
+
+    <p>
+        Kalıcı kapatma kararı uygulanmış kullanıcı
+        hesapları ve işlem kayıtları.
+    </p>
+</div>
+{% endblock %}
+
+{% block management_content %}
+
+<section class="account-card management-form">
+
+    <form
+        method="get"
+        style="
+            display:flex;
+            gap:10px;
+            flex-wrap:wrap;
+            margin-bottom:18px;
+        "
+    >
+        <input
+            type="search"
+            name="q"
+            value="{{ search }}"
+            maxlength="100"
+            placeholder="Kullanıcı, e-posta veya gerekçe ara"
+            style="
+                min-width:280px;
+                flex:1;
+                padding:11px 12px;
+                border:1px solid #cfd8e3;
+                border-radius:10px;
+            "
+        >
+
+        <button
+            class="primary-action"
+            type="submit"
+        >
+            Ara
+        </button>
+
+        {% if search %}
+            <a
+                class="secondary-action"
+                href="{% url 'adminx:closed_user_list' %}"
+            >
+                Temizle
+            </a>
+        {% endif %}
+    </form>
+
+    <div style="overflow-x:auto">
+
+        <table
+            style="
+                width:100%;
+                border-collapse:collapse;
+                min-width:850px;
+            "
+        >
+            <thead>
+                <tr>
+                    <th style="text-align:left;padding:12px">
+                        Kullanıcı
+                    </th>
+
+                    <th style="text-align:left;padding:12px">
+                        E-posta
+                    </th>
+
+                    <th style="text-align:left;padding:12px">
+                        Kapatılma
+                    </th>
+
+                    <th style="text-align:left;padding:12px">
+                        Yönetici
+                    </th>
+
+                    <th style="text-align:left;padding:12px">
+                        Gerekçe
+                    </th>
+
+                    <th style="text-align:right;padding:12px">
+                        İşlem
+                    </th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                {% for account in page_obj %}
+                    <tr style="border-top:1px solid #e8edf3">
+
+                        <td style="padding:14px">
+                            <strong>
+                                @{{ account.username }}
+                            </strong>
+                        </td>
+
+                        <td style="padding:14px">
+                            {{ account.email }}
+                        </td>
+
+                        <td style="padding:14px">
+                            {{ account.permanently_closed_at|date:'d.m.Y H:i' }}
+                        </td>
+
+                        <td style="padding:14px">
+                            {% if account.permanently_closed_by %}
+                                {{ account.permanently_closed_by.username }}
+                            {% else %}
+                                Sistem
+                            {% endif %}
+                        </td>
+
+                        <td style="padding:14px">
+                            {{ account.permanent_closure_reason|truncatechars:100 }}
+                        </td>
+
+                        <td style="padding:14px;text-align:right">
+                            <a
+                                class="secondary-action"
+                                href="{% url 'adminx:user_detail' account.pk %}"
+                            >
+                                İncele →
+                            </a>
+                        </td>
+
+                    </tr>
+
+                {% empty %}
+
+                    <tr>
+                        <td
+                            colspan="6"
+                            style="
+                                padding:34px;
+                                text-align:center;
+                                color:#64748b;
+                            "
+                        >
+                            Kalıcı olarak kapatılmış kullanıcı bulunmuyor.
+                        </td>
+                    </tr>
+
+                {% endfor %}
+
+            </tbody>
+        </table>
+    </div>
+
+    {% include 'components/pagination.html' with page_obj=page_obj label='Kalıcı kapatılan hesaplar' %}
+
+</section>
+
+{% endblock %}

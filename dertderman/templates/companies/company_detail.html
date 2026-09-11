@@ -2,7 +2,7 @@
 {% load static %}
 {% block title %}{{ company.name }} | DertDerman{% endblock %}
 {% block body_class %}public-site company-profile-v2{% endblock %}
-{% block extra_head %}<link rel="stylesheet" href="{% static 'css/company-public-profile.css' %}">{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/company-public-profile.css' %}"><link rel="stylesheet" href="{% static 'css/report-modal.css' %}"><script src="{% static 'js/report-modal.js' %}" defer></script>{% endblock %}
 {% block content %}
 <main id="main-content">
   <section class="company-profile-hero"><div class="section-inner">
@@ -22,6 +22,9 @@
           {% if company.phone %}<li><span>Telefon</span><a href="tel:{{ company.phone }}">{{ company.phone }}</a></li>{% endif %}
         </ul>{% endif %}
         {% if not request.user.is_authenticated or request.user.user_type == 'USER' %}<a class="company-profile-cta" href="{% url 'complaints:create' %}?company={{ company.pk }}">Bu şirket hakkında şikayet yaz {% include 'components/icon.html' with name='write' %}</a>{% endif %}
+        {% if request.user.is_authenticated and request.user.user_type == 'USER' %}
+        <button type="button" class="report-trigger" data-report-open="company-report-dialog">⚑ Şirketi Raporla</button>
+        {% endif %}
       </div>
     </div>
   </div></section>
@@ -53,5 +56,41 @@
       </aside>
     </div>
   </div></section>
+
+{% if request.user.is_authenticated and request.user.user_type == 'USER' %}
+<div class="report-modal" id="company-report-dialog" data-report-modal hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="company-report-title">
+  <div class="report-modal-card">
+    <header class="report-modal-head">
+      <div>
+        <p class="report-modal-kicker">ŞİRKET RAPORU</p>
+        <h2 id="company-report-title">{{ company.name }} şirketini raporla</h2>
+        <p>Şirket profili veya davranışıyla ilgili doğrulanabilir bir sorun varsa rapor gönderebilirsiniz.</p>
+      </div>
+      <button type="button" class="report-modal-close" data-report-close aria-label="Pencereyi kapat">×</button>
+    </header>
+
+    <form method="post" action="{% url 'companies_public:company_report' company.slug %}" class="report-modal-body">
+      {% csrf_token %}
+      <label class="report-modal-field">
+        <span>Raporlama nedeni</span>
+        {{ company_report_form.reason }}
+      </label>
+
+      <label class="report-modal-field">
+        <span>Açıklama</span>
+        {{ company_report_form.description }}
+      </label>
+
+      <p class="report-modal-note">Raporunuz yönetim ekibi tarafından incelenir. Asılsız veya kötü niyetli raporlar hesabınıza ihlal olarak yansıyabilir.</p>
+
+      <div class="report-modal-actions">
+        <button type="button" class="report-cancel" data-report-close>Vazgeç</button>
+        <button type="submit" class="report-submit">Şirket Raporunu Gönder</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
 </main>
 {% endblock %}

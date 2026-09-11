@@ -10,7 +10,8 @@ from django.views.decorators.http import require_POST, require_safe
 from accounts.models import User
 from blog.models import Post
 from companies.models import Company, CompanyNotification
-from complaints.models import Complaint, ContentReport, UserViolation
+from complaints.models import Complaint, ContentReport, CompanyReport, UserReport, UserViolation
+from complaints.reporting_policy import apply_false_report_penalties
 from core.models import ContactRequest
 from core.pagination import PREVIEW_SIZE, paginate
 from notifications.selectors import inbox
@@ -876,6 +877,10 @@ def report_status(request, pk):
         )
 
         if violation_created:
+            apply_false_report_penalties(
+                violation
+            )
+
             record_admin_audit(
                 actor=request.user,
                 action=AdminAuditLog.Action.UPDATE,
@@ -1044,3 +1049,462 @@ def report_status(request, pk):
         "adminx:report_detail",
         pk=report.pk,
     )
+
+
+
+
+@admin_required
+@require_safe
+def company_report_list(request):
+    reports = (
+        CompanyReport.objects
+        .select_related(
+            "reporter",
+            "company",
+            "reviewed_by",
+        )
+        .all()
+    )
+
+    active_status = request.GET.get("status", "PENDING")
+    if active_status in CompanyReport.Status.values:
+        reports = reports.filter(status=active_status)
+    elif active_status != "all":
+        active_status = "PENDING"
+        reports = reports.filter(status=CompanyReport.Status.PENDING)
+
+    search = request.GET.get("q", "").strip()[:100]
+    if search:
+        reports = reports.filter(
+            Q(reporter__username__icontains=search)
+            | Q(company__name__icontains=search)
+            | Q(description__icontains=search)
+        )
+
+    return render(
+        request,
+        "adminx/company_report_list.html",
+        {
+            "page_obj": paginate(
+                request,
+                reports.order_by("-created_at", "-pk"),
+                "admin",
+            ),
+            "active_status": active_status,
+            "search": search,
+            "status_options": CompanyReport.Status.choices,
+        },
+    )
+
+
+@admin_required
+@require_safe
+def company_report_detail(request, pk):
+    report = get_object_or_404(
+        CompanyReport.objects.select_related(
+            "reporter",
+            "company",
+            "reviewed_by",
+        ),
+        pk=pk,
+    )
+
+    reporter_false_count = UserViolation.objects.filter(
+        user=report.reporter,
+        source_type=UserViolation.SourceType.FALSE_REPORT,
+    ).count()
+
+    return render(
+        request,
+        "adminx/company_report_detail.html",
+        {
+            "report": report,
+            "reporter_false_count": reporter_false_count,
+        },
+    )
+
+
+@admin_required
+@require_POST
+@transaction.atomic
+def company_report_status(request, pk):
+    report = get_object_or_404(
+        CompanyReport.objects.select_for_update().select_related(
+            "reporter",
+            "company",
+        ),
+        pk=pk,
+    )
+
+    new_status = request.POST.get("status", "")
+    allowed = {
+        CompanyReport.Status.REVIEWING,
+        CompanyReport.Status.RESOLVED,
+        CompanyReport.Status.REJECTED,
+        CompanyReport.Status.ABUSIVE,
+    }
+
+    if new_status not in allowed:
+        messages.error(request, "Geçersiz şirket raporu durumu.")
+        return redirect("adminx:company_report_detail", pk=report.pk)
+
+    terminal = {
+        CompanyReport.Status.RESOLVED,
+        CompanyReport.Status.REJECTED,
+        CompanyReport.Status.ABUSIVE,
+    }
+
+    previous_status = report.status
+
+    if previous_status in terminal and new_status != previous_status:
+        messages.warning(
+            request,
+            "Bu şirket raporu daha önce sonuçlandırılmış. "
+            "Moderasyon kararı değiştirilemez.",
+        )
+        return redirect("adminx:company_report_detail", pk=report.pk)
+
+    if previous_status == new_status:
+        messages.info(request, "Şirket raporu zaten bu durumda.")
+        return redirect("adminx:company_report_detail", pk=report.pk)
+
+    report.status = new_status
+    report.reviewed_by = request.user
+    report.reviewed_at = timezone.now() if new_status in terminal else None
+    report.save(
+        update_fields=(
+            "status",
+            "reviewed_by",
+            "reviewed_at",
+            "updated_at",
+        )
+    )
+
+    violation = None
+    created = False
+
+    if new_status == CompanyReport.Status.ABUSIVE:
+        violation, created = UserViolation.objects.get_or_create(
+            company_report=report,
+            defaults={
+                "user": report.reporter,
+                "source_type": UserViolation.SourceType.FALSE_REPORT,
+                "reason": "FALSE_REPORT",
+                "description": (
+                    "Şirket raporu kötü niyetli veya asılsız raporlama "
+                    "olarak değerlendirildi."
+                ),
+                "confirmed_by": request.user,
+            },
+        )
+
+        if created:
+            apply_false_report_penalties(violation)
+
+    record_admin_audit(
+        actor=request.user,
+        action=AdminAuditLog.Action.UPDATE,
+        target_type="company_report",
+        target_id=report.pk,
+        target_label=(
+            f"@{report.reporter.username} → {report.company.name}"
+        ),
+        description="Şirket raporu durumu güncellendi.",
+        metadata={
+            "previous_status": previous_status,
+            "new_status": new_status,
+            "reason": report.reason,
+            "user_violation_id": violation.pk if violation else None,
+        },
+        request=request,
+    )
+
+    if new_status in terminal:
+        from notifications.services import notify_company_report_decision
+        notify_company_report_decision(report)
+
+    if new_status == CompanyReport.Status.REVIEWING:
+        msg = "Şirket raporu incelemeye alındı."
+    elif new_status == CompanyReport.Status.RESOLVED:
+        msg = "Şirket raporunda ihlal doğrulandı."
+    elif new_status == CompanyReport.Status.ABUSIVE:
+        msg = "Şirket raporu kötü niyetli / asılsız olarak işaretlendi."
+    else:
+        msg = "Şirket raporunda ihlal bulunmadı."
+
+    messages.success(request, msg)
+    return redirect("adminx:company_report_detail", pk=report.pk)
+
+
+@admin_required
+@require_safe
+def user_report_list(request):
+    reports = (
+        UserReport.objects
+        .select_related(
+            "reporter",
+            "reported_user",
+            "reviewed_by",
+        )
+        .all()
+    )
+
+    active_status = request.GET.get("status", "PENDING")
+
+    if active_status in UserReport.Status.values:
+        reports = reports.filter(status=active_status)
+    elif active_status != "all":
+        active_status = "PENDING"
+        reports = reports.filter(status=UserReport.Status.PENDING)
+
+    search = request.GET.get("q", "").strip()[:100]
+
+    if search:
+        reports = reports.filter(
+            Q(reporter__username__icontains=search)
+            | Q(reported_user__username__icontains=search)
+            | Q(description__icontains=search)
+        )
+
+    reports = reports.order_by("-created_at", "-pk")
+
+    return render(
+        request,
+        "adminx/user_report_list.html",
+        {
+            "page_obj": paginate(
+                request,
+                reports,
+                "admin",
+            ),
+            "active_status": active_status,
+            "search": search,
+            "status_options": UserReport.Status.choices,
+        },
+    )
+
+
+@admin_required
+@require_safe
+def user_report_detail(request, pk):
+    report = get_object_or_404(
+        UserReport.objects.select_related(
+            "reporter",
+            "reported_user",
+            "reviewed_by",
+        ),
+        pk=pk,
+    )
+
+    reporter_false_report_count = UserViolation.objects.filter(
+        user=report.reporter,
+        source_type=UserViolation.SourceType.FALSE_REPORT,
+        user_report__isnull=False,
+    ).count()
+
+    reported_user_violation_count = UserViolation.objects.filter(
+        user=report.reported_user,
+    ).count()
+
+    return render(
+        request,
+        "adminx/user_report_detail.html",
+        {
+            "report": report,
+            "reporter_false_report_count": reporter_false_report_count,
+            "reported_user_violation_count": reported_user_violation_count,
+            "reporter_suspension_eligible": reporter_false_report_count >= 4,
+        },
+    )
+
+
+@admin_required
+@require_POST
+@transaction.atomic
+def user_report_status(request, pk):
+    report = get_object_or_404(
+        UserReport.objects.select_for_update().select_related(
+            "reporter",
+            "reported_user",
+        ),
+        pk=pk,
+    )
+
+    new_status = request.POST.get("status", "")
+
+    allowed_statuses = {
+        UserReport.Status.REVIEWING,
+        UserReport.Status.RESOLVED,
+        UserReport.Status.REJECTED,
+        UserReport.Status.ABUSIVE,
+    }
+
+    if new_status not in allowed_statuses:
+        messages.error(request, "Geçersiz kullanıcı raporu durumu.")
+        return redirect("adminx:user_report_detail", pk=report.pk)
+
+    terminal_statuses = {
+        UserReport.Status.RESOLVED,
+        UserReport.Status.REJECTED,
+        UserReport.Status.ABUSIVE,
+    }
+
+    previous_status = report.status
+
+    if (
+        previous_status in terminal_statuses
+        and new_status != previous_status
+    ):
+        messages.warning(
+            request,
+            "Bu kullanıcı raporu daha önce sonuçlandırılmış. "
+            "Moderasyon kararı değiştirilemez.",
+        )
+        return redirect("adminx:user_report_detail", pk=report.pk)
+
+    if previous_status == new_status:
+        messages.info(request, "Kullanıcı raporu zaten bu durumda.")
+        return redirect("adminx:user_report_detail", pk=report.pk)
+
+    report.status = new_status
+    report.reviewed_by = request.user
+
+    update_fields = [
+        "status",
+        "reviewed_by",
+        "updated_at",
+    ]
+
+    if new_status in terminal_statuses:
+        report.reviewed_at = timezone.now()
+        update_fields.append("reviewed_at")
+    else:
+        report.reviewed_at = None
+        update_fields.append("reviewed_at")
+
+    report.save(update_fields=update_fields)
+
+    violation = None
+    violation_created = False
+
+    if new_status == UserReport.Status.RESOLVED:
+        violation, violation_created = UserViolation.objects.get_or_create(
+            user_report=report,
+            defaults={
+                "user": report.reported_user,
+                "source_type": UserViolation.SourceType.USER_REPORT,
+                "reason": report.reason,
+                "description": (
+                    f"{report.get_reason_display()} nedeniyle kullanıcı "
+                    "raporunda ihlal doğrulandı."
+                ),
+                "confirmed_by": request.user,
+            },
+        )
+
+    elif new_status == UserReport.Status.ABUSIVE:
+        violation, violation_created = UserViolation.objects.get_or_create(
+            user_report=report,
+            defaults={
+                "user": report.reporter,
+                "source_type": UserViolation.SourceType.FALSE_REPORT,
+                "reason": "FALSE_REPORT",
+                "description": (
+                    "Kullanıcı raporu kötü niyetli veya asılsız "
+                    "raporlama olarak değerlendirildi."
+                ),
+                "confirmed_by": request.user,
+            },
+        )
+
+    if violation_created and violation:
+        if (
+            violation.source_type
+            == UserViolation.SourceType.FALSE_REPORT
+        ):
+            apply_false_report_penalties(
+                violation
+            )
+
+        record_admin_audit(
+            actor=request.user,
+            action=AdminAuditLog.Action.UPDATE,
+            target_type="user_violation",
+            target_id=violation.pk,
+            target_label=(
+                f"@{violation.user.username} doğrulanmış ihlali"
+            ),
+            description=(
+                "Kullanıcı raporu kararı nedeniyle doğrulanmış "
+                "ihlal kaydı oluşturuldu."
+            ),
+            metadata={
+                "user_report_id": report.pk,
+                "user_id": violation.user_id,
+                "source_type": violation.source_type,
+                "reason": violation.reason,
+            },
+            request=request,
+        )
+
+    record_admin_audit(
+        actor=request.user,
+        action=AdminAuditLog.Action.UPDATE,
+        target_type="user_report",
+        target_id=report.pk,
+        target_label=(
+            f"@{report.reporter.username} → "
+            f"@{report.reported_user.username}"
+        ),
+        description="Kullanıcı raporu durumu güncellendi.",
+        metadata={
+            "previous_status": previous_status,
+            "new_status": new_status,
+            "reason": report.reason,
+            "user_violation_id": violation.pk if violation else None,
+        },
+        request=request,
+    )
+
+    if new_status in terminal_statuses:
+        from notifications.services import notify_user_report_decision
+
+        notify_user_report_decision(report)
+
+    if new_status == UserReport.Status.REVIEWING:
+        message = "Kullanıcı raporu incelemeye alındı."
+
+    elif new_status == UserReport.Status.RESOLVED:
+        message = (
+            "İhlal doğrulandı ve raporlanan kullanıcıya "
+            "doğrulanmış ihlal eklendi."
+        )
+
+    elif new_status == UserReport.Status.ABUSIVE:
+        false_report_count = UserViolation.objects.filter(
+            user=report.reporter,
+            source_type=UserViolation.SourceType.FALSE_REPORT,
+            user_report__isnull=False,
+        ).count()
+
+        message = (
+            "Rapor kötü niyetli / asılsız olarak işaretlendi ve "
+            "raporlayan kullanıcıya ihlal eklendi."
+        )
+
+        if false_report_count >= 4:
+            message += (
+                " Kullanıcı 4 veya daha fazla kötü niyetli kullanıcı "
+                "raporu ihlaline ulaştı; hesap askıya alma için uygundur."
+            )
+
+    else:
+        message = "Kullanıcı raporunda ihlal bulunmadı."
+
+    messages.success(request, message)
+
+    return redirect(
+        "adminx:user_report_detail",
+        pk=report.pk,
+    )
+

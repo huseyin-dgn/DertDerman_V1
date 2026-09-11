@@ -13,13 +13,12 @@ from .views import (
     complaint_comment_delete,
     complaint_report,
     comment_report,
+    user_report,
     public_complaint_detail,
     public_complaint_list,
 )
 
 
-
-app_name = "complaints"
 
 app_name = "complaints"
 
@@ -72,6 +71,13 @@ urlpatterns = [
         "sikayetler/<int:pk>/yorum/<int:comment_pk>/raporla/",
         comment_report,
         name="comment_report",
+    ),
+
+
+    path(
+        "kullanicilar/<int:user_pk>/raporla/",
+        user_report,
+        name="user_report",
     ),
 
     path(

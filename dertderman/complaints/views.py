@@ -19,6 +19,7 @@ from .forms import (
     ComplaintCreateForm,
     ComplaintEditForm,
     ContentReportForm,
+    UserReportForm,
 )
 from .models import (
     Complaint,
@@ -26,11 +27,32 @@ from .models import (
     ComplaintLike,
     ComplaintReaction,
     ContentReport,
+    UserReport,
 )
 from .selectors import public_complaints
 from .services import ComplaintStateConflict, resolve_complaint
 from .validators import validate_single_emoji
+from .reporting_policy import (
+    check_complaint_creation_allowed,
+    check_general_reporting_allowed,
+    check_user_report_allowed,
+)
 from django.core.exceptions import ValidationError
+
+
+
+def _suspended_response(request):
+    if (
+        request.user.is_authenticated
+        and getattr(request.user, "is_currently_suspended", False)
+    ):
+        messages.error(
+            request,
+            "Hesabınız askıya alındığı için bu işlemi gerçekleştiremezsiniz.",
+        )
+        return redirect("accounts:profile")
+
+    return None
 
 
 @require_safe
@@ -237,6 +259,9 @@ def _public_detail_context(
             else ComplaintCommentForm()
         ),
 
+        "content_report_form":
+            ContentReportForm(),
+
         "liked": liked,
         "active_reaction": active_reaction,
         "reaction_options": reaction_options,
@@ -263,6 +288,10 @@ def public_complaint_detail(request, pk):
 @role_required(User.UserType.USER)
 @require_POST
 def complaint_like_toggle(request, pk):
+    blocked = _suspended_response(request)
+    if blocked:
+        return blocked
+
     complaint = get_object_or_404(
         public_complaints(),
         pk=pk
@@ -305,6 +334,10 @@ def complaint_like_toggle(request, pk):
 @role_required(User.UserType.USER)
 @require_POST
 def complaint_react(request, pk):
+    blocked = _suspended_response(request)
+    if blocked:
+        return blocked
+
     complaint = get_object_or_404(
         public_complaints(),
         pk=pk
@@ -396,6 +429,10 @@ def complaint_comment_create(
     request,
     pk
 ):
+    blocked = _suspended_response(request)
+    if blocked:
+        return blocked
+
     complaint = get_object_or_404(
         public_complaints(),
         pk=pk
@@ -457,6 +494,10 @@ def complaint_comment_delete(
     pk,
     comment_pk
 ):
+    blocked = _suspended_response(request)
+    if blocked:
+        return blocked
+
     complaint = get_object_or_404(
         public_complaints(),
         pk=pk
@@ -493,6 +534,24 @@ def complaint_comment_delete(
 @role_required(User.UserType.USER)
 @require_POST
 def complaint_report(request, pk):
+    blocked = _suspended_response(request)
+    if blocked:
+        return blocked
+
+    reporting_policy = check_general_reporting_allowed(
+        user=request.user,
+        request=request,
+    )
+    if not reporting_policy.allowed:
+        messages.error(
+            request,
+            reporting_policy.message,
+        )
+        return redirect(
+            "complaints:public_detail",
+            pk=pk,
+        )
+
     complaint = get_object_or_404(
         public_complaints(),
         pk=pk,
@@ -601,6 +660,24 @@ def comment_report(
     pk,
     comment_pk
 ):
+    blocked = _suspended_response(request)
+    if blocked:
+        return blocked
+
+    reporting_policy = check_general_reporting_allowed(
+        user=request.user,
+        request=request,
+    )
+    if not reporting_policy.allowed:
+        messages.error(
+            request,
+            reporting_policy.message,
+        )
+        return redirect(
+            "complaints:public_detail",
+            pk=pk,
+        )
+
     complaint = get_object_or_404(
         public_complaints(),
         pk=pk,
@@ -707,6 +784,118 @@ def comment_report(
     return redirect(
         "complaints:public_detail",
         pk=complaint.pk,
+    )
+
+
+
+@role_required(User.UserType.USER)
+@require_POST
+def user_report(request, user_pk):
+    blocked = _suspended_response(request)
+    if blocked:
+        return blocked
+
+    reporting_policy = check_user_report_allowed(
+        user=request.user,
+        request=request,
+    )
+    if not reporting_policy.allowed:
+        messages.error(
+            request,
+            reporting_policy.message,
+        )
+        return redirect(
+            "accounts:public_profile",
+            username=(
+                User.objects
+                .filter(pk=user_pk)
+                .values_list(
+                    "username",
+                    flat=True,
+                )
+                .first()
+                or request.user.username
+            ),
+        )
+
+    reported_user = get_object_or_404(
+        User.objects.only(
+            "pk",
+            "username",
+            "user_type",
+            "is_active",
+        ),
+        pk=user_pk,
+        user_type=User.UserType.USER,
+        is_active=True,
+    )
+
+    if reported_user.pk == request.user.pk:
+        messages.warning(
+            request,
+            "Kendi hesabınızı raporlayamazsınız.",
+        )
+        return redirect(
+            "accounts:public_profile",
+            username=reported_user.username,
+        )
+
+    if UserReport.objects.filter(
+        reporter=request.user,
+        reported_user=reported_user,
+    ).exists():
+        messages.info(
+            request,
+            "Bu kullanıcıyı daha önce raporladınız.",
+        )
+        return redirect(
+            "accounts:public_profile",
+            username=reported_user.username,
+        )
+
+    form = UserReportForm(request.POST)
+
+    if not form.is_valid():
+        messages.error(
+            request,
+            "Rapor gönderilemedi. Lütfen geçerli bir neden seçin.",
+        )
+        return redirect(
+            "accounts:public_profile",
+            username=reported_user.username,
+        )
+
+    report = form.save(commit=False)
+    report.reporter = request.user
+    report.reported_user = reported_user
+    report.status = UserReport.Status.PENDING
+
+    try:
+        with transaction.atomic():
+            report.save()
+
+            from notifications.services import notify_admins_user_report
+
+            notify_admins_user_report(report)
+
+    except (ValidationError, IntegrityError):
+        messages.info(
+            request,
+            "Bu kullanıcıyı daha önce raporladınız.",
+        )
+        return redirect(
+            "accounts:public_profile",
+            username=reported_user.username,
+        )
+
+    messages.success(
+        request,
+        "Kullanıcı raporunuz alındı ve yönetim ekibine iletildi.",
+    )
+
+    return redirect(
+        "accounts:public_profile",
+        username=reported_user.username,
     )
 
 
@@ -867,6 +1056,10 @@ def complaint_detail(request, pk):
 
 @role_required(User.UserType.USER)
 def complaint_edit(request, pk):
+    blocked = _suspended_response(request)
+    if blocked:
+        return blocked
+
     complaint = get_object_or_404(
         Complaint,
         pk=pk,
@@ -937,6 +1130,10 @@ def complaint_withdraw(
     request,
     pk
 ):
+    blocked = _suspended_response(request)
+    if blocked:
+        return blocked
+
     complaint = get_object_or_404(
         Complaint,
         pk=pk,
@@ -969,6 +1166,10 @@ def complaint_resolve(
     request,
     pk
 ):
+    blocked = _suspended_response(request)
+    if blocked:
+        return blocked
+
     get_object_or_404(
         Complaint.objects.only(
             "pk"
@@ -1005,6 +1206,23 @@ def complaint_resolve(
 @role_required(User.UserType.USER)
 @transaction.atomic
 def complaint_create(request):
+    blocked = _suspended_response(request)
+    if blocked:
+        return blocked
+
+    complaint_policy = check_complaint_creation_allowed(
+        user=request.user,
+        request=request,
+    )
+    if not complaint_policy.allowed:
+        messages.error(
+            request,
+            complaint_policy.message,
+        )
+        return redirect(
+            "dashboard:home"
+        )
+
     if request.method == "POST":
         form = ComplaintCreateForm(
             request.POST

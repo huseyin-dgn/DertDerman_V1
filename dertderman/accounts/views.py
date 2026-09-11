@@ -2,7 +2,7 @@ from django.contrib.auth import login, logout
 from django.contrib import messages
 from django.contrib.auth.views import LoginView, LogoutView, PasswordChangeView
 from django.http import HttpResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
@@ -51,6 +51,69 @@ class SecureLoginView(LoginView):
 
     def get_success_url(self):
         return safe_role_next(self.request, self.request.user.user_type) or role_redirect_url(self.request.user)
+
+
+
+def public_profile(request, username):
+    account = get_object_or_404(
+        User.objects.only(
+            "pk",
+            "username",
+            "first_name",
+            "last_name",
+            "date_joined",
+            "user_type",
+            "selected_avatar",
+            "profile_image",
+            "is_active",
+        ),
+        username=username,
+        user_type=User.UserType.USER,
+        is_active=True,
+    )
+
+    badges = resolve_user_badges(account)
+
+    from complaints.forms import UserReportForm
+    from complaints.models import Complaint, UserReport
+
+    can_report = (
+        request.user.is_authenticated
+        and request.user.user_type == User.UserType.USER
+        and request.user.pk != account.pk
+        and not getattr(request.user, "is_currently_suspended", False)
+    )
+
+    already_reported = False
+    if can_report:
+        already_reported = UserReport.objects.filter(
+            reporter=request.user,
+            reported_user=account,
+        ).exists()
+
+    complaint_count = Complaint.objects.filter(
+        user=account,
+        status__in=(
+            Complaint.Status.PUBLISHED,
+            Complaint.Status.RESOLVED,
+        ),
+        withdrawn_at__isnull=True,
+        removed_for_violation=False,
+    ).count()
+
+    return render(
+        request,
+        "accounts/public_profile.html",
+        {
+            "account": account,
+            "user_badges": badges,
+            "primary_user_badge": primary_badge(badges),
+            "complaint_count": complaint_count,
+            "can_report": can_report,
+            "already_reported": already_reported,
+            "user_report_form": UserReportForm(),
+        },
+    )
 
 
 @role_required(User.UserType.USER)

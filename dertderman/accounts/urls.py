@@ -9,6 +9,7 @@ from .views import (
     invalidate_history_session,
     profile,
     profile_edit,
+    public_profile,
 )
 
 
@@ -21,6 +22,11 @@ urlpatterns = [
     path("cikis/", SecureLogoutView.as_view(), name="logout"),
     path("oturum/gecmis-sonlandir/", invalidate_history_session, name="history_invalidate"),
     path("profil/", profile, name="profile"),
+    path(
+        "kullanici/<str:username>/",
+        public_profile,
+        name="public_profile",
+    ),
     path("profil/duzenle/", profile_edit, name="profile_edit"),
     path(
         "sifre-degistir/",

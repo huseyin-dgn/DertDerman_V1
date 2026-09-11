@@ -12,7 +12,9 @@ SECTIONS = [
     ("contact_list", "İletişim Talepleri", "note"),
     ("activity", "Sistem / Aktivite", "clock"),
     ("report_list", "Raporlar", "shield"),
-    ("security_event_list", "Güvenlik İhlalleri", "shield"),
+    ("user_report_list", "Kullanıcı Raporları", "shield"),
+    ("company_report_list", "Şirket Raporları", "shield"),
+    ("security_event_list", "Güvenlik Olayları", "shield"),
     ("audit_log_list", "Yönetim İşlem Geçmişi", "shield"),
     ("homepage_content", "Site İçerikleri", "settings"),
 ]
@@ -33,6 +35,8 @@ def admin_shell(request):
         "company_edit": "company_list",
         "company_application_detail": "company_application_list",
         "user_detail": "user_list",
+        "user_suspend": "user_list",
+        "user_unsuspend": "user_list",
         "blog_edit": "blog_list",
         "blog_create": "blog_list",
         "blog_publish": "blog_list",
@@ -40,6 +44,10 @@ def admin_shell(request):
         "contact_status": "contact_list",
         "report_detail": "report_list",
         "report_status": "report_list",
+        "user_report_detail": "user_report_list",
+        "user_report_status": "user_report_list",
+        "company_report_detail": "company_report_list",
+        "company_report_status": "company_report_list",
         "security_event_detail": "security_event_list",
     }
 

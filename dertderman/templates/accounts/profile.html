@@ -17,6 +17,21 @@
                     </div>
                 </div>
 
+
+                {% if request.user.is_currently_suspended %}
+                <div style="margin:0 0 18px;padding:16px 18px;border-radius:12px;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;">
+                    <strong>Hesabınız askıya alınmış durumda.</strong>
+                    <p style="margin:6px 0 0;">
+                        {{ request.user.suspension_reason|default:"Hesabınız yönetim kararıyla geçici olarak işlem yapamaz durumda." }}
+                    </p>
+                    {% if request.user.suspended_at %}
+                    <small style="display:block;margin-top:8px;">
+                        Askıya alınma tarihi: {{ request.user.suspended_at|date:"d.m.Y H:i" }}
+                    </small>
+                    {% endif %}
+                </div>
+                {% endif %}
+
                 <dl class="account-details profile-details">
                     <div><dt>Ad soyad</dt><dd>{{ request.user.get_full_name|default:"Belirtilmemiş" }}</dd></div>
                     <div><dt>E-posta</dt><dd>{{ request.user.email }}</dd></div>

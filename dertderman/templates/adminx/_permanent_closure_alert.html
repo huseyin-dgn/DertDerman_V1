@@ -1,0 +1,261 @@
+{% load moderation_alerts %}
+{% permanent_close_alerts 10 as closure_alerts %}
+
+{% if closure_alerts %}
+<div
+    class="pc-alert-overlay"
+    id="pc-alert-overlay"
+    hidden
+    data-alert-signature="{% for item in closure_alerts %}{{ item.user_id }}:{{ item.total_count }};{% endfor %}"
+>
+    <section
+        class="pc-alert-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="pc-alert-title"
+    >
+        <header class="pc-alert-head">
+            <div>
+                <p class="pc-alert-kicker">
+                    MODERASYON UYARISI
+                </p>
+
+                <h2 id="pc-alert-title">
+                    Kalıcı kapatma incelemesi gereken kullanıcı var
+                </h2>
+
+                <p>
+                    Aşağıdaki hesaplar kötü niyetli raporlama eşiklerinden
+                    en az birine ulaştı. Hesaplar otomatik kapatılmadı;
+                    yönetici kararı bekliyor.
+                </p>
+            </div>
+
+            <button
+                type="button"
+                class="pc-alert-close"
+                data-pc-alert-close
+                aria-label="Kapat"
+            >
+                ×
+            </button>
+        </header>
+
+        <div class="pc-alert-body">
+            {% for item in closure_alerts %}
+                <a
+                    class="pc-alert-user"
+                    href="{% url 'adminx:user_detail' item.user_id %}"
+                >
+                    <div>
+                        <strong>
+                            {% if item.user__first_name or item.user__last_name %}
+                                {{ item.user__first_name }} {{ item.user__last_name }}
+                            {% else %}
+                                @{{ item.user__username }}
+                            {% endif %}
+                        </strong>
+
+                        <span>
+                            @{{ item.user__username }}
+                        </span>
+                    </div>
+
+                    <div class="pc-alert-counts">
+                        <span>
+                            Kullanıcı <b>{{ item.user_report_count }}</b>
+                        </span>
+                        <span>
+                            İçerik <b>{{ item.content_report_count }}</b>
+                        </span>
+                        <span>
+                            Şirket <b>{{ item.company_report_count }}</b>
+                        </span>
+                        <span>
+                            Toplam <b>{{ item.total_count }}</b>
+                        </span>
+                    </div>
+
+                    <b class="pc-alert-review">
+                        İncele →
+                    </b>
+                </a>
+            {% endfor %}
+        </div>
+
+        <footer class="pc-alert-footer">
+            <a
+                class="secondary-action"
+                href="{% url 'adminx:user_list' %}"
+            >
+                Kullanıcıları görüntüle
+            </a>
+
+            <button
+                type="button"
+                class="primary-action"
+                data-pc-alert-close
+            >
+                Uyarıyı gördüm
+            </button>
+        </footer>
+    </section>
+</div>
+
+<style>
+.pc-alert-overlay{
+    position:fixed;
+    inset:0;
+    z-index:120000;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    background:rgba(15,23,42,.68);
+    backdrop-filter:blur(5px);
+}
+.pc-alert-overlay.is-open{display:flex}
+.pc-alert-modal{
+    width:min(760px,100%);
+    max-height:calc(100vh - 40px);
+    overflow:auto;
+    background:#fff;
+    border-radius:20px;
+    border:1px solid rgba(255,255,255,.45);
+    box-shadow:0 30px 100px rgba(15,23,42,.35);
+}
+.pc-alert-head{
+    display:flex;
+    justify-content:space-between;
+    gap:20px;
+    padding:24px;
+    border-bottom:1px solid #e8edf3;
+    background:linear-gradient(180deg,#fff7f6,#fff);
+}
+.pc-alert-kicker{
+    margin:0 0 6px;
+    color:#b42318;
+    font-size:12px;
+    font-weight:900;
+    letter-spacing:.1em;
+}
+.pc-alert-head h2{
+    margin:0;
+    color:#172033;
+    font-size:22px;
+}
+.pc-alert-head p:last-child{
+    margin:8px 0 0;
+    color:#64748b;
+    line-height:1.55;
+}
+.pc-alert-close{
+    width:38px;
+    height:38px;
+    flex:0 0 auto;
+    border:1px solid #dde4ec;
+    border-radius:50%;
+    background:#fff;
+    color:#475569;
+    font-size:22px;
+    cursor:pointer;
+}
+.pc-alert-body{
+    display:grid;
+    gap:10px;
+    padding:18px 24px;
+}
+.pc-alert-user{
+    display:grid;
+    grid-template-columns:minmax(150px,1fr) auto auto;
+    align-items:center;
+    gap:16px;
+    padding:14px;
+    border:1px solid #e2e8f0;
+    border-radius:13px;
+    color:inherit;
+    text-decoration:none;
+    background:#fff;
+}
+.pc-alert-user:hover{
+    background:#fafcff;
+    border-color:#b8c9db;
+}
+.pc-alert-user>div:first-child{
+    display:grid;
+    gap:3px;
+}
+.pc-alert-user span{
+    color:#64748b;
+    font-size:12px;
+}
+.pc-alert-counts{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+}
+.pc-alert-counts span{
+    padding:5px 8px;
+    border-radius:999px;
+    background:#f1f5f9;
+    color:#475569;
+}
+.pc-alert-counts b{color:#172033}
+.pc-alert-review{
+    color:#1d5fa7;
+    white-space:nowrap;
+}
+.pc-alert-footer{
+    display:flex;
+    justify-content:flex-end;
+    gap:10px;
+    padding:18px 24px;
+    border-top:1px solid #e8edf3;
+}
+@media(max-width:700px){
+    .pc-alert-user{grid-template-columns:1fr}
+    .pc-alert-footer{flex-direction:column-reverse}
+}
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const overlay = document.getElementById("pc-alert-overlay");
+    if (!overlay) return;
+
+    const signature = overlay.dataset.alertSignature || "";
+    const storageKey = "dertderman:permanent-close-alert-signature";
+    const seen = sessionStorage.getItem(storageKey);
+
+    const close = () => {
+        overlay.classList.remove("is-open");
+        overlay.hidden = true;
+        sessionStorage.setItem(storageKey, signature);
+    };
+
+    if (signature && signature !== seen) {
+        overlay.hidden = false;
+        overlay.classList.add("is-open");
+    }
+
+    overlay.querySelectorAll("[data-pc-alert-close]").forEach((button) => {
+        button.addEventListener("click", close);
+    });
+
+    overlay.addEventListener("click", (event) => {
+        if (event.target === overlay) {
+            close();
+        }
+    });
+
+    document.addEventListener("keydown", (event) => {
+        if (
+            event.key === "Escape"
+            && overlay.classList.contains("is-open")
+        ) {
+            close();
+        }
+    });
+});
+</script>
+{% endif %}

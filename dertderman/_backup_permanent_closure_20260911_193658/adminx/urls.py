@@ -1,6 +1,5 @@
 from django.urls import path
 from . import blog_views, content_views, views
-from . import permanent_closure
 from .auth_views import AdminLoginView
 
 
@@ -49,16 +48,6 @@ urlpatterns = [
         name="user_unsuspend",
     ),
 
-    path(
-        "kullanicilar/kapatilanlar/",
-        permanent_closure.closed_user_list,
-        name="closed_user_list",
-    ),
-    path(
-        "kullanicilar/<int:pk>/kalici-kapat/",
-        permanent_closure.permanently_close_user,
-        name="permanently_close_user",
-    ),
     path("bildirimler/", views.notifications, name="notifications"),
     path(
         "bildirimler/<int:pk>/",

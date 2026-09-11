@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from django.contrib import messages
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.db.models import Count, OuterRef, Q, Subquery
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -14,7 +15,13 @@ from django.views.decorators.http import (
 from accounts.models import User
 from companies.models import Company, CompanyMembership
 from companies.services import decide_company_application
-from complaints.models import Complaint, UserReport, UserViolation
+from complaints.models import Complaint, ReportRestriction, UserReport, UserViolation
+from complaints.reporting_policy import (
+    PERMANENT_CLOSE_FALSE_REPORT_THRESHOLD,
+    false_report_category_counts,
+    permanent_close_eligible,
+    total_false_report_count,
+)
 from core.models import AbuseAttempt
 from core.pagination import paginate
 from core.presentation import HERO_BRAND_MESSAGES
@@ -27,7 +34,8 @@ from .filters import (
     list_context,
 )
 from .forms import CompanyApprovalActionForm, CompanyContentForm
-from .services import archive_company
+from .models import AdminAuditLog
+from .services import archive_company, record_admin_audit
 
 
 @admin_required
@@ -339,8 +347,8 @@ def _users():
         "date_joined",
         "user_type",
         "is_active",
+        "is_permanently_closed",
     )
-
 
 @admin_required
 @require_safe
@@ -421,6 +429,38 @@ def user_detail(
         violations.first()
     )
 
+    false_report_violation_count = (
+        total_false_report_count(
+            account
+        )
+    )
+
+    false_report_counts = (
+        false_report_category_counts(
+            account
+        )
+    )
+
+    permanent_close_ready = (
+        permanent_close_eligible(
+            account
+        )
+    )
+
+    active_report_restriction = (
+        ReportRestriction.objects
+        .filter(
+            user=account,
+            starts_at__lte=timezone.now(),
+            ends_at__gt=timezone.now(),
+        )
+        .order_by(
+            "-ends_at",
+            "-pk",
+        )
+        .first()
+    )
+
     abuse_attempts = (
         AbuseAttempt.objects
         .filter(
@@ -460,7 +500,17 @@ def user_detail(
         .count()
     )
 
-    if violation_count == 0:
+    suspension_eligible = False
+
+    if permanent_close_ready:
+        risk_level = (
+            "Kalıcı kapatmaya uygun"
+        )
+        risk_code = (
+            "PERMANENT_CLOSE_ELIGIBLE"
+        )
+
+    elif violation_count == 0:
         risk_level = "Normal"
         risk_code = "NORMAL"
 
@@ -474,23 +524,11 @@ def user_detail(
         )
         risk_code = "REPEATED"
 
-    elif violation_count < 5:
+    else:
         risk_level = (
             "Yüksek risk"
         )
         risk_code = "HIGH"
-
-    else:
-        risk_level = (
-            "Askıya almaya uygun"
-        )
-        risk_code = (
-            "SUSPEND_ELIGIBLE"
-        )
-
-    suspension_eligible = (
-        violation_count >= 5
-    )
 
     return render(
         request,
@@ -528,6 +566,33 @@ def user_detail(
 
             "suspension_eligible":
                 suspension_eligible,
+
+            "malicious_user_report_violation_count":
+                false_report_violation_count,
+
+            "false_report_violation_count":
+                false_report_violation_count,
+
+            "false_report_user_count":
+                false_report_counts["user_report"],
+
+            "false_report_content_count":
+                false_report_counts["content_report"],
+
+            "false_report_company_count":
+                false_report_counts["company_report"],
+
+            "permanent_close_ready":
+                permanent_close_ready,
+
+            "permanent_close_threshold":
+                PERMANENT_CLOSE_FALSE_REPORT_THRESHOLD,
+
+            "active_report_restriction":
+                active_report_restriction,
+
+            "is_currently_suspended":
+                account.is_currently_suspended,
 
             "abuse_attempts_24h":
                 abuse_attempts_24h,
@@ -793,6 +858,177 @@ def security_event_detail(
             "restriction_until":
                 restriction_until,
         },
+    )
+
+
+
+@admin_required
+@require_POST
+@transaction.atomic
+def user_suspend(request, pk):
+    account = get_object_or_404(
+        User.objects.select_for_update(),
+        pk=pk,
+        user_type=User.UserType.USER,
+    )
+
+    violations = UserViolation.objects.filter(user=account)
+
+    violation_count = violations.count()
+    malicious_user_report_violation_count = violations.filter(
+        source_type=UserViolation.SourceType.FALSE_REPORT,
+        user_report__isnull=False,
+    ).count()
+
+    suspension_eligible = (
+        violation_count >= 5
+        or malicious_user_report_violation_count >= 4
+    )
+
+    if not suspension_eligible:
+        messages.warning(
+            request,
+            "Bu kullanıcı henüz tanımlı askıya alma eşiğine ulaşmadı.",
+        )
+        return redirect(
+            "adminx:user_detail",
+            pk=account.pk,
+        )
+
+    if account.is_currently_suspended:
+        messages.info(
+            request,
+            "Bu hesap zaten askıya alınmış durumda.",
+        )
+        return redirect(
+            "adminx:user_detail",
+            pk=account.pk,
+        )
+
+    reason = (
+        request.POST.get("reason", "")
+        .strip()[:500]
+    )
+
+    if not reason:
+        reason = (
+            "Yönetim incelemesi sonucunda hesap askıya alındı. "
+            f"Toplam doğrulanmış ihlal: {violation_count}; "
+            "kötü niyetli kullanıcı raporu ihlali: "
+            f"{malicious_user_report_violation_count}."
+        )
+
+    account.is_suspended = True
+    account.suspended_at = timezone.now()
+    account.suspended_until = None
+    account.suspended_by = request.user
+    account.suspension_reason = reason
+
+    account.save(
+        update_fields=(
+            "is_suspended",
+            "suspended_at",
+            "suspended_until",
+            "suspended_by",
+            "suspension_reason",
+        )
+    )
+
+    record_admin_audit(
+        actor=request.user,
+        action=AdminAuditLog.Action.UPDATE,
+        target_type="user",
+        target_id=account.pk,
+        target_label=f"@{account.username}",
+        description="Kullanıcı hesabı yönetici onayıyla askıya alındı.",
+        metadata={
+            "violation_count": violation_count,
+            "malicious_user_report_violation_count": (
+                malicious_user_report_violation_count
+            ),
+            "reason": reason,
+        },
+        request=request,
+    )
+
+    from notifications.services import notify_account_suspended
+
+    notify_account_suspended(account)
+
+    messages.success(
+        request,
+        f"@{account.username} hesabı askıya alındı.",
+    )
+
+    return redirect(
+        "adminx:user_detail",
+        pk=account.pk,
+    )
+
+
+@admin_required
+@require_POST
+@transaction.atomic
+def user_unsuspend(request, pk):
+    account = get_object_or_404(
+        User.objects.select_for_update(),
+        pk=pk,
+        user_type=User.UserType.USER,
+    )
+
+    if not account.is_suspended:
+        messages.info(
+            request,
+            "Bu hesap askıya alınmış değil.",
+        )
+        return redirect(
+            "adminx:user_detail",
+            pk=account.pk,
+        )
+
+    previous_reason = account.suspension_reason
+
+    account.is_suspended = False
+    account.suspended_at = None
+    account.suspended_until = None
+    account.suspended_by = None
+    account.suspension_reason = ""
+
+    account.save(
+        update_fields=(
+            "is_suspended",
+            "suspended_at",
+            "suspended_until",
+            "suspended_by",
+            "suspension_reason",
+        )
+    )
+
+    record_admin_audit(
+        actor=request.user,
+        action=AdminAuditLog.Action.UPDATE,
+        target_type="user",
+        target_id=account.pk,
+        target_label=f"@{account.username}",
+        description="Kullanıcı hesabının askısı kaldırıldı.",
+        metadata={
+            "previous_reason": previous_reason,
+        },
+        request=request,
+    )
+
+    from notifications.services import notify_account_restored
+
+    notify_account_restored(account)
+
+    messages.success(
+        request,
+        f"@{account.username} hesabının askısı kaldırıldı.",
+    )
+
+    return redirect(
+        "adminx:user_detail",
+        pk=account.pk,
     )
 
 

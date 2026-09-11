@@ -17,6 +17,7 @@ def send(
     company=None,
     content_report=None,
     user_report=None,
+    company_report=None,
     abuse_attempt=None,
 ):
     if not recipient.is_active or recipient.user_type != scope:
@@ -34,6 +35,7 @@ def send(
             "company": None if complaint else company,
             "content_report": content_report,
             "user_report": user_report,
+            "company_report": company_report,
             "abuse_attempt": abuse_attempt,
         },
     )
@@ -241,6 +243,65 @@ def notify_admins_user_report(report):
     )
 
 
+
+
+def notify_admins_company_report(report):
+    send_admins(
+        kind=Notification.Type.COMPANY_REPORT,
+        event_key=f"company-report:{report.pk}:created",
+        title="Yeni şirket raporu",
+        message=(
+            f"{report.company.name} şirketi "
+            f"{report.get_reason_display()} nedeniyle raporlandı."
+        ),
+        company_report=report,
+    )
+
+
+def notify_company_report_decision(report):
+    if report.status == "REJECTED":
+        return send(
+            recipient=report.reporter,
+            scope="USER",
+            kind=Notification.Type.COMPANY_REPORT,
+            event_key=f"company-report:{report.pk}:rejected",
+            title="Şirket raporunuz sonuçlandırıldı.",
+            message=(
+                "Yönetim incelemesinde raporlanan şirket için "
+                "doğrulanmış bir ihlal bulunmadı."
+            ),
+            company_report=report,
+        )
+
+    if report.status == "RESOLVED":
+        return send(
+            recipient=report.reporter,
+            scope="USER",
+            kind=Notification.Type.COMPANY_REPORT,
+            event_key=f"company-report:{report.pk}:resolved",
+            title="Şirket raporunuz sonuçlandırıldı.",
+            message="Gönderdiğiniz şirket raporunda ihlal tespit edildi.",
+            company_report=report,
+        )
+
+    if report.status == "ABUSIVE":
+        return send(
+            recipient=report.reporter,
+            scope="USER",
+            kind=Notification.Type.COMPANY_REPORT,
+            event_key=f"company-report:{report.pk}:abusive",
+            title="Şirket raporunuz kötüye kullanım olarak değerlendirildi.",
+            message=(
+                "Gönderdiğiniz şirket raporunun kötü niyetli veya asılsız "
+                "olduğu tespit edildi. Hesabınıza doğrulanmış kötüye kullanım "
+                "ihlali eklendi."
+            ),
+            company_report=report,
+        )
+
+    return None
+
+
 def notify_admins_abuse_attempt(attempt):
     from datetime import timedelta
     from core.models import AbuseAttempt
@@ -307,6 +368,93 @@ def notify_admins_abuse_attempt(attempt):
         )
 
     return None
+
+
+
+def notify_user_report_decision(report):
+    if report.status == "RESOLVED":
+        send(
+            recipient=report.reported_user,
+            scope="USER",
+            kind=Notification.Type.USER_REPORT,
+            event_key=f"user-report:{report.pk}:resolved:target",
+            title="Hakkınızdaki kullanıcı raporu sonuçlandırıldı.",
+            message=(
+                "Yönetim incelemesi sonucunda topluluk kuralları ihlali "
+                "doğrulandı ve hesabınıza ihlal kaydı eklendi."
+            ),
+            user_report=report,
+        )
+
+        send(
+            recipient=report.reporter,
+            scope="USER",
+            kind=Notification.Type.USER_REPORT,
+            event_key=f"user-report:{report.pk}:resolved:reporter",
+            title="Kullanıcı raporunuz sonuçlandırıldı.",
+            message=(
+                "Gönderdiğiniz kullanıcı raporunda ihlal tespit edildi."
+            ),
+            user_report=report,
+        )
+        return None
+
+    if report.status == "REJECTED":
+        send(
+            recipient=report.reporter,
+            scope="USER",
+            kind=Notification.Type.USER_REPORT,
+            event_key=f"user-report:{report.pk}:rejected",
+            title="Kullanıcı raporunuz sonuçlandırıldı.",
+            message=(
+                "Yönetim incelemesinde raporlanan kullanıcı için "
+                "doğrulanmış bir ihlal bulunmadı."
+            ),
+            user_report=report,
+        )
+        return None
+
+    if report.status == "ABUSIVE":
+        send(
+            recipient=report.reporter,
+            scope="USER",
+            kind=Notification.Type.USER_REPORT,
+            event_key=f"user-report:{report.pk}:abusive",
+            title="Raporunuz kötüye kullanım olarak değerlendirildi.",
+            message=(
+                "Gönderdiğiniz kullanıcı raporunun kötü niyetli veya "
+                "asılsız olduğu tespit edildi. Hesabınıza doğrulanmış "
+                "kötüye kullanım ihlali eklendi."
+            ),
+            user_report=report,
+        )
+
+    return None
+
+
+def notify_account_suspended(user):
+    return send(
+        recipient=user,
+        scope="USER",
+        kind=Notification.Type.ACCOUNT_SUSPENDED,
+        event_key=f"account:{user.pk}:suspended:{timezone.now().strftime('%Y%m%d%H%M%S')}",
+        title="Hesabınız askıya alındı.",
+        message=(
+            user.suspension_reason
+            or "Hesabınız yönetim kararıyla askıya alındı."
+        ),
+    )
+
+
+def notify_account_restored(user):
+    return send(
+        recipient=user,
+        scope="USER",
+        kind=Notification.Type.ACCOUNT_RESTORED,
+        event_key=f"account:{user.pk}:restored:{timezone.now().strftime('%Y%m%d%H%M%S')}",
+        title="Hesabınızın askısı kaldırıldı.",
+        message="Hesabınız yeniden işlem yapabilir durumdadır.",
+    )
 
 
 def mark_read(queryset):

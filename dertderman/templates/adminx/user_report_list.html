@@ -1,0 +1,97 @@
+{% extends 'adminx/content_base.html' %}
+
+{% block title %}Kullanıcı Raporları | DertDerman Yönetim{% endblock %}
+
+{% block content_heading %}
+<div>
+    <p class="section-kicker">MODERASYON</p>
+    <h1>Kullanıcı Raporları</h1>
+    <p>Kullanıcıların birbirleri hakkında gönderdiği raporları inceleyin.</p>
+</div>
+{% endblock %}
+
+{% block management_content %}
+<style>
+    .report-toolbar,.report-card{background:#fff;border:1px solid #e2e8f0;border-radius:16px;box-shadow:0 8px 24px rgba(15,23,42,.05)}
+    .report-toolbar{padding:16px;margin-bottom:18px}
+    .report-filter{display:grid;grid-template-columns:minmax(220px,1fr) 240px auto auto;gap:10px}
+    .report-input,.report-select{height:44px;border:1px solid #dbe3ee;border-radius:10px;padding:0 12px;background:#fff}
+    .report-btn{display:inline-flex;align-items:center;justify-content:center;height:44px;padding:0 16px;border-radius:10px;border:0;background:#1d5fa7;color:#fff;font-weight:800;text-decoration:none;cursor:pointer}
+    .report-btn.secondary{background:#f8fafc;color:#334155;border:1px solid #dbe3ee}
+    .table-wrap{overflow-x:auto}
+    table{width:100%;border-collapse:collapse;min-width:900px}
+    th{padding:13px 15px;text-align:left;font-size:12px;color:#64748b;background:#f8fafc;border-bottom:1px solid #e2e8f0}
+    td{padding:14px 15px;border-bottom:1px solid #eef2f7;color:#334155;font-size:14px}
+    tbody tr:last-child td{border-bottom:0}
+    .status{display:inline-flex;padding:6px 9px;border-radius:999px;font-size:11px;font-weight:900}
+    .pending{background:#fff7ed;color:#c2410c}.reviewing{background:#eff6ff;color:#1d4ed8}.resolved{background:#ecfdf5;color:#047857}.rejected{background:#f1f5f9;color:#475569}.abusive{background:#fef2f2;color:#b91c1c}
+    .action{color:#1d5fa7;text-decoration:none;font-weight:900}
+    .pagination{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-top:1px solid #eef2f7}
+    @media(max-width:800px){.report-filter{grid-template-columns:1fr}}
+</style>
+
+<form class="report-toolbar" method="get">
+    <div class="report-filter">
+        <input class="report-input" type="search" name="q" value="{{ search }}" placeholder="Bildiren veya raporlanan kullanıcı ara">
+        <select class="report-select" name="status">
+            <option value="all" {% if active_status == 'all' %}selected{% endif %}>Tüm durumlar</option>
+            {% for value, label in status_options %}
+                <option value="{{ value }}" {% if active_status == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+        <button class="report-btn" type="submit">Filtrele</button>
+        <a class="report-btn secondary" href="{% url 'adminx:user_report_list' %}">Temizle</a>
+    </div>
+</form>
+
+<section class="report-card">
+    {% if page_obj.object_list %}
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Tarih</th>
+                    <th>Bildiren</th>
+                    <th>Raporlanan</th>
+                    <th>Neden</th>
+                    <th>Durum</th>
+                    <th>Aksiyon</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for report in page_obj %}
+                <tr>
+                    <td>{{ report.created_at|date:"d.m.Y H:i" }}</td>
+                    <td>@{{ report.reporter.username }}</td>
+                    <td><a class="action" href="{% url 'adminx:user_detail' report.reported_user.pk %}">@{{ report.reported_user.username }}</a></td>
+                    <td>{{ report.get_reason_display }}</td>
+                    <td>
+                        <span class="status {% if report.status == 'PENDING' %}pending{% elif report.status == 'REVIEWING' %}reviewing{% elif report.status == 'RESOLVED' %}resolved{% elif report.status == 'REJECTED' %}rejected{% else %}abusive{% endif %}">
+                            {{ report.get_status_display }}
+                        </span>
+                    </td>
+                    <td><a class="action" href="{% url 'adminx:user_report_detail' report.pk %}">İncele ↗</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <div class="pagination">
+        <span>Sayfa {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+        <div>
+            {% if page_obj.has_previous %}
+                <a class="report-btn secondary" href="?page={{ page_obj.previous_page_number }}&q={{ search|urlencode }}&status={{ active_status|urlencode }}">← Önceki</a>
+            {% endif %}
+            {% if page_obj.has_next %}
+                <a class="report-btn secondary" href="?page={{ page_obj.next_page_number }}&q={{ search|urlencode }}&status={{ active_status|urlencode }}">Sonraki →</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+    {% else %}
+        <div style="padding:42px;text-align:center;color:#64748b">Kullanıcı raporu bulunamadı.</div>
+    {% endif %}
+</section>
+{% endblock %}

@@ -532,6 +532,7 @@ class UserReport(models.Model):
         REVIEWING = "REVIEWING", "İnceleniyor"
         RESOLVED = "RESOLVED", "İhlal doğrulandı"
         REJECTED = "REJECTED", "İhlal bulunmadı"
+        ABUSIVE = "ABUSIVE", "Kötü niyetli / asılsız rapor"
 
     reporter = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -628,13 +629,7 @@ class UserReport(models.Model):
                     "reporter",
                     "reported_user",
                 ),
-                condition=models.Q(
-                    status__in=(
-                        "PENDING",
-                        "REVIEWING",
-                    )
-                ),
-                name="unique_open_user_report",
+                name="unique_user_report",
             ),
         ]
 
@@ -684,6 +679,90 @@ class UserReport(models.Model):
         )
 
 
+
+class CompanyReport(models.Model):
+    class Reason(models.TextChoices):
+        FRAUD = "FRAUD", "Dolandırıcılık / sahtecilik şüphesi"
+        MISLEADING = "MISLEADING", "Yanıltıcı şirket bilgisi"
+        IMPERSONATION = "IMPERSONATION", "Başka şirketi taklit etme"
+        ABUSE = "ABUSE", "Sistemi kötüye kullanma"
+        ILLEGAL = "ILLEGAL", "Yasa dışı faaliyet / içerik"
+        OTHER = "OTHER", "Diğer"
+
+    class Status(models.TextChoices):
+        PENDING = "PENDING", "İncelenmeyi bekliyor"
+        REVIEWING = "REVIEWING", "İnceleniyor"
+        RESOLVED = "RESOLVED", "İhlal doğrulandı"
+        REJECTED = "REJECTED", "İhlal bulunmadı"
+        ABUSIVE = "ABUSIVE", "Kötü niyetli / asılsız rapor"
+
+    reporter = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="submitted_company_reports",
+    )
+    company = models.ForeignKey(
+        "companies.Company",
+        on_delete=models.CASCADE,
+        related_name="reports",
+    )
+    reason = models.CharField(max_length=30, choices=Reason.choices)
+    description = models.TextField(max_length=1000, blank=True, default="")
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING,
+        db_index=True,
+    )
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="reviewed_company_reports",
+    )
+    admin_note = models.TextField(max_length=1000, blank=True, default="")
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-created_at", "-pk")
+        indexes = [
+            models.Index(
+                fields=("status", "-created_at"),
+                name="company_report_status",
+            ),
+            models.Index(
+                fields=("company", "-created_at"),
+                name="company_report_target",
+            ),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=("reporter", "company"),
+                name="unique_user_company_report",
+            ),
+        ]
+
+    def clean(self):
+        super().clean()
+        errors = {}
+        if self.reporter_id and self.reporter.user_type != "USER":
+            errors["reporter"] = "Yalnızca bireysel kullanıcılar şirket raporu gönderebilir."
+        self.description = (self.description or "").strip()
+        self.admin_note = (self.admin_note or "").strip()
+        if errors:
+            raise ValidationError(errors)
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"@{self.reporter.username} → {self.company.name}"
+
+
 class UserViolation(models.Model):
     class SourceType(models.TextChoices):
         COMPLAINT = "COMPLAINT", "Şikayet"
@@ -726,6 +805,14 @@ class UserViolation(models.Model):
 
     user_report = models.ForeignKey(
         "UserReport",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="violations",
+    )
+
+    company_report = models.ForeignKey(
+        "CompanyReport",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -796,6 +883,16 @@ class UserViolation(models.Model):
                 ),
                 name="unique_user_report_violation",
             ),
+
+            models.UniqueConstraint(
+                fields=(
+                    "company_report",
+                ),
+                condition=models.Q(
+                    company_report__isnull=False,
+                ),
+                name="unique_company_report_violation",
+            ),
         ]
 
     def clean(self):
@@ -849,10 +946,16 @@ class UserViolation(models.Model):
             self.source_type
             == self.SourceType.FALSE_REPORT
         ):
-            if not self.content_report:
+            report_sources = [
+                bool(self.content_report),
+                bool(self.user_report),
+                bool(self.company_report),
+            ]
+
+            if sum(report_sources) != 1:
                 errors["content_report"] = (
-                    "Kötü niyetli raporlama ihlali için "
-                    "içerik raporu gereklidir."
+                    "Kötü niyetli raporlama ihlali tam olarak bir "
+                    "rapor kaynağına bağlı olmalıdır."
                 )
 
         self.description = (
@@ -871,3 +974,93 @@ class UserViolation(models.Model):
             f"@{self.user.username} - "
             f"{self.get_source_type_display()}"
         )
+
+class ReportRestriction(models.Model):
+    """
+    Kötü niyetli/asilsiz raporlama davranışından doğan geçici kısıtları
+    kayıt altında tutar.
+
+    PROBATION:
+        Kullanıcı raporu limiti son 24 saatte 1'e düşer.
+
+    FULL_BLOCK:
+        Kullanıcı şikayet oluşturamaz ve hiçbir raporlama işlemi yapamaz.
+    """
+
+    class Kind(models.TextChoices):
+        PROBATION = (
+            "PROBATION",
+            "Raporlama gözetimi",
+        )
+        FULL_BLOCK = (
+            "FULL_BLOCK",
+            "Şikayet ve raporlama kısıtı",
+        )
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="report_restrictions",
+    )
+
+    kind = models.CharField(
+        max_length=20,
+        choices=Kind.choices,
+        db_index=True,
+    )
+
+    starts_at = models.DateTimeField(
+        default=timezone.now,
+        db_index=True,
+    )
+
+    ends_at = models.DateTimeField(
+        db_index=True,
+    )
+
+    trigger_violation = models.ForeignKey(
+        "UserViolation",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="triggered_report_restrictions",
+    )
+
+    reason = models.CharField(
+        max_length=500,
+        blank=True,
+        default="",
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    class Meta:
+        ordering = (
+            "-created_at",
+            "-pk",
+        )
+
+        indexes = [
+            models.Index(
+                fields=(
+                    "user",
+                    "kind",
+                    "ends_at",
+                ),
+                name="report_restriction_active",
+            ),
+        ]
+
+    @property
+    def is_active(self):
+        now = timezone.now()
+        return self.starts_at <= now < self.ends_at
+
+    def __str__(self):
+        return (
+            f"@{self.user.username} - "
+            f"{self.get_kind_display()}"
+        )
+

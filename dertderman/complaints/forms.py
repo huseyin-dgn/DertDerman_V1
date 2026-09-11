@@ -2,7 +2,7 @@ from django import forms
 
 from companies.models import Company
 
-from .models import Complaint, ComplaintComment, ContentReport
+from .models import Complaint, ComplaintComment, CompanyReport, ContentReport, UserReport
 
 
 class ComplaintCreateForm(forms.ModelForm):
@@ -144,3 +144,80 @@ class ContentReportForm(forms.ModelForm):
         ).strip()
 
         return description
+
+class UserReportForm(forms.ModelForm):
+    class Meta:
+        model = UserReport
+        fields = (
+            "reason",
+            "description",
+        )
+
+        labels = {
+            "reason": "Raporlama nedeni",
+            "description": "Açıklama",
+        }
+
+        help_texts = {
+            "description": (
+                "İsterseniz neden raporladığınızı kısa şekilde açıklayın."
+            ),
+        }
+
+        widgets = {
+            "reason": forms.Select(
+                attrs={
+                    "class": "form-select",
+                }
+            ),
+            "description": forms.Textarea(
+                attrs={
+                    "rows": 4,
+                    "maxlength": 1000,
+                    "placeholder": (
+                        "Bu kullanıcıyı neden raporluyorsunuz?"
+                    ),
+                    "data-character-count": "",
+                }
+            ),
+        }
+
+    def clean_description(self):
+        return (
+            self.cleaned_data.get("description") or ""
+        ).strip()
+
+
+class CompanyReportForm(forms.ModelForm):
+    class Meta:
+        model = CompanyReport
+        fields = (
+            "reason",
+            "description",
+        )
+        labels = {
+            "reason": "Raporlama nedeni",
+            "description": "Açıklama",
+        }
+        help_texts = {
+            "description": (
+                "İsterseniz şirketi neden raporladığınızı kısa şekilde açıklayın."
+            ),
+        }
+        widgets = {
+            "reason": forms.Select(
+                attrs={
+                    "class": "form-select",
+                }
+            ),
+            "description": forms.Textarea(
+                attrs={
+                    "rows": 4,
+                    "maxlength": 1000,
+                    "placeholder": "Bu şirketi neden raporluyorsunuz?",
+                }
+            ),
+        }
+
+    def clean_description(self):
+        return (self.cleaned_data.get("description") or "").strip()

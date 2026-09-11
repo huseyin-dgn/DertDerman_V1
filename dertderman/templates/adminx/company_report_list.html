@@ -1,0 +1,345 @@
+{% extends 'adminx/content_base.html' %}
+{% load static %}
+
+{% block title %}Şirket Raporları | DertDerman Yönetim{% endblock %}
+
+{% block extra_head %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'css/admin-report-list.css' %}">
+{% endblock %}
+
+{% block content_heading %}
+<div class="report-list-heading">
+    <div>
+        <p class="report-list-kicker">MODERASYON MERKEZİ</p>
+
+        <h1>Şirket Raporları</h1>
+
+        <p>
+            Kullanıcıların şirket profilleri hakkında gönderdiği
+            raporları inceleyin ve sonuçlandırın.
+        </p>
+    </div>
+</div>
+{% endblock %}
+
+{% block management_content %}
+
+<section class="report-list-shell">
+
+    <form method="get" class="report-filter-card">
+
+        <div class="report-search-field">
+            <label for="company-report-search">
+                Rapor ara
+            </label>
+
+            <div class="report-search-input">
+                <span aria-hidden="true">⌕</span>
+
+                <input
+                    id="company-report-search"
+                    type="search"
+                    name="q"
+                    value="{{ search }}"
+                    maxlength="100"
+                    placeholder="Kullanıcı, şirket veya açıklama ara"
+                >
+            </div>
+        </div>
+
+
+        <div class="report-status-field">
+
+            <label for="company-report-status">
+                Durum
+            </label>
+
+            <select
+                id="company-report-status"
+                name="status"
+            >
+
+                <option
+                    value="all"
+                    {% if active_status == 'all' %}selected{% endif %}
+                >
+                    Tüm raporlar
+                </option>
+
+                {% for value, label in status_options %}
+
+                    <option
+                        value="{{ value }}"
+                        {% if active_status == value %}selected{% endif %}
+                    >
+                        {{ label }}
+                    </option>
+
+                {% endfor %}
+
+            </select>
+
+        </div>
+
+
+        <div class="report-filter-actions">
+
+            <button
+                type="submit"
+                class="report-primary-button"
+            >
+                Filtrele
+            </button>
+
+            {% if search or active_status != 'PENDING' %}
+
+                <a
+                    href="{% url 'adminx:company_report_list' %}"
+                    class="report-secondary-button"
+                >
+                    Temizle
+                </a>
+
+            {% endif %}
+
+        </div>
+
+    </form>
+
+
+    <div class="report-list-meta">
+
+        <div>
+            <span>Gösterilen kayıt</span>
+            <strong>{{ page_obj.paginator.count }}</strong>
+        </div>
+
+        <div>
+            <span>Aktif filtre</span>
+
+            <strong>
+
+                {% if active_status == 'all' %}
+
+                    Tümü
+
+                {% else %}
+
+                    {% for value, label in status_options %}
+
+                        {% if value == active_status %}
+                            {{ label }}
+                        {% endif %}
+
+                    {% endfor %}
+
+                {% endif %}
+
+            </strong>
+        </div>
+
+    </div>
+
+
+    <div class="report-table-card">
+
+        <div class="report-table-header">
+
+            <div>
+                <p class="report-list-kicker">
+                    RAPOR KUYRUĞU
+                </p>
+
+                <h2>
+                    Şirket bildirimleri
+                </h2>
+            </div>
+
+            <span>
+                {{ page_obj.paginator.count }} kayıt
+            </span>
+
+        </div>
+
+
+        {% if page_obj %}
+
+            <div class="report-table-wrapper">
+
+                <table class="report-table">
+
+                    <thead>
+
+                        <tr>
+                            <th>Raporlayan</th>
+                            <th>Şirket</th>
+                            <th>Neden</th>
+                            <th>Durum</th>
+                            <th>Tarih</th>
+                            <th class="report-table-action-column">
+                                İşlem
+                            </th>
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        {% for report in page_obj %}
+
+                            <tr>
+
+                                <td>
+
+                                    <div class="report-user-cell">
+
+                                        <span class="report-user-avatar">
+                                            {{ report.reporter.username|first|upper }}
+                                        </span>
+
+                                        <div>
+
+                                            <strong>
+                                                @{{ report.reporter.username }}
+                                            </strong>
+
+                                            <small>
+                                                Bildiren kullanıcı
+                                            </small>
+
+                                        </div>
+
+                                    </div>
+
+                                </td>
+
+
+                                <td>
+
+                                    <div class="report-company-cell">
+
+                                        <span class="report-company-avatar">
+                                            {{ report.company.name|first|upper }}
+                                        </span>
+
+                                        <div>
+
+                                            <strong>
+                                                {{ report.company.name }}
+                                            </strong>
+
+                                            <small>
+                                                Raporlanan şirket
+                                            </small>
+
+                                        </div>
+
+                                    </div>
+
+                                </td>
+
+
+                                <td>
+
+                                    <div class="report-reason-cell">
+
+                                        <strong>
+                                            {{ report.get_reason_display }}
+                                        </strong>
+
+                                        {% if report.description %}
+
+                                            <span>
+                                                {{ report.description|truncatechars:75 }}
+                                            </span>
+
+                                        {% else %}
+
+                                            <span>
+                                                Açıklama eklenmedi
+                                            </span>
+
+                                        {% endif %}
+
+                                    </div>
+
+                                </td>
+
+
+                                <td>
+
+                                    <span class="report-status report-status--{{ report.status|lower }}">
+                                        {{ report.get_status_display }}
+                                    </span>
+
+                                </td>
+
+
+                                <td>
+
+                                    <div class="report-date-cell">
+
+                                        <strong>
+                                            {{ report.created_at|date:"d.m.Y" }}
+                                        </strong>
+
+                                        <span>
+                                            {{ report.created_at|date:"H:i" }}
+                                        </span>
+
+                                    </div>
+
+                                </td>
+
+
+                                <td class="report-table-action-column">
+
+                                    <a
+                                        href="{% url 'adminx:company_report_detail' report.pk %}"
+                                        class="report-review-button"
+                                    >
+                                        İncele →
+                                    </a>
+
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        {% else %}
+
+            <div class="report-empty-state">
+
+                <span aria-hidden="true">
+                    ✓
+                </span>
+
+                <h3>
+                    Bu filtrede şirket raporu bulunmuyor
+                </h3>
+
+                <p>
+                    Yeni şirket raporları geldiğinde burada listelenecek.
+                </p>
+
+            </div>
+
+        {% endif %}
+
+    </div>
+
+
+    {% include 'components/pagination.html' with page_obj=page_obj label='Şirket raporları' %}
+
+</section>
+
+{% endblock %}

@@ -1,0 +1,166 @@
+{% extends 'adminx/content_base.html' %}
+{% load static %}
+{% block title %}Şirket Raporu #{{ report.pk }} | DertDerman Yönetim{% endblock %}
+
+{% block extra_head %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'css/admin-report-review.css' %}">
+<script src="{% static 'js/admin-report-review.js' %}" defer></script>
+{% endblock %}
+
+{% block content_heading %}
+<div class="arr-heading">
+  <div>
+    <p class="section-kicker">ŞİRKET RAPORU #{{ report.pk }}</p>
+    <h1>@{{ report.reporter.username }} → {{ report.company.name }}</h1>
+    <p class="arr-subtitle">Gönderim: {{ report.created_at|date:"d.m.Y H:i" }}</p>
+  </div>
+  <a class="secondary-action" href="{% url 'adminx:company_report_list' %}">← Şirket raporlarına dön</a>
+</div>
+{% endblock %}
+
+{% block management_content %}
+<div class="arr-layout">
+  <section class="arr-card arr-main">
+    <header class="arr-card-head">
+      <div>
+        <p class="arr-eyebrow">RAPOR BİLGİLERİ</p>
+        <h2>İncelenecek bildirim</h2>
+      </div>
+      <span class="arr-status arr-status--{{ report.status|lower }}">{{ report.get_status_display }}</span>
+    </header>
+
+    <div class="arr-info-grid">
+      <div class="arr-info-item">
+        <span>Bildiren kullanıcı</span>
+        <strong><a href="{% url 'adminx:user_detail' report.reporter.pk %}">@{{ report.reporter.username }}</a></strong>
+      </div>
+      <div class="arr-info-item">
+        <span>Raporlanan şirket</span>
+        <strong><a href="{% url 'adminx:company_edit' report.company.pk %}">{{ report.company.name }}</a></strong>
+      </div>
+      <div class="arr-info-item">
+        <span>Raporlama nedeni</span>
+        <strong>{{ report.get_reason_display }}</strong>
+      </div>
+      <div class="arr-info-item">
+        <span>Rapor durumu</span>
+        <strong>{{ report.get_status_display }}</strong>
+      </div>
+    </div>
+
+    <div class="arr-description">
+      <span>Açıklama</span>
+      <div>{{ report.description|default:"Kullanıcı açıklama eklemedi."|linebreaksbr }}</div>
+    </div>
+
+    <div class="arr-risk-box">
+      <div>
+        <span>Bildiren kullanıcının kötü niyetli raporlama ihlali</span>
+        <strong>{{ reporter_false_count }}</strong>
+      </div>
+      <p>Bu sayı yalnızca daha önce admin tarafından kötü niyetli / asılsız olarak doğrulanan raporlardan oluşur.</p>
+    </div>
+
+    {% if report.reviewed_by %}
+    <div class="arr-review-meta">
+      <div><span>İnceleyen yönetici</span><strong>{{ report.reviewed_by.username }}</strong></div>
+      <div><span>Karar zamanı</span><strong>{{ report.reviewed_at|date:"d.m.Y H:i"|default:"—" }}</strong></div>
+    </div>
+    {% endif %}
+  </section>
+
+  <aside class="arr-card arr-side">
+    <header class="arr-card-head">
+      <div>
+        <p class="arr-eyebrow">MODERASYON KARARI</p>
+        <h2>Raporu sonuçlandır</h2>
+      </div>
+    </header>
+
+    {% if report.status == 'RESOLVED' or report.status == 'REJECTED' or report.status == 'ABUSIVE' %}
+      <div class="arr-finalized">
+        <span>Karar kilitlendi</span>
+        <strong>{{ report.get_status_display }}</strong>
+        <p>Bu rapor sonuçlandırıldığı için karar değiştirilemez.</p>
+      </div>
+    {% else %}
+      <p class="arr-side-note">Bir karar seçin. Sonuçlandırma işlemleri onay penceresinden sonra uygulanır.</p>
+
+      {% if report.status != 'REVIEWING' %}
+      <form method="post" action="{% url 'adminx:company_report_status' report.pk %}">
+        {% csrf_token %}
+        <input type="hidden" name="status" value="REVIEWING">
+        <button class="arr-action arr-action--review" type="submit">İncelemeye Al</button>
+      </form>
+      {% endif %}
+
+      <button
+        type="button"
+        class="arr-action arr-action--confirm"
+        data-review-open
+        data-status="RESOLVED"
+        data-title="Şirket raporunda ihlal olduğunu onayla"
+        data-message="Bu karar, raporlanan şirket hakkında ihlal bulunduğu anlamına gelir. Raporlayan kullanıcıya kötü niyetli raporlama ihlali yazılmaz."
+        data-submit-label="İhlal Var Olarak Onayla">
+        İhlal Var
+      </button>
+
+      <button
+        type="button"
+        class="arr-action arr-action--neutral"
+        data-review-open
+        data-status="REJECTED"
+        data-title="İhlal bulunmadığını onayla"
+        data-message="Bu karar, şirket raporunun incelendiğini ancak doğrulanmış bir ihlal bulunmadığını belirtir. Raporlayan kullanıcıya ceza uygulanmaz."
+        data-submit-label="İhlal Bulunmadı Olarak Onayla">
+        İhlal Bulunmadı
+      </button>
+
+      <button
+        type="button"
+        class="arr-action arr-action--danger"
+        data-review-open
+        data-status="ABUSIVE"
+        data-title="Kötü niyetli / asılsız rapor olarak işaretle"
+        data-message="Bu işlem raporlayan kullanıcıya 1 adet FALSE_REPORT ihlali ekler. Bu ihlal kategori ve toplam kalıcı kapatma sayaçlarına dahil edilir."
+        data-submit-label="Asılsız Rapor Olarak Onayla">
+        Kötü Niyetli / Asılsız Rapor
+      </button>
+    {% endif %}
+  </aside>
+</div>
+
+<div class="arr-modal" id="admin-report-review-modal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="arr-modal-title">
+  <div class="arr-modal-card">
+    <header class="arr-modal-head">
+      <div>
+        <p class="arr-eyebrow">YÖNETİCİ ONAYI</p>
+        <h2 id="arr-modal-title">Kararı onayla</h2>
+      </div>
+      <button type="button" class="arr-modal-close" data-review-close aria-label="Pencereyi kapat">×</button>
+    </header>
+
+    <div class="arr-modal-body">
+      <div class="arr-modal-summary">
+        <div><span>Raporlayan</span><strong>@{{ report.reporter.username }}</strong></div>
+        <div><span>Şirket</span><strong>{{ report.company.name }}</strong></div>
+        <div><span>Neden</span><strong>{{ report.get_reason_display }}</strong></div>
+      </div>
+
+      <p class="arr-modal-message" data-review-message></p>
+
+      <div class="arr-modal-warning" data-review-warning hidden>
+        Bu işlem kullanıcı ihlal sayacını etkiler ve geri alınamaz.
+      </div>
+
+      <form method="post" action="{% url 'adminx:company_report_status' report.pk %}" class="arr-modal-actions">
+        {% csrf_token %}
+        <input type="hidden" name="status" value="" data-review-status>
+        <button type="button" class="arr-button arr-button--cancel" data-review-close>Vazgeç</button>
+        <button type="submit" class="arr-button arr-button--submit" data-review-submit>Kararı Onayla</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}@{{ account.username }} | DertDerman{% endblock %}
+
+{% block body_class %}public-site public-profile-page{% endblock %}
+
+{% block content %}
+<style>
+    .public-user-shell{max-width:920px;margin:0 auto;padding:40px 20px}
+    .public-user-card{background:#fff;border:1px solid #e2e8f0;border-radius:18px;box-shadow:0 10px 30px rgba(15,23,42,.06);overflow:hidden}
+    .public-user-head{padding:28px;display:flex;align-items:center;gap:18px;border-bottom:1px solid #eef2f7}
+    .public-user-main{flex:1;min-width:0}
+    .public-user-kicker{margin:0 0 5px;color:#1d5fa7;font-size:12px;font-weight:900;letter-spacing:.08em}
+    .public-user-main h1{margin:0;color:#0f172a;font-size:28px}
+    .public-user-main p{margin:6px 0 0;color:#64748b}
+    .public-user-body{padding:28px}
+    .public-user-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:24px}
+    .public-user-stat{padding:16px;background:#f8fafc;border:1px solid #e8edf3;border-radius:12px}
+    .public-user-stat b{display:block;font-size:22px;color:#0f172a}
+    .public-user-stat span{font-size:12px;color:#64748b;font-weight:700}
+    .public-user-report{margin-top:26px;padding-top:24px;border-top:1px solid #eef2f7}
+    .public-user-report h2{margin:0 0 6px;font-size:18px;color:#0f172a}
+    .public-user-report p{margin:0 0 16px;color:#64748b;font-size:14px}
+    .public-user-report label{display:block;margin:14px 0 6px;font-weight:800;color:#334155;font-size:13px}
+    .public-user-report select,.public-user-report textarea{width:100%;box-sizing:border-box;border:1px solid #dbe3ee;border-radius:10px;padding:11px 12px;background:#fff;color:#0f172a}
+    .public-user-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+    .report-button{border:0;border-radius:10px;background:#b91c1c;color:#fff;padding:11px 16px;font-weight:800;cursor:pointer}
+    .report-button:hover{background:#991b1b}
+    .report-note{padding:14px 16px;border-radius:12px;background:#f8fafc;color:#475569;border:1px solid #e2e8f0}
+    .report-note.warning{background:#fff7ed;border-color:#fed7aa;color:#9a3412}
+    @media(max-width:650px){.public-user-head{align-items:flex-start}.public-user-stats{grid-template-columns:1fr}}
+</style>
+
+<main class="public-user-shell" id="main-content">
+    <section class="public-user-card">
+        <header class="public-user-head">
+            {% include 'components/user_avatar.html' with user=account size_class='profile-avatar' only %}
+            <div class="public-user-main">
+                <p class="public-user-kicker">DERTDERMAN KULLANICISI</p>
+                <h1>@{{ account.username }}</h1>
+                {% if account.get_full_name %}
+                    <p>{{ account.get_full_name }}</p>
+                {% endif %}
+                {% if primary_user_badge %}
+                    <div style="margin-top:10px">
+                        {% include 'components/public_user_badge.html' with badge=primary_user_badge only %}
+                    </div>
+                {% endif %}
+            </div>
+        </header>
+
+        <div class="public-user-body">
+            <div class="public-user-stats">
+                <div class="public-user-stat">
+                    <b>{{ complaint_count }}</b>
+                    <span>Yayınlanmış / çözülmüş şikayet</span>
+                </div>
+                <div class="public-user-stat">
+                    <b>{{ account.date_joined|date:"Y" }}</b>
+                    <span>Katılım yılı</span>
+                </div>
+            </div>
+
+            {% if user_badges %}
+            <section class="user-badges" aria-labelledby="public-user-badges">
+                <h2 id="public-user-badges">Başarı Rozetleri</h2>
+                <div class="achievement-grid">
+                    {% for badge in user_badges %}
+                        {% include 'components/achievement_badge.html' with badge=badge badge_kind='user' only %}
+                    {% endfor %}
+                </div>
+            </section>
+            {% endif %}
+
+            <section class="public-user-report">
+                <h2>Kullanıcıyı raporla</h2>
+
+                {% if request.user.is_authenticated and request.user.pk == account.pk %}
+                    <div class="report-note">
+                        Kendi hesabınızı raporlayamazsınız.
+                    </div>
+
+                {% elif not request.user.is_authenticated %}
+                    <div class="report-note">
+                        Kullanıcı raporlamak için giriş yapmanız gerekir.
+                        <div class="public-user-actions">
+                            <a class="secondary-action" href="{% url 'accounts:login' %}?next={{ request.path|urlencode }}">
+                                Giriş Yap
+                            </a>
+                        </div>
+                    </div>
+
+                {% elif request.user.user_type != 'USER' %}
+                    <div class="report-note">
+                        Kullanıcı raporlama özelliği yalnızca bireysel kullanıcı hesaplarına açıktır.
+                    </div>
+
+                {% elif request.user.is_currently_suspended %}
+                    <div class="report-note warning">
+                        Hesabınız askıya alındığı için rapor gönderemezsiniz.
+                    </div>
+
+                {% elif already_reported %}
+                    <div class="report-note">
+                        Bu kullanıcıyı daha önce raporladınız. Aynı kullanıcı için ikinci bir rapor gönderilemez.
+                    </div>
+
+                {% elif can_report %}
+                    <p>
+                        Topluluk kurallarına aykırı bir davranış olduğunu düşünüyorsanız
+                        nedenini seçerek yönetim ekibine bildirebilirsiniz.
+                    </p>
+
+                    <form method="post" action="{% url 'complaints:user_report' account.pk %}">
+                        {% csrf_token %}
+
+                        <label for="{{ user_report_form.reason.id_for_label }}">
+                            Raporlama nedeni
+                        </label>
+                        {{ user_report_form.reason }}
+
+                        <label for="{{ user_report_form.description.id_for_label }}">
+                            Açıklama
+                        </label>
+                        {{ user_report_form.description }}
+
+                        <div class="public-user-actions">
+                            <button class="report-button" type="submit">
+                                Kullanıcıyı Raporla
+                            </button>
+                        </div>
+                    </form>
+                {% endif %}
+            </section>
+        </div>
+    </section>
+</main>
+{% endblock %}

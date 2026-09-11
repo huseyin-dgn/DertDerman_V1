@@ -1,0 +1,380 @@
+{% if account.user_type == 'USER' %}
+<section class="admin-card pc-close-card">
+    <div class="card-header">
+        <div>
+            <h2>
+                Hesap Kapatma İşlemi
+            </h2>
+
+            <p>
+                Kalıcı kapatma yalnızca doğrulanmış eşik ve
+                açık yönetici onayıyla uygulanır.
+            </p>
+        </div>
+
+        {% if account.is_permanently_closed %}
+            <span class="status-pill status-passive">
+                Kalıcı Olarak Kapalı
+            </span>
+
+        {% elif permanent_close_ready %}
+            <span class="status-pill status-warning">
+                İşlem Yapılabilir
+            </span>
+
+        {% else %}
+            <span class="status-pill status-active">
+                Eşik Altında
+            </span>
+        {% endif %}
+    </div>
+
+    <div class="card-body">
+        {% if account.is_permanently_closed %}
+
+            <div class="notice-box notice-danger">
+                <strong>
+                    Bu hesap kalıcı olarak kapatılmıştır.
+                </strong>
+
+                <br>
+
+                Kapatılma:
+                {% if account.permanently_closed_at %}
+                    {{ account.permanently_closed_at|date:'d.m.Y H:i' }}
+                {% else %}
+                    —
+                {% endif %}
+
+                {% if account.permanently_closed_by %}
+                    · Yönetici:
+                    {{ account.permanently_closed_by.username }}
+                {% endif %}
+
+                {% if account.permanent_closure_reason %}
+                    <br><br>
+                    <strong>Gerekçe:</strong>
+                    {{ account.permanent_closure_reason }}
+                {% endif %}
+            </div>
+
+        {% elif permanent_close_ready %}
+
+            <div class="pc-close-warning">
+                <strong>
+                    Bu işlem geri dönüşsüzdür.
+                </strong>
+
+                Hesap pasif hale gelir, aktif oturumlar sonlandırılır,
+                mevcut şikayetleri yayından kaldırılır ve aynı e-posta
+                ile yeniden kayıt engellenir.
+            </div>
+
+            <button
+                type="button"
+                class="pc-close-trigger"
+                data-pc-close-open
+            >
+                Hesabı Kalıcı Olarak Kapat
+            </button>
+
+            <div
+                class="pc-close-overlay"
+                id="pc-close-overlay"
+                hidden
+            >
+                <section
+                    class="pc-close-modal"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="pc-close-title"
+                >
+                    <header>
+                        <div>
+                            <p>
+                                KALICI HESAP KAPATMA
+                            </p>
+
+                            <h2 id="pc-close-title">
+                                @{{ account.username }} hesabını kapat
+                            </h2>
+                        </div>
+
+                        <button
+                            type="button"
+                            data-pc-close-dismiss
+                            aria-label="Kapat"
+                        >
+                            ×
+                        </button>
+                    </header>
+
+                    <form
+                        method="post"
+                        action="{% url 'adminx:permanently_close_user' account.pk %}"
+                        class="pc-close-form"
+                        autocomplete="off"
+                    >
+                        {% csrf_token %}
+
+                        <div class="pc-close-summary">
+                            <span>
+                                Kullanıcı:
+                                <b>{{ false_report_user_count }}</b>
+                            </span>
+
+                            <span>
+                                İçerik:
+                                <b>{{ false_report_content_count }}</b>
+                            </span>
+
+                            <span>
+                                Şirket:
+                                <b>{{ false_report_company_count }}</b>
+                            </span>
+
+                            <span>
+                                Toplam:
+                                <b>{{ false_report_violation_count }}</b>
+                            </span>
+                        </div>
+
+                        <label>
+                            <span>
+                                Kapatma gerekçesi
+                            </span>
+
+                            <textarea
+                                name="reason"
+                                rows="5"
+                                minlength="10"
+                                maxlength="1000"
+                                required
+                                placeholder="Kalıcı kapatma kararının gerekçesini açıkça yazın."
+                            ></textarea>
+                        </label>
+
+                        <label>
+                            <span>
+                                Onay için kullanıcı adını yazın
+                            </span>
+
+                            <input
+                                type="text"
+                                name="confirm_username"
+                                required
+                                autocomplete="off"
+                                placeholder="{{ account.username }}"
+                            >
+                        </label>
+
+                        <div class="pc-close-critical">
+                            Bu işlemden sonra kullanıcı mevcut oturumlarından
+                            çıkarılır ve tekrar giriş yapamaz.
+                        </div>
+
+                        <div class="pc-close-actions">
+                            <button
+                                type="button"
+                                class="secondary-action"
+                                data-pc-close-dismiss
+                            >
+                                Vazgeç
+                            </button>
+
+                            <button
+                                type="submit"
+                                class="pc-close-confirm"
+                            >
+                                Kalıcı Olarak Kapat
+                            </button>
+                        </div>
+                    </form>
+                </section>
+            </div>
+
+        {% else %}
+
+            <div class="notice-box">
+                Kullanıcı kalıcı kapatma kriterlerini karşılamıyor.
+                Backend bu eşiği işlem anında yeniden kontrol eder.
+            </div>
+
+        {% endif %}
+    </div>
+</section>
+
+<style>
+.pc-close-card{margin-top:24px}
+.pc-close-warning{
+    margin-bottom:16px;
+    padding:14px 16px;
+    border:1px solid #fecaca;
+    border-radius:12px;
+    background:#fff7f6;
+    color:#991b1b;
+    line-height:1.6;
+}
+.pc-close-trigger,
+.pc-close-confirm{
+    min-height:44px;
+    padding:0 16px;
+    border:1px solid #b42318;
+    border-radius:11px;
+    background:#b42318;
+    color:#fff;
+    font:inherit;
+    font-weight:800;
+    cursor:pointer;
+}
+.pc-close-overlay{
+    position:fixed;
+    inset:0;
+    z-index:130000;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:18px;
+    background:rgba(15,23,42,.7);
+    backdrop-filter:blur(5px);
+}
+.pc-close-overlay.is-open{display:flex}
+.pc-close-modal{
+    width:min(600px,100%);
+    max-height:calc(100vh - 36px);
+    overflow:auto;
+    border-radius:20px;
+    background:#fff;
+    box-shadow:0 30px 100px rgba(15,23,42,.38);
+}
+.pc-close-modal>header{
+    display:flex;
+    justify-content:space-between;
+    gap:18px;
+    padding:22px 24px;
+    border-bottom:1px solid #e8edf3;
+    background:linear-gradient(180deg,#fff5f4,#fff);
+}
+.pc-close-modal>header p{
+    margin:0 0 5px;
+    color:#b42318;
+    font-size:12px;
+    font-weight:900;
+    letter-spacing:.1em;
+}
+.pc-close-modal>header h2{
+    margin:0;
+    color:#172033;
+}
+.pc-close-modal>header button{
+    width:38px;
+    height:38px;
+    border:1px solid #dde4ec;
+    border-radius:50%;
+    background:#fff;
+    color:#475569;
+    font-size:22px;
+    cursor:pointer;
+}
+.pc-close-form{
+    display:grid;
+    gap:17px;
+    padding:22px 24px;
+}
+.pc-close-summary{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+}
+.pc-close-summary span{
+    padding:7px 10px;
+    border-radius:999px;
+    background:#f1f5f9;
+    color:#475569;
+}
+.pc-close-form label{
+    display:grid;
+    gap:7px;
+    color:#334155;
+    font-weight:700;
+}
+.pc-close-form textarea,
+.pc-close-form input{
+    width:100%;
+    box-sizing:border-box;
+    border:1px solid #cfd8e3;
+    border-radius:11px;
+    padding:11px 12px;
+    background:#fff;
+    color:#172033;
+    font:inherit;
+    outline:none;
+}
+.pc-close-form textarea:focus,
+.pc-close-form input:focus{
+    border-color:#b42318;
+    box-shadow:0 0 0 3px rgba(180,35,24,.1);
+}
+.pc-close-critical{
+    padding:12px 14px;
+    border-radius:11px;
+    background:#fef2f2;
+    color:#991b1b;
+    font-weight:700;
+}
+.pc-close-actions{
+    display:flex;
+    justify-content:flex-end;
+    gap:10px;
+}
+body.pc-close-open{overflow:hidden}
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const overlay = document.getElementById("pc-close-overlay");
+    const openButton = document.querySelector("[data-pc-close-open]");
+
+    if (!overlay || !openButton) return;
+
+    const close = () => {
+        overlay.classList.remove("is-open");
+        overlay.hidden = true;
+        document.body.classList.remove("pc-close-open");
+    };
+
+    openButton.addEventListener("click", () => {
+        overlay.hidden = false;
+        overlay.classList.add("is-open");
+        document.body.classList.add("pc-close-open");
+
+        const textarea = overlay.querySelector("textarea");
+        if (textarea) {
+            window.setTimeout(
+                () => textarea.focus(),
+                30
+            );
+        }
+    });
+
+    overlay.querySelectorAll("[data-pc-close-dismiss]").forEach((button) => {
+        button.addEventListener("click", close);
+    });
+
+    overlay.addEventListener("click", (event) => {
+        if (event.target === overlay) {
+            close();
+        }
+    });
+
+    document.addEventListener("keydown", (event) => {
+        if (
+            event.key === "Escape"
+            && overlay.classList.contains("is-open")
+        ) {
+            close();
+        }
+    });
+});
+</script>
+{% endif %}

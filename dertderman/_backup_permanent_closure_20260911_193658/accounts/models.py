@@ -51,29 +51,5 @@ class User(AbstractUser):
 
         return True
 
-    # Kalıcı hesap kapatma bilgileri.
-    # Satır silinmez; e-posta/kullanıcı adı rezervasyonu ve audit izi korunur.
-    is_permanently_closed = models.BooleanField(
-        default=False,
-        db_index=True,
-    )
-    permanently_closed_at = models.DateTimeField(
-        null=True,
-        blank=True,
-    )
-    permanently_closed_by = models.ForeignKey(
-        "self",
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name="permanent_closures_performed",
-    )
-    permanent_closure_reason = models.TextField(
-        blank=True,
-    )
-    permanent_closure_snapshot = models.JSONField(
-        default=dict,
-        blank=True,
-    )
     def __str__(self):
         return self.username

@@ -1,6 +1,301 @@
 {% extends 'adminx/table_base.html' %}
-{% block title %}Kullanıcılar | DertDerman Yönetim{% endblock %}
-{% block content_heading %}<p class="ad-kicker">YÖNETİM MERKEZİ</p><h1>Kullanıcılar</h1><p>Platformdaki hesapları, rolleri ve aktiflik durumlarını görüntüleyin.</p>{% endblock %}
-{% block table_head %}<th scope="col">İsim</th><th scope="col">E-posta</th><th scope="col">Kayıt tarihi</th><th scope="col">Rol</th><th scope="col">Aktiflik</th><th scope="col">Aksiyon</th>{% endblock %}
-{% block table_rows %}{% for account in page_obj %}<tr><td class="ad-title-cell">{{ account.get_full_name|default:account.username }}<small>@{{ account.username }}</small></td><td>{{ account.email }}</td><td>{{ account.date_joined|date:'d.m.Y H:i' }}</td><td>{% include 'components/badge.html' with status='info' label=account.get_user_type_display %}</td><td>{% if account.is_active %}{% include 'components/badge.html' with status='success' label='Aktif' %}{% else %}{% include 'components/badge.html' with status='danger' label='Pasif' %}{% endif %}</td><td><a class="ad-row-action" href="{% url 'adminx:user_detail' account.pk %}" aria-label="{{ account.username }} hesabını incele">İncele ↗</a></td></tr>{% endfor %}{% endblock %}
-{% block table_empty %}{% include 'components/empty_state.html' with heading='Kullanıcı kaydı bulunmuyor.' route='adminx:user_list' %}{% endblock %}
+
+{% block title %}
+Kullanıcılar | DertDerman Yönetim
+{% endblock %}
+
+
+{% block content_heading %}
+<p class="ad-kicker">YÖNETİM MERKEZİ</p>
+
+<h1>Kullanıcılar</h1>
+
+<p>
+    Platformdaki hesapları, rolleri ve aktiflik durumlarını görüntüleyin.
+</p>
+{% endblock %}
+
+
+{% block table_head %}
+<th scope="col">İsim</th>
+<th scope="col">E-posta</th>
+<th scope="col">Kayıt tarihi</th>
+<th scope="col">Rol</th>
+<th scope="col">Hesap durumu</th>
+<th scope="col">Aksiyon</th>
+{% endblock %}
+
+
+{% block table_rows %}
+
+{% for account in page_obj %}
+
+<tr
+    {% if account.is_permanently_closed %}
+        class="permanently-closed-row"
+    {% endif %}
+>
+
+    <td
+        class="
+            ad-title-cell
+            {% if account.is_permanently_closed %}
+                permanently-closed-user
+            {% endif %}
+        "
+    >
+
+        <div class="user-list-identity">
+
+            <span
+                class="
+                    user-list-name
+                    {% if account.is_permanently_closed %}
+                        user-list-name--closed
+                    {% endif %}
+                "
+            >
+                {{ account.get_full_name|default:account.username }}
+            </span>
+
+
+            {% if account.is_permanently_closed %}
+
+                <span class="permanent-closed-label">
+                    Kalıcı kapalı
+                </span>
+
+            {% endif %}
+
+        </div>
+
+
+        <small
+            {% if account.is_permanently_closed %}
+                class="closed-username"
+            {% endif %}
+        >
+            @{{ account.username }}
+        </small>
+
+    </td>
+
+
+
+    <td
+        {% if account.is_permanently_closed %}
+            class="closed-email"
+        {% endif %}
+    >
+        {{ account.email }}
+    </td>
+
+
+
+    <td>
+        {{ account.date_joined|date:'d.m.Y H:i' }}
+    </td>
+
+
+
+    <td>
+        {% include 'components/badge.html' with status='info' label=account.get_user_type_display %}
+    </td>
+
+
+
+    <td>
+
+        {% if account.is_permanently_closed %}
+
+            {% include 'components/badge.html' with status='danger' label='Kalıcı kapalı' %}
+
+        {% elif account.is_active %}
+
+            {% include 'components/badge.html' with status='success' label='Aktif' %}
+
+        {% else %}
+
+            {% include 'components/badge.html' with status='danger' label='Pasif' %}
+
+        {% endif %}
+
+    </td>
+
+
+
+    <td>
+
+        <a
+            class="
+                ad-row-action
+                {% if account.is_permanently_closed %}
+                    closed-row-action
+                {% endif %}
+            "
+            href="{% url 'adminx:user_detail' account.pk %}"
+            aria-label="{{ account.username }} hesabını incele"
+        >
+            İncele ↗
+        </a>
+
+    </td>
+
+</tr>
+
+{% endfor %}
+
+
+<style>
+
+    /*
+    ============================================================
+    KALICI KAPATILAN KULLANICI
+    ============================================================
+    */
+
+    .permanently-closed-row {
+        background:
+            linear-gradient(
+                90deg,
+                rgba(254, 242, 242, .95) 0%,
+                rgba(255, 250, 250, .72) 55%,
+                rgba(255, 255, 255, 1) 100%
+            );
+    }
+
+
+    .permanently-closed-row:hover {
+        background:
+            linear-gradient(
+                90deg,
+                #feecec 0%,
+                #fff7f7 55%,
+                #ffffff 100%
+            ) !important;
+    }
+
+
+    .permanently-closed-user {
+        position: relative;
+
+        padding-left: 19px !important;
+    }
+
+
+    .permanently-closed-user::before {
+        position: absolute;
+
+        top: 9px;
+        bottom: 9px;
+        left: 0;
+
+        width: 3px;
+
+        border-radius: 999px;
+
+        content: "";
+
+        background: #dc2626;
+    }
+
+
+    /*
+    ============================================================
+    İSİM
+    ============================================================
+    */
+
+    .user-list-identity {
+        display: flex;
+        align-items: center;
+
+        gap: 8px;
+
+        flex-wrap: wrap;
+    }
+
+
+    .user-list-name {
+        color: #172033;
+
+        font-weight: 800;
+    }
+
+
+    .user-list-name--closed {
+        color: #991b1b;
+    }
+
+
+    /*
+    ============================================================
+    KALICI KAPALI ETİKETİ
+    ============================================================
+    */
+
+    .permanent-closed-label {
+        display: inline-flex;
+        align-items: center;
+
+        min-height: 22px;
+
+        padding: 0 8px;
+
+        border: 1px solid #fecaca;
+        border-radius: 999px;
+
+        background: #fee2e2;
+
+        color: #b91c1c;
+
+        font-size: 10px;
+        font-weight: 900;
+
+        line-height: 1;
+
+        white-space: nowrap;
+    }
+
+
+    /*
+    ============================================================
+    KULLANICI ADI / E-POSTA
+    ============================================================
+    */
+
+    .closed-username {
+        color: #b91c1c !important;
+    }
+
+
+    .closed-email {
+        color: #7f1d1d;
+    }
+
+
+    /*
+    ============================================================
+    AKSİYON
+    ============================================================
+    */
+
+    .closed-row-action {
+        color: #b91c1c !important;
+
+        font-weight: 850 !important;
+    }
+
+
+    .closed-row-action:hover {
+        color: #7f1d1d !important;
+    }
+
+</style>
+
+{% endblock %}
+
+
+{% block table_empty %}
+{% include 'components/empty_state.html' with heading='Kullanıcı kaydı bulunmuyor.' route='adminx:user_list' %}
+{% endblock %}

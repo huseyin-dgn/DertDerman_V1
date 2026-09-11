@@ -20,7 +20,10 @@ class Notification(models.Model):
         WITHDRAWN = "WITHDRAWN", "Geri çekildi"
         CONTENT_REPORT = "CONTENT_REPORT", "İçerik raporu"
         USER_REPORT = "USER_REPORT", "Kullanıcı raporu"
+        COMPANY_REPORT = "COMPANY_REPORT", "Şirket raporu"
         ABUSE_ALERT = "ABUSE_ALERT", "Güvenlik olayı"
+        ACCOUNT_SUSPENDED = "ACCOUNT_SUSPENDED", "Hesap askıya alındı"
+        ACCOUNT_RESTORED = "ACCOUNT_RESTORED", "Hesap askısı kaldırıldı"
 
     recipient_user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -57,6 +60,14 @@ class Notification(models.Model):
 
     user_report = models.ForeignKey(
         'complaints.UserReport',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='admin_notifications',
+    )
+
+    company_report = models.ForeignKey(
+        'complaints.CompanyReport',
         on_delete=models.CASCADE,
         null=True,
         blank=True,
@@ -150,11 +161,22 @@ class Notification(models.Model):
                 args=[self.content_report_id]
             )
 
+        if self.company_report_id:
+            if self.recipient_role == self.Scope.ADMIN:
+                return reverse(
+                    'adminx:company_report_detail',
+                    args=[self.company_report_id]
+                )
+            return reverse('accounts:profile')
+
         if self.user_report_id:
-            return reverse(
-                'adminx:user_report_detail',
-                args=[self.user_report_id]
-            )
+            if self.recipient_role == self.Scope.ADMIN:
+                return reverse(
+                    'adminx:user_report_detail',
+                    args=[self.user_report_id]
+                )
+
+            return reverse('accounts:profile')
 
         if self.complaint_id:
             route = (
@@ -193,7 +215,10 @@ class Notification(models.Model):
             'COMMENT': 'reply',
             'CONTENT_REPORT': 'shield',
             'USER_REPORT': 'shield',
+            'COMPANY_REPORT': 'shield',
             'ABUSE_ALERT': 'shield',
+            'ACCOUNT_SUSPENDED': 'shield',
+            'ACCOUNT_RESTORED': 'check',
         }.get(
             self.notification_type,
             'bell'
