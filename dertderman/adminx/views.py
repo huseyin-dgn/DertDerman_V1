@@ -10,7 +10,7 @@ from django.views.decorators.http import require_POST, require_safe
 from accounts.models import User
 from blog.models import Post
 from companies.models import Company, CompanyNotification
-from complaints.models import Complaint, ContentReport
+from complaints.models import Complaint, ContentReport, UserViolation
 from core.models import ContactRequest
 from core.pagination import PREVIEW_SIZE, paginate
 from notifications.selectors import inbox
@@ -653,7 +653,6 @@ def report_detail(request, pk):
         },
     )
 
-
 @admin_required
 @require_POST
 @transaction.atomic
@@ -662,7 +661,9 @@ def report_status(request, pk):
         ContentReport.objects.select_for_update().select_related(
             "reporter",
             "complaint",
+            "complaint__user",
             "comment",
+            "comment__author_user",
         ),
         pk=pk,
     )
@@ -676,6 +677,7 @@ def report_status(request, pk):
         ContentReport.Status.REVIEWING,
         ContentReport.Status.RESOLVED,
         ContentReport.Status.REJECTED,
+        ContentReport.Status.ABUSIVE,
     }
 
     if new_status not in allowed_statuses:
@@ -694,6 +696,7 @@ def report_status(request, pk):
     terminal_statuses = {
         ContentReport.Status.RESOLVED,
         ContentReport.Status.REJECTED,
+        ContentReport.Status.ABUSIVE,
     }
 
     # Sonuçlandırılmış raporların kararı daha sonra değiştirilemez.
@@ -703,7 +706,8 @@ def report_status(request, pk):
     ):
         messages.warning(
             request,
-            "Bu rapor daha önce sonuçlandırılmış. Moderasyon kararı değiştirilemez.",
+            "Bu rapor daha önce sonuçlandırılmış. "
+            "Moderasyon kararı değiştirilemez.",
         )
 
         return redirect(
@@ -756,6 +760,7 @@ def report_status(request, pk):
     if new_status in {
         ContentReport.Status.RESOLVED,
         ContentReport.Status.REJECTED,
+        ContentReport.Status.ABUSIVE,
     }:
         report.reviewed_at = timezone.now()
         update_fields.append("reviewed_at")
@@ -768,7 +773,153 @@ def report_status(request, pk):
         update_fields=update_fields,
     )
 
+    violation = None
+
+    # ---------------------------------------------------------
+    # İÇERİK İHLALİ
+    # ---------------------------------------------------------
+    #
+    # Admin gerçek içerik ihlali kararı verdiyse,
+    # ihlal içerik sahibine yazılır.
+    # ---------------------------------------------------------
+
+    if new_status == ContentReport.Status.RESOLVED:
+        violation_user = None
+        source_type = None
+        complaint_for_violation = None
+        comment_for_violation = None
+
+        if (
+            report.target_type == ContentReport.TargetType.COMPLAINT
+            and report.complaint_id
+        ):
+            violation_user = report.complaint.user
+            source_type = UserViolation.SourceType.COMPLAINT
+            complaint_for_violation = report.complaint
+
+        elif (
+            report.target_type == ContentReport.TargetType.COMMENT
+            and report.comment_id
+        ):
+            violation_user = report.comment.author_user
+            source_type = UserViolation.SourceType.COMMENT
+            comment_for_violation = report.comment
+
+        if violation_user and source_type:
+            violation, violation_created = (
+                UserViolation.objects.get_or_create(
+                    content_report=report,
+                    defaults={
+                        "user": violation_user,
+                        "source_type": source_type,
+                        "reason": report.reason,
+                        "description": (
+                            f"{report.get_reason_display()} nedeniyle "
+                            "içerik ihlali doğrulandı."
+                        ),
+                        "complaint": complaint_for_violation,
+                        "comment": comment_for_violation,
+                        "confirmed_by": request.user,
+                    },
+                )
+            )
+
+            if violation_created:
+                record_admin_audit(
+                    actor=request.user,
+                    action=AdminAuditLog.Action.UPDATE,
+                    target_type="user_violation",
+                    target_id=violation.pk,
+                    target_label=(
+                        f"{violation_user.username} kullanıcısının "
+                        "doğrulanmış ihlali"
+                    ),
+                    description=(
+                        "Kullanıcı için doğrulanmış "
+                        "topluluk kuralı ihlali oluşturuldu."
+                    ),
+                    metadata={
+                        "user_id": violation_user.pk,
+                        "username": violation_user.username,
+                        "source_type": source_type,
+                        "reason": report.reason,
+                        "content_report_id": report.pk,
+                    },
+                    request=request,
+                )
+
+    # ---------------------------------------------------------
+    # KÖTÜ NİYETLİ / ASILSIZ RAPOR
+    # ---------------------------------------------------------
+    #
+    # Admin raporun kötü niyetli olduğunu açıkça seçerse,
+    # ihlal raporlayan kullanıcıya yazılır.
+    # ---------------------------------------------------------
+
+    elif new_status == ContentReport.Status.ABUSIVE:
+        reporter = report.reporter
+
+        violation, violation_created = (
+            UserViolation.objects.get_or_create(
+                content_report=report,
+                defaults={
+                    "user": reporter,
+                    "source_type": UserViolation.SourceType.FALSE_REPORT,
+                    "reason": "FALSE_REPORT",
+                    "description": (
+                        "Gönderilen rapor kötü niyetli veya "
+                        "asılsız raporlama olarak değerlendirildi."
+                    ),
+                    "confirmed_by": request.user,
+                },
+            )
+        )
+
+        if violation_created:
+            record_admin_audit(
+                actor=request.user,
+                action=AdminAuditLog.Action.UPDATE,
+                target_type="user_violation",
+                target_id=violation.pk,
+                target_label=(
+                    f"{reporter.username} kullanıcısının "
+                    "kötü niyetli raporlama ihlali"
+                ),
+                description=(
+                    "Kullanıcı için kötü niyetli / asılsız "
+                    "raporlama ihlali oluşturuldu."
+                ),
+                metadata={
+                    "user_id": reporter.pk,
+                    "username": reporter.username,
+                    "source_type": UserViolation.SourceType.FALSE_REPORT,
+                    "reason": "FALSE_REPORT",
+                    "content_report_id": report.pk,
+                },
+                request=request,
+            )
+
+            from notifications.services import send
+            from notifications.models import Notification
+
+            send(
+                recipient=reporter,
+                scope="USER",
+                kind="REPORT_ABUSE",
+                event_key=f"content-report:{report.pk}:abusive",
+                title="Raporunuz kötüye kullanım olarak değerlendirildi.",
+                message=(
+                    "Gönderdiğiniz raporun kötü niyetli veya asılsız "
+                    "olduğu tespit edildi. Bu işlem hesabınıza "
+                    "doğrulanmış ihlal olarak işlendi."
+                ),
+            )
+
     complaint_removed = False
+
+    # ---------------------------------------------------------
+    # ŞİKAYET İHLAL NEDENİYLE KALDIRMA
+    # ---------------------------------------------------------
 
     if complaint_to_remove is not None:
         complaint_previous_status = complaint_to_remove.status
@@ -800,7 +951,9 @@ def report_status(request, pk):
             target_type="complaint",
             target_id=complaint_to_remove.pk,
             target_label=complaint_to_remove.title,
-            description="Şikayet ihlal nedeniyle yayından kaldırıldı.",
+            description=(
+                "Şikayet ihlal nedeniyle yayından kaldırıldı."
+            ),
             metadata={
                 "previous_status": complaint_previous_status,
                 "new_status": Complaint.Status.REMOVED,
@@ -809,6 +962,7 @@ def report_status(request, pk):
             },
             request=request,
         )
+
 
     if report.target_type == ContentReport.TargetType.COMPLAINT:
         target_label = (
@@ -840,9 +994,18 @@ def report_status(request, pk):
             "report_target_type": report.target_type,
             "report_reason": report.reason,
             "complaint_removed": complaint_removed,
+            "user_violation_id": (
+                violation.pk
+                if violation
+                else None
+            ),
         },
         request=request,
     )
+
+    # ---------------------------------------------------------
+    # ADMIN MESAJI
+    # ---------------------------------------------------------
 
     if new_status == ContentReport.Status.REVIEWING:
         message = "Rapor incelemeye alındı."
@@ -853,8 +1016,21 @@ def report_status(request, pk):
                 "Rapor sonuçlandırıldı ve şikayet "
                 "ihlal nedeniyle kaldırıldı."
             )
+
+        elif report.target_type == ContentReport.TargetType.COMMENT:
+            message = (
+                "Rapor sonuçlandırıldı ve kullanıcı için "
+                "doğrulanmış ihlal kaydı oluşturuldu."
+            )
+
         else:
             message = "Rapor sonuçlandırıldı."
+
+    elif new_status == ContentReport.Status.ABUSIVE:
+        message = (
+            "Rapor kötü niyetli / asılsız olarak işaretlendi "
+            "ve raporlayan kullanıcıya doğrulanmış ihlal eklendi."
+        )
 
     else:
         message = "Raporda ihlal bulunmadı."

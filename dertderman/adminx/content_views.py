@@ -3,7 +3,7 @@ from django.core.exceptions import ValidationError
 from django.db.models import Count, OuterRef, Subquery
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods, require_POST, require_safe
-
+from complaints.models import UserReport, UserViolation
 from accounts.models import User
 from companies.models import Company, CompanyMembership
 from core.pagination import paginate
@@ -105,8 +105,94 @@ def _users():
 @admin_required
 @require_safe
 def user_detail(request, pk):
-    return render(request, "adminx/user_detail.html", {"account": get_object_or_404(_users(), pk=pk)})
+    account = get_object_or_404(
+        _users(),
+        pk=pk,
+    )
 
+    violations = (
+        UserViolation.objects
+        .filter(user=account)
+        .select_related(
+            "confirmed_by",
+            "complaint",
+            "comment",
+            "content_report",
+            "user_report",
+        )
+        .order_by(
+            "-created_at",
+            "-pk",
+        )
+    )
+
+    violation_count = violations.count()
+
+    user_reports = UserReport.objects.filter(
+        reported_user=account,
+    )
+
+    total_user_reports = user_reports.count()
+
+    pending_user_reports = user_reports.filter(
+        status__in=(
+            UserReport.Status.PENDING,
+            UserReport.Status.REVIEWING,
+        )
+    ).count()
+
+    rejected_user_reports = user_reports.filter(
+        status=UserReport.Status.REJECTED,
+    ).count()
+
+    confirmed_user_reports = user_reports.filter(
+        status=UserReport.Status.RESOLVED,
+    ).count()
+
+    last_violation = violations.first()
+
+    if violation_count == 0:
+        risk_level = "Normal"
+        risk_code = "NORMAL"
+
+    elif violation_count == 1:
+        risk_level = "Uyarı"
+        risk_code = "WARNING"
+
+    elif violation_count == 2:
+        risk_level = "Tekrarlanan ihlal"
+        risk_code = "REPEATED"
+
+    elif violation_count < 5:
+        risk_level = "Yüksek risk"
+        risk_code = "HIGH"
+
+    else:
+        risk_level = "Askıya almaya uygun"
+        risk_code = "SUSPEND_ELIGIBLE"
+
+    suspension_eligible = violation_count >= 5
+
+    return render(
+        request,
+        "adminx/user_detail.html",
+        {
+            "account": account,
+
+            "violation_count": violation_count,
+            "last_violation": last_violation,
+            "recent_violations": violations[:10],
+
+            "total_user_reports": total_user_reports,
+            "pending_user_reports": pending_user_reports,
+            "confirmed_user_reports": confirmed_user_reports,
+            "rejected_user_reports": rejected_user_reports,
+
+            "risk_level": risk_level,
+            "risk_code": risk_code,
+            "suspension_eligible": suspension_eligible,
+        },
+    )
 
 @admin_required
 @require_safe

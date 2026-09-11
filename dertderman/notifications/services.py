@@ -15,6 +15,8 @@ def send(
     message="",
     complaint=None,
     company=None,
+    content_report=None,
+    user_report=None,
 ):
     if not recipient.is_active or recipient.user_type != scope:
         return None
@@ -29,6 +31,8 @@ def send(
             "message": message,
             "complaint": complaint,
             "company": None if complaint else company,
+            "content_report": content_report,
+            "user_report": user_report,
         },
     )
 
@@ -67,10 +71,12 @@ def complaint_social_event(
             "Şikayetiniz beğenildi.",
             "Bir kullanıcı deneyiminizi faydalı buldu.",
         ),
+
         "REACTION": (
             "Şikayetinize bir kullanıcı tepki verdi.",
             "Topluluktan yeni bir tepki aldınız.",
         ),
+
         "COMMENT": (
             "Şikayetinize yeni bir yorum yapıldı.",
             "Yeni yorumu şikayet detayında inceleyebilirsiniz.",
@@ -192,6 +198,45 @@ def complaint_event(
             complaint=complaint,
             company=complaint.company,
         )
+
+
+def notify_admins_content_report(report):
+    if report.target_type == "COMPLAINT":
+        title = "Yeni şikayet raporu"
+
+        message = (
+            f'"{report.complaint.title}" başlıklı şikayet '
+            f"{report.get_reason_display()} nedeniyle raporlandı."
+        )
+
+    else:
+        title = "Yeni yorum raporu"
+
+        message = (
+            f"Bir yorum {report.get_reason_display()} "
+            "nedeniyle raporlandı."
+        )
+
+    send_admins(
+        kind=Notification.Type.CONTENT_REPORT,
+        event_key=f"content-report:{report.pk}:created",
+        title=title,
+        message=message,
+        content_report=report,
+    )
+
+
+def notify_admins_user_report(report):
+    send_admins(
+        kind=Notification.Type.USER_REPORT,
+        event_key=f"user-report:{report.pk}:created",
+        title="Yeni kullanıcı raporu",
+        message=(
+            f"@{report.reported_user.username} kullanıcısı "
+            f"{report.get_reason_display()} nedeniyle raporlandı."
+        ),
+        user_report=report,
+    )
 
 
 def mark_read(queryset):

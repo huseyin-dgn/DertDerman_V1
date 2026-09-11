@@ -171,6 +171,12 @@
         color: #475467;
     }
 
+    .report-status--abusive {
+        background: #fef3f2;
+        border-color: #fecdca;
+        color: #b42318;
+    }
+
     .report-reason {
         background: #fff6ed;
         color: #b93815;
@@ -268,14 +274,29 @@
         line-height: 1.55;
     }
 
+    .moderation-warning-box {
+        margin-bottom: 18px;
+        padding: 13px 15px;
+        border: 1px solid #fecdca;
+        border-radius: 10px;
+        background: #fef3f2;
+        color: #912018;
+        font-size: 13px;
+        line-height: 1.55;
+    }
+
+    .moderation-warning-box strong {
+        color: #7a271a;
+    }
+
     .moderation-actions {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: 12px;
     }
 
-    .moderation-actions--two {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+    .moderation-actions--three {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
     .moderation-actions form {
@@ -338,6 +359,17 @@
         border-color: #98a2b3;
     }
 
+    .report-action-button--abusive {
+        border: 1px solid #b42318;
+        background: #b42318;
+        color: #fff;
+    }
+
+    .report-action-button--abusive:hover {
+        background: #912018;
+        border-color: #912018;
+    }
+
     .moderation-current {
         display: flex;
         align-items: flex-start;
@@ -370,6 +402,12 @@
         color: #175cd3;
     }
 
+    .moderation-current--abusive {
+        border-color: #fecdca;
+        background: #fef3f2;
+        color: #b42318;
+    }
+
     .report-review-meta {
         display: flex;
         gap: 18px;
@@ -385,10 +423,215 @@
         color: #344054;
     }
 
-    @media (max-width: 1000px) {
+
+    /* =========================================================
+       MODERASYON ONAY MODALI
+       ========================================================= */
+
+    .decision-modal-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 99999;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
+        padding: 20px;
+        background: rgba(15, 23, 42, 0.58);
+        backdrop-filter: blur(5px);
+        -webkit-backdrop-filter: blur(5px);
+    }
+
+    .decision-modal-backdrop.is-open {
+        display: flex;
+    }
+
+    .decision-modal {
+        width: min(100%, 480px);
+        overflow: hidden;
+        border: 1px solid #e4e7ec;
+        border-radius: 20px;
+        background: #fff;
+        box-shadow:
+            0 30px 70px rgba(15, 23, 42, 0.22),
+            0 10px 24px rgba(15, 23, 42, 0.10);
+        animation: decisionModalIn 0.18s ease-out;
+    }
+
+    @keyframes decisionModalIn {
+        from {
+            opacity: 0;
+            transform: translateY(12px) scale(0.98);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    .decision-modal__body {
+        padding: 26px 26px 20px;
+    }
+
+    .decision-modal__icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 52px;
+        height: 52px;
+        margin-bottom: 18px;
+        border-radius: 50%;
+        font-size: 23px;
+        font-weight: 900;
+        line-height: 1;
+    }
+
+    .decision-modal__icon--reviewing {
+        background: #eff8ff;
+        color: #175cd3;
+    }
+
+    .decision-modal__icon--resolved {
+        background: #ecfdf3;
+        color: #027a48;
+    }
+
+    .decision-modal__icon--rejected {
+        background: #f2f4f7;
+        color: #475467;
+    }
+
+    .decision-modal__icon--abusive {
+        background: #fef3f2;
+        color: #b42318;
+    }
+
+    .decision-modal__title {
+        margin: 0 0 9px;
+        color: #101828;
+        font-size: 21px;
+        line-height: 1.3;
+    }
+
+    .decision-modal__message {
+        margin: 0;
+        color: #667085;
+        font-size: 14px;
+        line-height: 1.65;
+    }
+
+    .decision-modal__warning {
+        display: none;
+        margin-top: 17px;
+        padding: 13px 14px;
+        border: 1px solid #fecdca;
+        border-radius: 11px;
+        background: #fef3f2;
+        color: #912018;
+        font-size: 13px;
+        line-height: 1.55;
+    }
+
+    .decision-modal__warning.is-visible {
+        display: block;
+    }
+
+    .decision-modal__footer {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        padding: 0 26px 26px;
+    }
+
+    .decision-modal__button {
+        min-height: 45px;
+        box-sizing: border-box;
+        padding: 10px 15px;
+        border-radius: 10px;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 800;
+        cursor: pointer;
+        transition:
+            background 0.16s ease,
+            border-color 0.16s ease,
+            transform 0.16s ease,
+            opacity 0.16s ease;
+    }
+
+    .decision-modal__button:hover {
+        transform: translateY(-1px);
+    }
+
+    .decision-modal__button:disabled {
+        cursor: wait;
+        opacity: 0.7;
+        transform: none;
+    }
+
+    .decision-modal__button--cancel {
+        border: 1px solid #d0d5dd;
+        background: #fff;
+        color: #344054;
+    }
+
+    .decision-modal__button--cancel:hover {
+        background: #f9fafb;
+        border-color: #98a2b3;
+    }
+
+    .decision-modal__button--confirm {
+        border: 1px solid #1d5fa7;
+        background: #1d5fa7;
+        color: #fff;
+    }
+
+    .decision-modal__button--confirm.confirm-reviewing {
+        border-color: #175cd3;
+        background: #175cd3;
+    }
+
+    .decision-modal__button--confirm.confirm-reviewing:hover {
+        background: #1849a9;
+    }
+
+    .decision-modal__button--confirm.confirm-resolved {
+        border-color: #027a48;
+        background: #027a48;
+    }
+
+    .decision-modal__button--confirm.confirm-resolved:hover {
+        background: #05603a;
+    }
+
+    .decision-modal__button--confirm.confirm-rejected {
+        border-color: #475467;
+        background: #475467;
+    }
+
+    .decision-modal__button--confirm.confirm-rejected:hover {
+        background: #344054;
+    }
+
+    .decision-modal__button--confirm.confirm-abusive {
+        border-color: #b42318;
+        background: #b42318;
+    }
+
+    .decision-modal__button--confirm.confirm-abusive:hover {
+        background: #912018;
+    }
+
+    body.modal-open {
+        overflow: hidden;
+    }
+
+
+    @media (max-width: 1100px) {
         .moderation-actions,
-        .moderation-actions--two {
-            grid-template-columns: 1fr;
+        .moderation-actions--three {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
         }
     }
 
@@ -418,6 +661,22 @@
             width: 100%;
             box-sizing: border-box;
         }
+
+        .moderation-actions,
+        .moderation-actions--three {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 520px) {
+        .decision-modal__body {
+            padding: 22px 20px 18px;
+        }
+
+        .decision-modal__footer {
+            grid-template-columns: 1fr;
+            padding: 0 20px 20px;
+        }
     }
 </style>
 {% endblock %}
@@ -429,6 +688,7 @@
     <header class="report-detail-header">
 
         <div>
+
             <span class="ad-header-label">
                 YÖNETİM / MODERASYON
             </span>
@@ -440,7 +700,9 @@
             <p>
                 Kullanıcı bildirimini, raporlanan içeriği ve moderasyon durumunu inceleyin.
             </p>
+
         </div>
+
 
         <a
             href="{% url 'adminx:report_list' %}"
@@ -454,22 +716,39 @@
 
     <div class="report-layout">
 
-        <!-- RAPOR BİLGİLERİ -->
+        <!-- =====================================================
+             RAPOR BİLGİLERİ
+             ===================================================== -->
+
         <section class="report-card">
 
             <div class="report-card-header">
+
                 <div>
-                    <h2>Rapor Bilgileri</h2>
-                    <p>Bildirimin temel bilgileri ve raporlama nedeni.</p>
+
+                    <h2>
+                        Rapor Bilgileri
+                    </h2>
+
+                    <p>
+                        Bildirimin temel bilgileri ve raporlama nedeni.
+                    </p>
+
                 </div>
+
             </div>
+
 
             <dl class="report-info-list">
 
                 <div class="report-info-row">
-                    <dt>Durum</dt>
+
+                    <dt>
+                        Durum
+                    </dt>
 
                     <dd>
+
                         <span
                             class="report-status
                             {% if report.status == 'PENDING' %}
@@ -480,65 +759,98 @@
                                 report-status--resolved
                             {% elif report.status == 'REJECTED' %}
                                 report-status--rejected
+                            {% elif report.status == 'ABUSIVE' %}
+                                report-status--abusive
                             {% endif %}"
                         >
                             {{ report.get_status_display }}
                         </span>
+
                     </dd>
+
                 </div>
 
 
                 <div class="report-info-row">
-                    <dt>Rapor nedeni</dt>
+
+                    <dt>
+                        Rapor nedeni
+                    </dt>
 
                     <dd>
+
                         <span class="report-reason">
                             {{ report.get_reason_display }}
                         </span>
+
                     </dd>
+
                 </div>
 
 
                 <div class="report-info-row">
-                    <dt>Bildiren kullanıcı</dt>
+
+                    <dt>
+                        Bildiren kullanıcı
+                    </dt>
 
                     <dd>
+
                         {% if report.reporter.get_full_name %}
+
                             <strong>
                                 {{ report.reporter.get_full_name }}
                             </strong>
+
                             <br>
+
                         {% endif %}
 
                         @{{ report.reporter.username }}
+
                     </dd>
+
                 </div>
 
 
                 <div class="report-info-row">
-                    <dt>Rapor tarihi</dt>
+
+                    <dt>
+                        Rapor tarihi
+                    </dt>
 
                     <dd>
                         {{ report.created_at|date:"d.m.Y H:i:s" }}
                     </dd>
+
                 </div>
 
 
                 <div class="report-info-row">
-                    <dt>Hedef türü</dt>
+
+                    <dt>
+                        Hedef türü
+                    </dt>
 
                     <dd>
+
                         <span class="report-target-type">
                             {{ report.get_target_type_display }}
                         </span>
+
                     </dd>
+
                 </div>
 
 
                 <div class="report-info-row">
-                    <dt>Kullanıcı açıklaması</dt>
+
+                    <dt>
+                        Kullanıcı açıklaması
+                    </dt>
 
                     <dd>
+
                         {% if report.description %}
 
                             <div class="report-description-box">
@@ -547,10 +859,14 @@
 
                         {% else %}
 
-                            <span>—</span>
+                            <span>
+                                —
+                            </span>
 
                         {% endif %}
+
                     </dd>
+
                 </div>
 
             </dl>
@@ -558,14 +874,24 @@
         </section>
 
 
-        <!-- RAPORLANAN İÇERİK -->
+        <!-- =====================================================
+             RAPORLANAN İÇERİK
+             ===================================================== -->
+
         <section class="report-card">
 
             <div class="report-card-header">
 
                 <div>
-                    <h2>Raporlanan İçerik</h2>
-                    <p>Karar vermeden önce bildirilen içeriği kontrol edin.</p>
+
+                    <h2>
+                        Raporlanan İçerik
+                    </h2>
+
+                    <p>
+                        Karar vermeden önce bildirilen içeriği kontrol edin.
+                    </p>
+
                 </div>
 
             </div>
@@ -581,6 +907,7 @@
                             {{ report.complaint.title }}
                         </h3>
 
+
                         <p class="reported-content-body">
                             {{ report.complaint.description }}
                         </p>
@@ -589,28 +916,45 @@
                         <div class="reported-content-meta">
 
                             <span>
+
                                 Şirket:
+
                                 <strong>
                                     {{ report.complaint.company.name }}
                                 </strong>
+
                             </span>
 
-                            <span>•</span>
 
                             <span>
+                                •
+                            </span>
+
+
+                            <span>
+
                                 Kullanıcı:
+
                                 <strong>
                                     @{{ report.complaint.user.username }}
                                 </strong>
+
                             </span>
 
-                            <span>•</span>
 
                             <span>
+                                •
+                            </span>
+
+
+                            <span>
+
                                 Durum:
+
                                 <strong>
                                     {{ report.complaint.get_status_display }}
                                 </strong>
+
                             </span>
 
                         </div>
@@ -666,6 +1010,7 @@
                             Yorum #{{ report.comment.pk }}
                         </h3>
 
+
                         <p class="reported-content-body">
                             {{ report.comment.body }}
                         </p>
@@ -674,24 +1019,39 @@
                         <div class="reported-content-meta">
 
                             <span>
+
                                 Yazan:
+
                                 <strong>
                                     @{{ report.comment.author_user.username }}
                                 </strong>
+
                             </span>
 
-                            <span>•</span>
 
                             <span>
+                                •
+                            </span>
+
+
+                            <span>
+
                                 Durum:
 
                                 <strong>
+
                                     {% if report.comment.is_active %}
+
                                         Aktif
+
                                     {% else %}
+
                                         Kaldırılmış
+
                                     {% endif %}
+
                                 </strong>
+
                             </span>
 
                         </div>
@@ -744,23 +1104,41 @@
         </section>
 
 
-        <!-- MODERASYON -->
+        <!-- =====================================================
+             MODERASYON
+             ===================================================== -->
+
         <section class="report-card moderation-card">
 
             <div class="report-card-header">
 
                 <div>
-                    <h2>Moderasyon Kararı</h2>
+
+                    <h2>
+                        Moderasyon Kararı
+                    </h2>
+
 
                     {% if report.status == 'PENDING' %}
-                        <p>Rapor için moderasyon kararı verin.</p>
+
+                        <p>
+                            Rapor için moderasyon kararı verin.
+                        </p>
 
                     {% elif report.status == 'REVIEWING' %}
-                        <p>İncelenen rapor için nihai karar verin.</p>
+
+                        <p>
+                            İncelenen rapor için nihai karar verin.
+                        </p>
 
                     {% else %}
-                        <p>Bu rapor için moderasyon süreci tamamlandı.</p>
+
+                        <p>
+                            Bu rapor için moderasyon süreci tamamlandı.
+                        </p>
+
                     {% endif %}
+
                 </div>
 
 
@@ -774,6 +1152,8 @@
                         report-status--resolved
                     {% elif report.status == 'REJECTED' %}
                         report-status--rejected
+                    {% elif report.status == 'ABUSIVE' %}
+                        report-status--abusive
                     {% endif %}"
                 >
                     {{ report.get_status_display }}
@@ -785,17 +1165,36 @@
             {% if report.status == 'PENDING' %}
 
                 <p class="moderation-intro">
-                    Raporu incelemeye alabilir, doğrudan ihlal kararı verebilir
-                    veya herhangi bir ihlal bulunmadığını belirtebilirsiniz.
+
+                    Raporu incelemeye alabilir, içerikte ihlal bulunduğuna
+                    karar verebilir, ihlal bulunmadığını belirtebilir veya
+                    raporun kötü niyetli / asılsız olduğunu işaretleyebilirsiniz.
+
                 </p>
+
+
+                <div class="moderation-warning-box">
+
+                    <strong>
+                        Kötü niyetli rapor kararı dikkatle kullanılmalıdır.
+                    </strong>
+
+                    Bu seçenek yalnızca kullanıcının raporlama sistemini
+                    kasıtlı biçimde kötüye kullandığı açıkça değerlendirildiyse
+                    seçilmelidir.
+
+                </div>
 
 
                 <div class="moderation-actions">
 
+                    <!-- 1 - İNCELEMEYE AL -->
                     <form
                         method="post"
                         action="{% url 'adminx:report_status' report.pk %}"
+                        class="moderation-decision-form"
                     >
+
                         {% csrf_token %}
 
                         <input
@@ -810,13 +1209,17 @@
                         >
                             İncelemeye Al
                         </button>
+
                     </form>
 
 
+                    <!-- 2 - İHLAL VAR -->
                     <form
                         method="post"
                         action="{% url 'adminx:report_status' report.pk %}"
+                        class="moderation-decision-form"
                     >
+
                         {% csrf_token %}
 
                         <input
@@ -831,13 +1234,17 @@
                         >
                             İhlal Var / Sonuçlandır
                         </button>
+
                     </form>
 
 
+                    <!-- 3 - İHLAL BULUNMADI -->
                     <form
                         method="post"
                         action="{% url 'adminx:report_status' report.pk %}"
+                        class="moderation-decision-form"
                     >
+
                         {% csrf_token %}
 
                         <input
@@ -852,6 +1259,32 @@
                         >
                             İhlal Bulunmadı
                         </button>
+
+                    </form>
+
+
+                    <!-- 4 - KÖTÜ NİYETLİ / ASILSIZ -->
+                    <form
+                        method="post"
+                        action="{% url 'adminx:report_status' report.pk %}"
+                        class="moderation-decision-form"
+                    >
+
+                        {% csrf_token %}
+
+                        <input
+                            type="hidden"
+                            name="status"
+                            value="ABUSIVE"
+                        >
+
+                        <button
+                            type="submit"
+                            class="report-action-button report-action-button--abusive"
+                        >
+                            Kötü Niyetli / Asılsız
+                        </button>
+
                     </form>
 
                 </div>
@@ -860,16 +1293,36 @@
             {% elif report.status == 'REVIEWING' %}
 
                 <p class="moderation-intro">
-                    Rapor inceleme aşamasında. Nihai kararınızı verin.
+
+                    Rapor inceleme aşamasında.
+                    Nihai moderasyon kararınızı verin.
+
                 </p>
 
 
-                <div class="moderation-actions moderation-actions--two">
+                <div class="moderation-warning-box">
 
+                    <strong>
+                        Asılsız rapor ile ihlal bulunmaması aynı şey değildir.
+                    </strong>
+
+                    İçerikte ihlal olmadığı halde kullanıcı raporu iyi niyetle
+                    göndermiş olabilir. Kötü niyetli rapor seçeneğini yalnızca
+                    raporlama sisteminin kasıtlı olarak kötüye kullanıldığı
+                    durumda seçin.
+
+                </div>
+
+
+                <div class="moderation-actions moderation-actions--three">
+
+                    <!-- İHLAL VAR -->
                     <form
                         method="post"
                         action="{% url 'adminx:report_status' report.pk %}"
+                        class="moderation-decision-form"
                     >
+
                         {% csrf_token %}
 
                         <input
@@ -884,13 +1337,17 @@
                         >
                             İhlal Var / Sonuçlandır
                         </button>
+
                     </form>
 
 
+                    <!-- İHLAL BULUNMADI -->
                     <form
                         method="post"
                         action="{% url 'adminx:report_status' report.pk %}"
+                        class="moderation-decision-form"
                     >
+
                         {% csrf_token %}
 
                         <input
@@ -905,29 +1362,85 @@
                         >
                             İhlal Bulunmadı
                         </button>
+
+                    </form>
+
+
+                    <!-- KÖTÜ NİYETLİ / ASILSIZ -->
+                    <form
+                        method="post"
+                        action="{% url 'adminx:report_status' report.pk %}"
+                        class="moderation-decision-form"
+                    >
+
+                        {% csrf_token %}
+
+                        <input
+                            type="hidden"
+                            name="status"
+                            value="ABUSIVE"
+                        >
+
+                        <button
+                            type="submit"
+                            class="report-action-button report-action-button--abusive"
+                        >
+                            Kötü Niyetli / Asılsız
+                        </button>
+
                     </form>
 
                 </div>
 
 
                 <div class="moderation-current moderation-current--reviewing">
+
                     Bu rapor şu anda inceleme aşamasında.
+
                 </div>
 
 
             {% elif report.status == 'RESOLVED' %}
 
                 <div class="moderation-current moderation-current--resolved">
+
                     Bu raporda ihlal tespit edildi ve moderasyon süreci
-                    sonuçlandırıldı. Bu karar artık değiştirilemez.
+                    sonuçlandırıldı.
+
+                    Raporlanan içeriğin sahibine doğrulanmış ihlal
+                    kaydı işlendi.
+
+                    Bu karar artık değiştirilemez.
+
                 </div>
 
 
             {% elif report.status == 'REJECTED' %}
 
                 <div class="moderation-current moderation-current--rejected">
-                    Bu raporda ihlal bulunmadığına karar verildi ve moderasyon
-                    süreci kapatıldı. Bu karar artık değiştirilemez.
+
+                    Bu raporda ihlal bulunmadığına karar verildi.
+
+                    Raporlayan kullanıcıya veya içerik sahibine herhangi bir
+                    ihlal kaydı eklenmedi.
+
+                    Bu karar artık değiştirilemez.
+
+                </div>
+
+
+            {% elif report.status == 'ABUSIVE' %}
+
+                <div class="moderation-current moderation-current--abusive">
+
+                    Bu rapor kötü niyetli veya asılsız raporlama olarak
+                    değerlendirildi.
+
+                    Raporlayan kullanıcının hesabına doğrulanmış ihlal
+                    kaydı eklendi.
+
+                    Bu karar artık değiştirilemez.
+
                 </div>
 
             {% endif %}
@@ -940,13 +1453,21 @@
                     {% if report.reviewed_by %}
 
                         <span>
-                            <strong>İnceleyen:</strong>
+
+                            <strong>
+                                İnceleyen:
+                            </strong>
 
                             {% if report.reviewed_by.get_full_name %}
+
                                 {{ report.reviewed_by.get_full_name }}
+
                             {% else %}
+
                                 {{ report.reviewed_by.username }}
+
                             {% endif %}
+
                         </span>
 
                     {% endif %}
@@ -955,8 +1476,13 @@
                     {% if report.reviewed_at %}
 
                         <span>
-                            <strong>Sonuç tarihi:</strong>
+
+                            <strong>
+                                Sonuç tarihi:
+                            </strong>
+
                             {{ report.reviewed_at|date:"d.m.Y H:i" }}
+
                         </span>
 
                     {% endif %}
@@ -970,4 +1496,497 @@
     </div>
 
 </main>
+
+
+<!-- =========================================================
+     MODERASYON ONAY MODALI
+     4 BUTONUN TAMAMINDA KULLANILIR
+     ========================================================= -->
+
+<div
+    id="decision-modal-backdrop"
+    class="decision-modal-backdrop"
+    aria-hidden="true"
+>
+
+    <div
+        class="decision-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="decision-modal-title"
+        aria-describedby="decision-modal-message"
+    >
+
+        <div class="decision-modal__body">
+
+            <div
+                id="decision-modal-icon"
+                class="decision-modal__icon"
+                aria-hidden="true"
+            >
+                !
+            </div>
+
+
+            <h2
+                id="decision-modal-title"
+                class="decision-modal__title"
+            >
+                İşlemi onaylıyor musunuz?
+            </h2>
+
+
+            <p
+                id="decision-modal-message"
+                class="decision-modal__message"
+            >
+            </p>
+
+
+            <div
+                id="decision-modal-warning"
+                class="decision-modal__warning"
+            >
+            </div>
+
+        </div>
+
+
+        <div class="decision-modal__footer">
+
+            <button
+                type="button"
+                id="decision-modal-cancel"
+                class="decision-modal__button decision-modal__button--cancel"
+            >
+                Vazgeç
+            </button>
+
+
+            <button
+                type="button"
+                id="decision-modal-confirm"
+                class="decision-modal__button decision-modal__button--confirm"
+            >
+                Evet, onayla
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const modalBackdrop = document.getElementById(
+        "decision-modal-backdrop"
+    );
+
+    const modalIcon = document.getElementById(
+        "decision-modal-icon"
+    );
+
+    const modalTitle = document.getElementById(
+        "decision-modal-title"
+    );
+
+    const modalMessage = document.getElementById(
+        "decision-modal-message"
+    );
+
+    const modalWarning = document.getElementById(
+        "decision-modal-warning"
+    );
+
+    const cancelButton = document.getElementById(
+        "decision-modal-cancel"
+    );
+
+    const confirmButton = document.getElementById(
+        "decision-modal-confirm"
+    );
+
+    let pendingForm = null;
+
+
+    /*
+     * Her moderasyon kararının kendine özel
+     * başlığı, mesajı, rengi ve onay butonu bulunur.
+     */
+    const decisions = {
+
+        REVIEWING: {
+
+            title:
+                "Rapor incelemeye alınsın mı?",
+
+            message:
+                "Bu rapor inceleme durumuna alınacak. " +
+                "Henüz herhangi bir kullanıcıya ihlal yazılmayacak. " +
+                "Daha sonra nihai moderasyon kararı verebilirsiniz.",
+
+            icon:
+                "?",
+
+            iconClass:
+                "decision-modal__icon--reviewing",
+
+            confirmClass:
+                "confirm-reviewing",
+
+            confirmText:
+                "Evet, incelemeye al",
+
+            warning:
+                ""
+
+        },
+
+
+        RESOLVED: {
+
+            title:
+                "İhlal kararını onaylıyor musunuz?",
+
+            message:
+                "Raporlanan içerikte ihlal bulundu olarak işlem yapılacak. " +
+                "İçeriği oluşturan kullanıcının hesabına +1 doğrulanmış " +
+                "ihlal kaydı eklenecektir.",
+
+            icon:
+                "✓",
+
+            iconClass:
+                "decision-modal__icon--resolved",
+
+            confirmClass:
+                "confirm-resolved",
+
+            confirmText:
+                "Evet, ihlali onayla",
+
+            warning:
+                "Bu karar nihai karardır. Sonuçlandırıldıktan sonra " +
+                "başka bir moderasyon kararına dönüştürülemez."
+
+        },
+
+
+        REJECTED: {
+
+            title:
+                "İhlal bulunmadı kararı verilsin mi?",
+
+            message:
+                "Bu rapor ihlal bulunmadı olarak kapatılacak. " +
+                "İçerik sahibine veya raporu gönderen kullanıcıya " +
+                "herhangi bir ihlal kaydı eklenmeyecektir.",
+
+            icon:
+                "—",
+
+            iconClass:
+                "decision-modal__icon--rejected",
+
+            confirmClass:
+                "confirm-rejected",
+
+            confirmText:
+                "Evet, raporu kapat",
+
+            warning:
+                "Bu karar nihai karardır. Rapor kapatıldıktan sonra " +
+                "moderasyon kararı değiştirilemez."
+
+        },
+
+
+        ABUSIVE: {
+
+            title:
+                "Kötü niyetli rapor kararı verilsin mi?",
+
+            message:
+                "Bu rapor kötü niyetli veya asılsız raporlama olarak " +
+                "işaretlenecektir.",
+
+            icon:
+                "!",
+
+            iconClass:
+                "decision-modal__icon--abusive",
+
+            confirmClass:
+                "confirm-abusive",
+
+            confirmText:
+                "Evet, ihlal oluştur",
+
+            warning:
+                "Dikkat: Bu işlem içerik sahibine değil, raporu gönderen " +
+                "kullanıcıya +1 doğrulanmış ihlal ekleyecektir. " +
+                "Bu karar daha sonra değiştirilemez."
+
+        }
+
+    };
+
+
+    function openModal(form, status) {
+
+        const config = decisions[status];
+
+        if (!config) {
+            return;
+        }
+
+
+        pendingForm = form;
+
+
+        modalTitle.textContent =
+            config.title;
+
+
+        modalMessage.textContent =
+            config.message;
+
+
+        modalIcon.textContent =
+            config.icon;
+
+
+        modalIcon.className =
+            "decision-modal__icon " +
+            config.iconClass;
+
+
+        confirmButton.textContent =
+            config.confirmText;
+
+
+        confirmButton.className =
+            "decision-modal__button " +
+            "decision-modal__button--confirm " +
+            config.confirmClass;
+
+
+        confirmButton.disabled = false;
+
+
+        if (config.warning) {
+
+            modalWarning.textContent =
+                config.warning;
+
+            modalWarning.classList.add(
+                "is-visible"
+            );
+
+        } else {
+
+            modalWarning.textContent = "";
+
+            modalWarning.classList.remove(
+                "is-visible"
+            );
+
+        }
+
+
+        modalBackdrop.classList.add(
+            "is-open"
+        );
+
+
+        modalBackdrop.setAttribute(
+            "aria-hidden",
+            "false"
+        );
+
+
+        document.body.classList.add(
+            "modal-open"
+        );
+
+
+        cancelButton.focus();
+
+    }
+
+
+    function closeModal() {
+
+        pendingForm = null;
+
+
+        modalBackdrop.classList.remove(
+            "is-open"
+        );
+
+
+        modalBackdrop.setAttribute(
+            "aria-hidden",
+            "true"
+        );
+
+
+        document.body.classList.remove(
+            "modal-open"
+        );
+
+
+        confirmButton.disabled = false;
+
+    }
+
+
+    /*
+     * Hem PENDING durumundaki 4 form,
+     * hem REVIEWING durumundaki 3 form
+     * burada otomatik yakalanır.
+     */
+    const moderationForms =
+        document.querySelectorAll(
+            ".moderation-decision-form"
+        );
+
+
+    moderationForms.forEach(function (form) {
+
+        form.addEventListener(
+            "submit",
+            function (event) {
+
+                const statusInput =
+                    form.querySelector(
+                        'input[name="status"]'
+                    );
+
+
+                if (!statusInput) {
+                    return;
+                }
+
+
+                const status =
+                    statusInput.value;
+
+
+                if (!decisions[status]) {
+                    return;
+                }
+
+
+                /*
+                 * Normal POST'u burada durduruyoruz.
+                 * Önce kullanıcıya modal gösteriliyor.
+                 */
+                event.preventDefault();
+
+
+                openModal(
+                    form,
+                    status
+                );
+
+            }
+        );
+
+    });
+
+
+    /*
+     * Vazgeç
+     */
+    cancelButton.addEventListener(
+        "click",
+        function () {
+
+            closeModal();
+
+        }
+    );
+
+
+    /*
+     * Evet, onayla
+     */
+    confirmButton.addEventListener(
+        "click",
+        function () {
+
+            if (!pendingForm) {
+                return;
+            }
+
+
+            const formToSubmit =
+                pendingForm;
+
+
+            /*
+             * Çift tıklamayı engelle.
+             */
+            pendingForm = null;
+
+            confirmButton.disabled = true;
+
+            confirmButton.textContent =
+                "İşleniyor...";
+
+
+            formToSubmit.submit();
+
+        }
+    );
+
+
+    /*
+     * Modal dışındaki karanlık alana basılırsa kapat.
+     */
+    modalBackdrop.addEventListener(
+        "click",
+        function (event) {
+
+            if (
+                event.target === modalBackdrop
+            ) {
+
+                closeModal();
+
+            }
+
+        }
+    );
+
+
+    /*
+     * ESC ile kapatma
+     */
+    document.addEventListener(
+        "keydown",
+        function (event) {
+
+            if (
+                event.key === "Escape"
+                &&
+                modalBackdrop.classList.contains(
+                    "is-open"
+                )
+            ) {
+
+                closeModal();
+
+            }
+
+        }
+    );
+
+});
+</script>
+
 {% endblock %}

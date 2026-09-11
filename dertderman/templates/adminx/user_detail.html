@@ -1,4 +1,785 @@
 {% extends 'adminx/content_base.html' %}
-{% block title %}{{ account.username }} | Yönetim{% endblock %}
-{% block content_heading %}<h1>{{ account.get_full_name|default:account.username }}</h1><p>Kullanıcı hesap özeti</p>{% endblock %}
-{% block management_content %}<section class="account-card management-form"><dl class="account-details"><div><dt>Kullanıcı adı</dt><dd>{{ account.username }}</dd></div><div><dt>E-posta</dt><dd>{{ account.email }}</dd></div><div><dt>Kayıt tarihi</dt><dd>{{ account.date_joined|date:'d.m.Y H:i' }}</dd></div><div><dt>Rol</dt><dd>{{ account.get_user_type_display }}</dd></div><div><dt>Aktiflik</dt><dd>{% if account.is_active %}Aktif{% else %}Pasif{% endif %}</dd></div></dl><a class="secondary-action" href="{% url 'adminx:user_list' %}">Kullanıcılara dön</a></section>{% endblock %}
+
+{% block title %}
+{{ account.username }} | Yönetim
+{% endblock %}
+
+
+{% block content_heading %}
+<div class="user-page-heading">
+    <div>
+        <p class="eyebrow">KULLANICI YÖNETİMİ</p>
+        <h1>{{ account.get_full_name|default:account.username }}</h1>
+        <p class="heading-subtitle">
+            Hesap bilgileri, moderasyon geçmişi ve risk durumu
+        </p>
+    </div>
+
+    <a
+        href="{% url 'adminx:user_list' %}"
+        class="back-button"
+    >
+        ← Kullanıcılara dön
+    </a>
+</div>
+{% endblock %}
+
+
+{% block management_content %}
+
+<style>
+    .user-admin-page {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+    }
+
+    .user-page-heading {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+
+    .eyebrow {
+        margin: 0 0 6px;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: .08em;
+        color: #64748b;
+    }
+
+    .heading-subtitle {
+        margin: 6px 0 0;
+        color: #64748b;
+        font-size: 14px;
+    }
+
+    .back-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px 16px;
+        border-radius: 10px;
+        border: 1px solid #dbe3ee;
+        background: #fff;
+        color: #334155;
+        text-decoration: none;
+        font-weight: 700;
+        transition: .2s ease;
+    }
+
+    .back-button:hover {
+        background: #f8fafc;
+        border-color: #cbd5e1;
+    }
+
+    .admin-card {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, .05);
+    }
+
+    .card-header {
+        padding: 20px 22px;
+        border-bottom: 1px solid #eef2f7;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+
+    .card-header h2 {
+        margin: 0;
+        font-size: 18px;
+        color: #0f172a;
+    }
+
+    .card-header p {
+        margin: 4px 0 0;
+        font-size: 13px;
+        color: #64748b;
+    }
+
+    .card-body {
+        padding: 22px;
+    }
+
+    .profile-grid {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 14px;
+    }
+
+    .info-box {
+        padding: 15px 16px;
+        border: 1px solid #e8edf3;
+        border-radius: 12px;
+        background: #f8fafc;
+    }
+
+    .info-label {
+        display: block;
+        margin-bottom: 6px;
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .info-value {
+        display: block;
+        color: #0f172a;
+        font-size: 14px;
+        font-weight: 700;
+        word-break: break-word;
+    }
+
+    .status-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    .status-active {
+        background: #ecfdf5;
+        color: #047857;
+    }
+
+    .status-passive {
+        background: #fef2f2;
+        color: #b91c1c;
+    }
+
+    .moderation-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+    }
+
+    .metric-card {
+        padding: 18px;
+        border-radius: 14px;
+        border: 1px solid #e2e8f0;
+        background: #fff;
+    }
+
+    .metric-label {
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+
+    .metric-value {
+        color: #0f172a;
+        font-size: 24px;
+        font-weight: 800;
+        line-height: 1.1;
+    }
+
+    .metric-subtext {
+        margin-top: 6px;
+        color: #64748b;
+        font-size: 12px;
+    }
+
+    .risk-normal {
+        border-left: 4px solid #10b981;
+    }
+
+    .risk-warning {
+        border-left: 4px solid #f59e0b;
+    }
+
+    .risk-repeated {
+        border-left: 4px solid #f97316;
+    }
+
+    .risk-high {
+        border-left: 4px solid #ef4444;
+    }
+
+    .risk-suspend {
+        border-left: 4px solid #7f1d1d;
+    }
+
+    .notice-box {
+        margin-top: 18px;
+        padding: 14px 16px;
+        border-radius: 12px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        color: #475569;
+        font-size: 14px;
+        line-height: 1.6;
+    }
+
+    .notice-warning {
+        background: #fffbeb;
+        border-color: #fde68a;
+        color: #92400e;
+    }
+
+    .notice-danger {
+        background: #fef2f2;
+        border-color: #fecaca;
+        color: #991b1b;
+    }
+
+    .report-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+    }
+
+    .report-stat {
+        padding: 16px;
+        border-radius: 12px;
+        background: #f8fafc;
+        border: 1px solid #e8edf3;
+    }
+
+    .report-number {
+        display: block;
+        font-size: 22px;
+        font-weight: 800;
+        color: #0f172a;
+    }
+
+    .report-label {
+        display: block;
+        margin-top: 4px;
+        font-size: 12px;
+        color: #64748b;
+        font-weight: 700;
+    }
+
+    .table-wrapper {
+        overflow-x: auto;
+    }
+
+    .violation-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 700px;
+    }
+
+    .violation-table th {
+        padding: 12px 14px;
+        text-align: left;
+        font-size: 12px;
+        font-weight: 800;
+        color: #64748b;
+        background: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .violation-table td {
+        padding: 14px;
+        font-size: 14px;
+        color: #334155;
+        border-bottom: 1px solid #eef2f7;
+        vertical-align: middle;
+    }
+
+    .violation-table tbody tr:last-child td {
+        border-bottom: 0;
+    }
+
+    .violation-table tbody tr:hover {
+        background: #fafcff;
+    }
+
+    .source-badge {
+        display: inline-flex;
+        padding: 5px 9px;
+        border-radius: 999px;
+        background: #eff6ff;
+        color: #1d4ed8;
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    .reason-badge {
+        display: inline-flex;
+        padding: 5px 9px;
+        border-radius: 999px;
+        background: #fff7ed;
+        color: #c2410c;
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    .empty-state {
+        padding: 32px 20px;
+        text-align: center;
+        color: #64748b;
+        font-size: 14px;
+    }
+
+    @media (max-width: 1100px) {
+        .profile-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .moderation-grid,
+        .report-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 650px) {
+        .profile-grid,
+        .moderation-grid,
+        .report-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .card-body,
+        .card-header {
+            padding: 16px;
+        }
+    }
+</style>
+
+
+<div class="user-admin-page">
+
+    <!-- HESAP BİLGİLERİ -->
+    <section class="admin-card">
+
+        <div class="card-header">
+            <div>
+                <h2>Hesap Bilgileri</h2>
+                <p>Kullanıcının temel hesap bilgileri</p>
+            </div>
+
+            {% if account.is_active %}
+                <span class="status-pill status-active">
+                    Aktif hesap
+                </span>
+            {% else %}
+                <span class="status-pill status-passive">
+                    Pasif hesap
+                </span>
+            {% endif %}
+        </div>
+
+
+        <div class="card-body">
+
+            <div class="profile-grid">
+
+                <div class="info-box">
+                    <span class="info-label">
+                        Kullanıcı adı
+                    </span>
+
+                    <span class="info-value">
+                        {{ account.username }}
+                    </span>
+                </div>
+
+
+                <div class="info-box">
+                    <span class="info-label">
+                        E-posta
+                    </span>
+
+                    <span class="info-value">
+                        {{ account.email }}
+                    </span>
+                </div>
+
+
+                <div class="info-box">
+                    <span class="info-label">
+                        Kayıt tarihi
+                    </span>
+
+                    <span class="info-value">
+                        {{ account.date_joined|date:'d.m.Y H:i' }}
+                    </span>
+                </div>
+
+
+                <div class="info-box">
+                    <span class="info-label">
+                        Rol
+                    </span>
+
+                    <span class="info-value">
+                        {{ account.get_user_type_display }}
+                    </span>
+                </div>
+
+
+                <div class="info-box">
+                    <span class="info-label">
+                        Hesap durumu
+                    </span>
+
+                    <span class="info-value">
+                        {% if account.is_active %}
+                            Aktif
+                        {% else %}
+                            Pasif
+                        {% endif %}
+                    </span>
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    {% if account.user_type == 'USER' %}
+
+    <!-- MODERASYON DURUMU -->
+    <section class="admin-card">
+
+        <div class="card-header">
+            <div>
+                <h2>Moderasyon Durumu</h2>
+                <p>
+                    Doğrulanmış ihlaller ve mevcut risk seviyesi
+                </p>
+            </div>
+        </div>
+
+
+        <div class="card-body">
+
+            <div class="moderation-grid">
+
+                <div class="metric-card">
+                    <div class="metric-label">
+                        Doğrulanmış ihlal
+                    </div>
+
+                    <div class="metric-value">
+                        {{ violation_count }}
+                    </div>
+
+                    <div class="metric-subtext">
+                        Admin tarafından doğrulanan
+                    </div>
+                </div>
+
+
+                <div
+                    class="metric-card
+                    {% if risk_code == 'NORMAL' %}
+                        risk-normal
+                    {% elif risk_code == 'WARNING' %}
+                        risk-warning
+                    {% elif risk_code == 'REPEATED' %}
+                        risk-repeated
+                    {% elif risk_code == 'HIGH' %}
+                        risk-high
+                    {% elif risk_code == 'SUSPEND_ELIGIBLE' %}
+                        risk-suspend
+                    {% endif %}
+                    "
+                >
+
+                    <div class="metric-label">
+                        Risk seviyesi
+                    </div>
+
+                    <div class="metric-value" style="font-size:18px;">
+                        {{ risk_level }}
+                    </div>
+
+                    <div class="metric-subtext">
+                        İhlal geçmişine göre
+                    </div>
+
+                </div>
+
+
+                <div class="metric-card">
+
+                    <div class="metric-label">
+                        Askıya almaya uygun
+                    </div>
+
+                    <div class="metric-value" style="font-size:18px;">
+                        {% if suspension_eligible %}
+                            Evet
+                        {% else %}
+                            Hayır
+                        {% endif %}
+                    </div>
+
+                    <div class="metric-subtext">
+                        5 doğrulanmış ihlal eşiği
+                    </div>
+
+                </div>
+
+
+                <div class="metric-card">
+
+                    <div class="metric-label">
+                        Son ihlal
+                    </div>
+
+                    <div class="metric-value" style="font-size:16px;">
+                        {% if last_violation %}
+                            {{ last_violation.created_at|date:'d.m.Y H:i' }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </div>
+
+                    <div class="metric-subtext">
+                        En son doğrulanan olay
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            {% if violation_count == 1 %}
+
+                <div class="notice-box notice-warning">
+                    Bu kullanıcı için bir doğrulanmış topluluk kuralı
+                    ihlali bulunmaktadır.
+                </div>
+
+            {% elif violation_count == 2 %}
+
+                <div class="notice-box notice-warning">
+                    Kullanıcıda tekrarlanan topluluk kuralı
+                    ihlalleri bulunmaktadır.
+                </div>
+
+            {% elif violation_count >= 3 and violation_count < 5 %}
+
+                <div class="notice-box notice-danger">
+                    Kullanıcı yüksek risk seviyesindedir.
+                    Yeni ihlaller dikkatle değerlendirilmelidir.
+                </div>
+
+            {% elif violation_count >= 5 %}
+
+                <div class="notice-box notice-danger">
+                    Kullanıcı askıya alma değerlendirmesi için
+                    gerekli doğrulanmış ihlal eşiğine ulaşmıştır.
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    </section>
+
+
+    <!-- KULLANICI RAPORLARI -->
+    <section class="admin-card">
+
+        <div class="card-header">
+            <div>
+                <h2>Kullanıcı Raporları</h2>
+                <p>
+                    Bu hesap hakkında gönderilen kullanıcı raporları
+                </p>
+            </div>
+        </div>
+
+
+        <div class="card-body">
+
+            <div class="report-grid">
+
+                <div class="report-stat">
+                    <span class="report-number">
+                        {{ total_user_reports }}
+                    </span>
+
+                    <span class="report-label">
+                        Toplam rapor
+                    </span>
+                </div>
+
+
+                <div class="report-stat">
+                    <span class="report-number">
+                        {{ pending_user_reports }}
+                    </span>
+
+                    <span class="report-label">
+                        Bekleyen / incelenen
+                    </span>
+                </div>
+
+
+                <div class="report-stat">
+                    <span class="report-number">
+                        {{ confirmed_user_reports }}
+                    </span>
+
+                    <span class="report-label">
+                        Doğrulanan
+                    </span>
+                </div>
+
+
+                <div class="report-stat">
+                    <span class="report-number">
+                        {{ rejected_user_reports }}
+                    </span>
+
+                    <span class="report-label">
+                        İhlal bulunmayan
+                    </span>
+                </div>
+
+            </div>
+
+
+            {% if total_user_reports == 0 %}
+
+                <div class="empty-state">
+                    Bu kullanıcı hesabına yönelik henüz bir kullanıcı
+                    raporu bulunmuyor.
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    </section>
+
+
+    <!-- İHLAL GEÇMİŞİ -->
+    <section class="admin-card">
+
+        <div class="card-header">
+            <div>
+                <h2>İhlal Geçmişi</h2>
+                <p>
+                    Kullanıcının son doğrulanmış moderasyon kayıtları
+                </p>
+            </div>
+        </div>
+
+
+        {% if recent_violations %}
+
+        <div class="table-wrapper">
+
+            <table class="violation-table">
+
+                <thead>
+                    <tr>
+                        <th>Tarih</th>
+                        <th>Kaynak</th>
+                        <th>Neden</th>
+                        <th>Yönetici</th>
+                    </tr>
+                </thead>
+
+
+                <tbody>
+
+                    {% for violation in recent_violations %}
+
+                    <tr>
+
+                        <td>
+                            {{ violation.created_at|date:'d.m.Y H:i' }}
+                        </td>
+
+
+                        <td>
+                            <span class="source-badge">
+                                {{ violation.get_source_type_display }}
+                            </span>
+                        </td>
+
+
+                        <td>
+
+                            <span class="reason-badge">
+
+                                {% if violation.reason == 'SPAM' %}
+                                    Spam / reklam
+
+                                {% elif violation.reason == 'HARASSMENT' %}
+                                    Hakaret / taciz
+
+                                {% elif violation.reason == 'HATE' %}
+                                    Nefret söylemi
+
+                                {% elif violation.reason == 'PERSONAL_DATA' %}
+                                    Kişisel veri ihlali
+
+                                {% elif violation.reason == 'MISLEADING' %}
+                                    Yanıltıcı içerik
+
+                                {% elif violation.reason == 'ILLEGAL' %}
+                                    Yasa dışı içerik
+
+                                {% elif violation.reason == 'FAKE_ACCOUNT' %}
+                                    Sahte hesap
+
+                                {% elif violation.reason == 'THREAT' %}
+                                    Tehdit
+
+                                {% elif violation.reason == 'ABUSE' %}
+                                    Sistemi kötüye kullanma
+
+                                {% else %}
+                                    Diğer
+                                {% endif %}
+
+                            </span>
+
+                        </td>
+
+
+                        <td>
+                            {% if violation.confirmed_by %}
+                                {{ violation.confirmed_by.username }}
+                            {% else %}
+                                Sistem
+                            {% endif %}
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+        {% else %}
+
+            <div class="empty-state">
+                Bu kullanıcı için doğrulanmış ihlal kaydı bulunmuyor.
+            </div>
+
+        {% endif %}
+
+    </section>
+
+    {% endif %}
+
+</div>
+
+{% endblock %}

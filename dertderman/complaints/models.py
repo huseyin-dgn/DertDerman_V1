@@ -118,6 +118,7 @@ class ComplaintEvent(models.Model):
         REMOVED = "REMOVED", "İhlal nedeniyle kaldırıldı"
         EDITED = "EDITED", "Kullanıcı tarafından düzenlendi"
         WITHDRAWN = "WITHDRAWN", "Geri çekildi"
+
     class Actor(models.TextChoices):
         SYSTEM = "SYSTEM", "Sistem"
         USER = "USER", "Kullanıcı"
@@ -338,8 +339,9 @@ class ContentReport(models.Model):
     class Status(models.TextChoices):
         PENDING = "PENDING", "İncelenmeyi bekliyor"
         REVIEWING = "REVIEWING", "İnceleniyor"
-        RESOLVED = "RESOLVED", "Sonuçlandırıldı"
+        RESOLVED = "RESOLVED", "İhlal bulundu"
         REJECTED = "REJECTED", "İhlal bulunmadı"
+        ABUSIVE = "ABUSIVE", "Kötü niyetli / asılsız rapor"
 
     reporter = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -513,3 +515,359 @@ class ContentReport(models.Model):
         )
 
         return f"{target} - {self.get_reason_display()}"
+
+
+class UserReport(models.Model):
+    class Reason(models.TextChoices):
+        SPAM = "SPAM", "Spam / reklam"
+        HARASSMENT = "HARASSMENT", "Hakaret / taciz"
+        FAKE_ACCOUNT = "FAKE_ACCOUNT", "Sahte hesap"
+        THREAT = "THREAT", "Tehdit"
+        PERSONAL_DATA = "PERSONAL_DATA", "Kişisel veri ihlali"
+        ABUSE = "ABUSE", "Sistemi kötüye kullanma"
+        OTHER = "OTHER", "Diğer"
+
+    class Status(models.TextChoices):
+        PENDING = "PENDING", "İncelenmeyi bekliyor"
+        REVIEWING = "REVIEWING", "İnceleniyor"
+        RESOLVED = "RESOLVED", "İhlal doğrulandı"
+        REJECTED = "REJECTED", "İhlal bulunmadı"
+
+    reporter = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="submitted_user_reports",
+    )
+
+    reported_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="received_user_reports",
+    )
+
+    reason = models.CharField(
+        max_length=30,
+        choices=Reason.choices,
+    )
+
+    description = models.TextField(
+        max_length=1000,
+        blank=True,
+        default="",
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING,
+        db_index=True,
+    )
+
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="reviewed_user_reports",
+    )
+
+    admin_note = models.TextField(
+        max_length=1000,
+        blank=True,
+        default="",
+    )
+
+    reviewed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True,
+    )
+
+    class Meta:
+        ordering = (
+            "-created_at",
+            "-pk",
+        )
+
+        indexes = [
+            models.Index(
+                fields=(
+                    "status",
+                    "-created_at",
+                ),
+                name="user_report_status",
+            ),
+            models.Index(
+                fields=(
+                    "reported_user",
+                    "-created_at",
+                ),
+                name="user_report_target",
+            ),
+        ]
+
+        constraints = [
+            models.CheckConstraint(
+                condition=~models.Q(
+                    reporter=models.F(
+                        "reported_user"
+                    ),
+                ),
+                name="user_report_no_self_report",
+            ),
+
+            models.UniqueConstraint(
+                fields=(
+                    "reporter",
+                    "reported_user",
+                ),
+                condition=models.Q(
+                    status__in=(
+                        "PENDING",
+                        "REVIEWING",
+                    )
+                ),
+                name="unique_open_user_report",
+            ),
+        ]
+
+    def clean(self):
+        super().clean()
+
+        errors = {}
+
+        if (
+            self.reporter_id
+            and self.reported_user_id
+            and self.reporter_id
+            == self.reported_user_id
+        ):
+            errors["reported_user"] = (
+                "Kullanıcı kendi hesabını raporlayamaz."
+            )
+
+        if (
+            self.reported_user_id
+            and self.reported_user.user_type != "USER"
+        ):
+            errors["reported_user"] = (
+                "Yalnızca bireysel kullanıcı hesapları "
+                "raporlanabilir."
+            )
+
+        self.description = (
+            self.description or ""
+        ).strip()
+
+        self.admin_note = (
+            self.admin_note or ""
+        ).strip()
+
+        if errors:
+            raise ValidationError(errors)
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return (
+            f"@{self.reporter.username} → "
+            f"@{self.reported_user.username}"
+        )
+
+
+class UserViolation(models.Model):
+    class SourceType(models.TextChoices):
+        COMPLAINT = "COMPLAINT", "Şikayet"
+        COMMENT = "COMMENT", "Yorum"
+        USER_REPORT = "USER_REPORT", "Kullanıcı raporu"
+
+        FALSE_REPORT = (
+            "FALSE_REPORT",
+            "Kötü niyetli raporlama",
+        )
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="violations",
+    )
+
+    source_type = models.CharField(
+        max_length=20,
+        choices=SourceType.choices,
+    )
+
+    reason = models.CharField(
+        max_length=30,
+    )
+
+    description = models.CharField(
+        max_length=500,
+        blank=True,
+        default="",
+    )
+
+    content_report = models.ForeignKey(
+        "ContentReport",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="user_violations",
+    )
+
+    user_report = models.ForeignKey(
+        "UserReport",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="violations",
+    )
+
+    complaint = models.ForeignKey(
+        Complaint,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="user_violations",
+    )
+
+    comment = models.ForeignKey(
+        ComplaintComment,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="user_violations",
+    )
+
+    confirmed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="confirmed_user_violations",
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    class Meta:
+        ordering = (
+            "-created_at",
+            "-pk",
+        )
+
+        indexes = [
+            models.Index(
+                fields=(
+                    "user",
+                    "-created_at",
+                ),
+                name="user_violation_history",
+            ),
+        ]
+
+        constraints = [
+            models.UniqueConstraint(
+                fields=(
+                    "content_report",
+                ),
+                condition=models.Q(
+                    content_report__isnull=False,
+                ),
+                name="unique_content_report_violation",
+            ),
+
+            models.UniqueConstraint(
+                fields=(
+                    "user_report",
+                ),
+                condition=models.Q(
+                    user_report__isnull=False,
+                ),
+                name="unique_user_report_violation",
+            ),
+        ]
+
+    def clean(self):
+        super().clean()
+
+        errors = {}
+
+        if (
+            self.source_type
+            == self.SourceType.COMPLAINT
+        ):
+            if not self.complaint:
+                errors["complaint"] = (
+                    "Şikayet ihlali için "
+                    "şikayet kaydı gereklidir."
+                )
+
+            if not self.content_report:
+                errors["content_report"] = (
+                    "Şikayet ihlali için "
+                    "içerik raporu gereklidir."
+                )
+
+        elif (
+            self.source_type
+            == self.SourceType.COMMENT
+        ):
+            if not self.comment:
+                errors["comment"] = (
+                    "Yorum ihlali için "
+                    "yorum kaydı gereklidir."
+                )
+
+            if not self.content_report:
+                errors["content_report"] = (
+                    "Yorum ihlali için "
+                    "içerik raporu gereklidir."
+                )
+
+        elif (
+            self.source_type
+            == self.SourceType.USER_REPORT
+        ):
+            if not self.user_report:
+                errors["user_report"] = (
+                    "Kullanıcı ihlali için "
+                    "kullanıcı raporu gereklidir."
+                )
+
+        elif (
+            self.source_type
+            == self.SourceType.FALSE_REPORT
+        ):
+            if not self.content_report:
+                errors["content_report"] = (
+                    "Kötü niyetli raporlama ihlali için "
+                    "içerik raporu gereklidir."
+                )
+
+        self.description = (
+            self.description or ""
+        ).strip()
+
+        if errors:
+            raise ValidationError(errors)
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return (
+            f"@{self.user.username} - "
+            f"{self.get_source_type_display()}"
+        )
