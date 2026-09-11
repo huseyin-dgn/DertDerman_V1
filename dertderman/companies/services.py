@@ -5,7 +5,11 @@ from .models import Company, CompanyMembership
 
 
 def active_company_memberships_for(user):
-    if not user.is_authenticated or not user.is_active or user.user_type != "COMPANY":
+    if (
+        not user.is_authenticated
+        or not user.is_active
+        or user.user_type != "COMPANY"
+    ):
         return CompanyMembership.objects.none()
 
     return (
@@ -18,15 +22,24 @@ def active_company_memberships_for(user):
             company__is_verified=True,
             company__approval_status=Company.ApprovalStatus.APPROVED,
         )
-        .select_related("company", "company__category")
+        .select_related(
+            "company",
+            "company__category",
+        )
         .order_by("company__name")
     )
 
 
 def get_accessible_company_membership(user, slug):
-    membership = active_company_memberships_for(user).filter(company__slug=slug).first()
+    membership = (
+        active_company_memberships_for(user)
+        .filter(company__slug=slug)
+        .first()
+    )
+
     if membership is None:
         raise PermissionDenied
+
     return membership
 
 
@@ -36,38 +49,81 @@ def decide_company_application(company_id, target_status):
         Company.ApprovalStatus.APPROVED,
         Company.ApprovalStatus.REJECTED,
     }:
-        raise ValueError("Geçersiz şirket başvurusu kararı.")
+        raise ValueError(
+            "Geçersiz şirket başvurusu kararı."
+        )
 
-    company = Company.objects.select_for_update().get(pk=company_id)
+    company = Company.objects.select_for_update().get(
+        pk=company_id
+    )
+
     if company.archived_at is not None:
-        raise ValidationError("Arşivlenmiş şirket başvurusu sonuçlandırılamaz.")
+        raise ValidationError(
+            "Arşivlenmiş şirket başvurusu sonuçlandırılamaz."
+        )
+
     if company.approval_status != Company.ApprovalStatus.PENDING:
         return company, False
 
-    memberships = CompanyMembership.objects.select_for_update().filter(company=company)
+    memberships = (
+        CompanyMembership.objects
+        .select_for_update()
+        .filter(company=company)
+    )
+
     if target_status == Company.ApprovalStatus.APPROVED:
-        owner_membership = memberships.filter(
-            role=CompanyMembership.Role.OWNER,
-            user__user_type="COMPANY",
-        ).order_by("pk").first()
+        owner_membership = (
+            memberships.filter(
+                role=CompanyMembership.Role.OWNER,
+                user__user_type="COMPANY",
+            )
+            .order_by("pk")
+            .first()
+        )
+
         if owner_membership is None:
-            raise ValidationError("Başvuruya bağlı geçerli şirket yetkilisi bulunamadı.")
-        memberships.exclude(pk=owner_membership.pk).update(is_active=False)
+            raise ValidationError(
+                "Başvuruya bağlı geçerli şirket yetkilisi bulunamadı."
+            )
+
+        memberships.exclude(
+            pk=owner_membership.pk
+        ).update(
+            is_active=False
+        )
+
         if not owner_membership.is_active:
             owner_membership.is_active = True
-            owner_membership.save(update_fields=["is_active"])
+            owner_membership.save(
+                update_fields=["is_active"]
+            )
+
         if not owner_membership.user.is_active:
             owner_membership.user.is_active = True
-            owner_membership.user.save(update_fields=["is_active"])
+            owner_membership.user.save(
+                update_fields=["is_active"]
+            )
+
         company.is_active = True
         company.is_verified = True
+
     else:
-        memberships.update(is_active=False)
+        memberships.update(
+            is_active=False
+        )
+
         company.is_active = False
         company.is_verified = False
 
     company.approval_status = target_status
+
     company.save(
-        update_fields=["approval_status", "is_active", "is_verified", "updated_at"]
+        update_fields=[
+            "approval_status",
+            "is_active",
+            "is_verified",
+            "updated_at",
+        ]
     )
+
     return company, True

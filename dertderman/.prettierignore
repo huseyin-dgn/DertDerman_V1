@@ -11,3 +11,7 @@ templates/core/legal/cookies.html
 templates/core/legal/terms.html
 templates/core/legal/community_rules.html
 templates/core/legal/faq.html
+templates/adminx/audit_log_list.html
+templates/complaints/public_detail.html
+templates/adminx/report_list.html
+templates/adminx/report_detail.html

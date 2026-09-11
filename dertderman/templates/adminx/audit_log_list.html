@@ -1,0 +1,845 @@
+{% extends "layouts/admin_base.html" %}
+
+{% block title %}Yönetici İşlem Geçmişi | DertDerman{% endblock %}
+
+
+{% block extra_head %}
+<style>
+    .audit-page {
+        display: grid;
+        gap: 24px;
+    }
+
+    .audit-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+
+    .audit-header h1 {
+        margin: 6px 0 6px;
+        font-size: 30px;
+        line-height: 1.2;
+    }
+
+    .audit-header p {
+        margin: 0;
+        max-width: 760px;
+        color: var(--text-muted, #667085);
+        line-height: 1.55;
+    }
+
+    .audit-summary {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .audit-summary-card {
+        min-width: 150px;
+        padding: 14px 16px;
+        border: 1px solid var(--border-color, #e4e7ec);
+        border-radius: 14px;
+        background: var(--surface, #fff);
+    }
+
+    .audit-summary-card span {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 12px;
+        color: var(--text-muted, #667085);
+    }
+
+    .audit-summary-card strong {
+        font-size: 20px;
+    }
+
+    .audit-list {
+        display: grid;
+        gap: 14px;
+    }
+
+    .audit-item {
+        display: grid;
+        grid-template-columns:
+            170px
+            minmax(180px, 0.8fr)
+            minmax(170px, 0.7fr)
+            minmax(260px, 1.5fr);
+
+        gap: 18px;
+        align-items: start;
+        padding: 18px;
+        border: 1px solid var(--border-color, #e4e7ec);
+        border-radius: 16px;
+        background: var(--surface, #fff);
+
+        transition:
+            border-color 0.18s ease,
+            box-shadow 0.18s ease,
+            transform 0.18s ease;
+    }
+
+    .audit-item:hover {
+        border-color: #cbd5e1;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+        transform: translateY(-1px);
+    }
+
+    .audit-label {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--text-muted, #667085);
+    }
+
+    .audit-date {
+        font-size: 14px;
+        font-weight: 650;
+        color: var(--text-color, #101828);
+    }
+
+    .audit-time {
+        display: block;
+        margin-top: 3px;
+        font-size: 13px;
+        color: var(--text-muted, #667085);
+    }
+
+    .audit-user {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .audit-avatar {
+        width: 38px;
+        height: 38px;
+        flex: 0 0 38px;
+
+        display: grid;
+        place-items: center;
+
+        border-radius: 50%;
+        background: #eef4ff;
+        color: #1d5fa7;
+
+        font-weight: 800;
+        border: 1px solid #d7e5f7;
+    }
+
+    .audit-user strong {
+        display: block;
+        font-size: 14px;
+    }
+
+    .audit-user small {
+        display: block;
+        margin-top: 2px;
+        color: var(--text-muted, #667085);
+    }
+
+    .audit-action {
+        display: inline-flex;
+        align-items: center;
+        width: fit-content;
+
+        padding: 6px 10px;
+        border-radius: 999px;
+
+        font-size: 12px;
+        font-weight: 750;
+        line-height: 1;
+
+        background: #eef4ff;
+        color: #1d5fa7;
+        border: 1px solid #d7e5f7;
+    }
+
+    .audit-action--publish {
+        background: #ecfdf3;
+        color: #027a48;
+        border-color: #abefc6;
+    }
+
+    .audit-action--reject {
+        background: #fef3f2;
+        color: #b42318;
+        border-color: #fecdca;
+    }
+
+    .audit-action--resolve {
+        background: #f0f9ff;
+        color: #026aa2;
+        border-color: #b9e6fe;
+    }
+
+    .audit-action--update {
+        background: #fffaeb;
+        color: #b54708;
+        border-color: #fedf89;
+    }
+
+    .audit-action--create {
+        background: #eef4ff;
+        color: #175cd3;
+        border-color: #b2ddff;
+    }
+
+    .audit-action--delete {
+        background: #fef3f2;
+        color: #b42318;
+        border-color: #fecdca;
+    }
+
+    .audit-target-type {
+        display: inline-flex;
+        align-items: center;
+
+        padding: 4px 8px;
+        border-radius: 7px;
+
+        background: #f2f4f7;
+        color: #475467;
+
+        font-size: 11px;
+        font-weight: 700;
+    }
+
+    .audit-target-title {
+        display: block;
+        margin-top: 8px;
+
+        font-size: 14px;
+        font-weight: 700;
+
+        color: var(--text-color, #101828);
+    }
+
+    .audit-target-id {
+        display: block;
+        margin-top: 3px;
+
+        font-size: 12px;
+        color: var(--text-muted, #667085);
+    }
+
+    .audit-description {
+        margin: 10px 0 0;
+
+        font-size: 14px;
+        line-height: 1.55;
+
+        color: #344054;
+    }
+
+    .audit-details {
+        margin-top: 12px;
+        overflow: hidden;
+
+        border: 1px solid #e4e7ec;
+        border-radius: 12px;
+
+        background: #f8fafc;
+    }
+
+    .audit-details summary {
+        cursor: pointer;
+
+        padding: 10px 12px;
+
+        font-size: 13px;
+        font-weight: 700;
+
+        color: #344054;
+
+        user-select: none;
+        list-style: none;
+    }
+
+    .audit-details summary::-webkit-details-marker {
+        display: none;
+    }
+
+    .audit-details summary::after {
+        content: "+";
+        float: right;
+
+        font-size: 16px;
+        color: #667085;
+    }
+
+    .audit-details[open] summary::after {
+        content: "−";
+    }
+
+    .audit-details-content {
+        display: grid;
+        gap: 8px;
+
+        padding: 0 12px 12px;
+    }
+
+    .audit-meta-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+
+        gap: 14px;
+
+        padding: 8px 10px;
+
+        border-radius: 8px;
+        background: #fff;
+        border: 1px solid #eaecf0;
+    }
+
+    .audit-meta-row span {
+        font-size: 12px;
+        color: #667085;
+    }
+
+    .audit-meta-row strong {
+        font-size: 12px;
+        color: #101828;
+
+        text-align: right;
+        word-break: break-word;
+    }
+
+    .audit-ip {
+        margin-top: 12px;
+        padding-top: 10px;
+
+        border-top: 1px dashed #d0d5dd;
+
+        font-size: 12px;
+        color: #667085;
+    }
+
+    .audit-ip code {
+        padding: 3px 6px;
+
+        border-radius: 6px;
+
+        background: #f2f4f7;
+        color: #344054;
+
+        font-size: 12px;
+    }
+
+    .audit-empty {
+        padding: 48px 24px;
+
+        text-align: center;
+
+        border: 1px dashed #d0d5dd;
+        border-radius: 16px;
+
+        background: #fafafa;
+    }
+
+    .audit-empty h2 {
+        margin: 0 0 6px;
+        font-size: 18px;
+    }
+
+    .audit-empty p {
+        margin: 0;
+        color: #667085;
+    }
+
+    @media (max-width: 1100px) {
+        .audit-item {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+
+    @media (max-width: 700px) {
+        .audit-item {
+            grid-template-columns: 1fr;
+        }
+
+        .audit-header {
+            display: block;
+        }
+
+        .audit-summary {
+            margin-top: 16px;
+        }
+
+        .audit-meta-row {
+            align-items: flex-start;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .audit-meta-row strong {
+            text-align: left;
+        }
+    }
+</style>
+{% endblock %}
+
+
+{% block content %}
+<main id="main-content" class="audit-page">
+
+    <header class="audit-header">
+
+        <div>
+
+            <span class="ad-header-label">
+                YÖNETİM / İŞLEM GEÇMİŞİ
+            </span>
+
+            <h1>
+                Yönetici İşlem Geçmişi
+            </h1>
+
+            <p>
+                Yönetim panelinde hangi yöneticinin, hangi kayıt üzerinde,
+                ne zaman ve hangi işlemi gerçekleştirdiğini buradan takip edebilirsiniz.
+            </p>
+
+        </div>
+
+
+        <div class="audit-summary">
+
+            <div class="audit-summary-card">
+                <span>Bu sayfadaki işlem</span>
+                <strong>
+                    {{ page_obj.object_list|length }}
+                </strong>
+            </div>
+
+
+            <div class="audit-summary-card">
+                <span>Toplam işlem</span>
+                <strong>
+                    {{ page_obj.paginator.count }}
+                </strong>
+            </div>
+
+        </div>
+
+    </header>
+
+
+    {% if page_obj.object_list %}
+
+        <section class="audit-list">
+
+            {% for log in page_obj %}
+
+                <article class="audit-item">
+
+
+                    <!-- TARİH -->
+                    <div>
+
+                        <span class="audit-label">
+                            Tarih
+                        </span>
+
+                        <div class="audit-date">
+                            {{ log.created_at|date:"d.m.Y" }}
+                        </div>
+
+                        <span class="audit-time">
+                            {{ log.created_at|date:"H:i:s" }}
+                        </span>
+
+                    </div>
+
+
+                    <!-- YÖNETİCİ -->
+                    <div>
+
+                        <span class="audit-label">
+                            İşlemi yapan
+                        </span>
+
+
+                        {% if log.actor %}
+
+                            <div class="audit-user">
+
+                                <div class="audit-avatar">
+                                    {{ log.actor.username|first|upper }}
+                                </div>
+
+
+                                <div>
+
+                                    <strong>
+                                        {{ log.actor.get_full_name|default:log.actor.username }}
+                                    </strong>
+
+                                    <small>
+                                        @{{ log.actor.username }}
+                                    </small>
+
+                                </div>
+
+                            </div>
+
+                        {% else %}
+
+                            <span>
+                                Sistem / Silinmiş kullanıcı
+                            </span>
+
+                        {% endif %}
+
+                    </div>
+
+
+                    <!-- İŞLEM -->
+                    <div>
+
+                        <span class="audit-label">
+                            Yapılan işlem
+                        </span>
+
+
+                        <span
+                            class="
+                                audit-action
+
+                                {% if log.action == 'PUBLISH' %}
+                                    audit-action--publish
+
+                                {% elif log.action == 'REJECT' %}
+                                    audit-action--reject
+
+                                {% elif log.action == 'RESOLVE' %}
+                                    audit-action--resolve
+
+                                {% elif log.action == 'UPDATE' %}
+                                    audit-action--update
+
+                                {% elif log.action == 'CREATE' %}
+                                    audit-action--create
+
+                                {% elif log.action == 'DELETE' %}
+                                    audit-action--delete
+
+                                {% endif %}
+                            "
+                        >
+
+                            {% if log.action == "CREATE" %}
+                                Oluşturuldu
+
+                            {% elif log.action == "UPDATE" %}
+                                Güncellendi
+
+                            {% elif log.action == "DELETE" %}
+                                Silindi
+
+                            {% elif log.action == "PUBLISH" %}
+                                Yayınlandı
+
+                            {% elif log.action == "REJECT" %}
+                                Reddedildi
+
+                            {% elif log.action == "RESOLVE" %}
+                                Çözüldü
+
+                            {% elif log.action == "ARCHIVE" %}
+                                Arşivlendi
+
+                            {% elif log.action == "RESTORE" %}
+                                Geri yüklendi
+
+                            {% elif log.action == "SUSPEND" %}
+                                Askıya alındı
+
+                            {% else %}
+                                {{ log.get_action_display }}
+                            {% endif %}
+
+                        </span>
+
+                    </div>
+
+
+                    <!-- İŞLEM DETAYI -->
+                    <div>
+
+                        <span class="audit-label">
+                            İşlem detayı
+                        </span>
+
+
+                        <span class="audit-target-type">
+
+                            {% if log.target_type == "complaint" %}
+                                Şikayet
+
+                            {% elif log.target_type == "content_report" %}
+                                İçerik Raporu
+
+                            {% elif log.target_type == "user" %}
+                                Kullanıcı
+
+                            {% elif log.target_type == "company" %}
+                                Şirket
+
+                            {% elif log.target_type == "contact_request" %}
+                                İletişim Talebi
+
+                            {% elif log.target_type == "blog_post" %}
+                                Blog Yazısı
+
+                            {% elif log.target_type == "blog" %}
+                                Blog Yazısı
+
+                            {% else %}
+                                Sistem Kaydı
+                            {% endif %}
+
+                        </span>
+
+
+                        {% if log.target_label %}
+
+                            <span class="audit-target-title">
+                                {{ log.target_label }}
+                            </span>
+
+                        {% endif %}
+
+
+                        {% if log.target_id %}
+
+                            <span class="audit-target-id">
+
+                                {% if log.target_type == "content_report" %}
+                                    Rapor No: #{{ log.target_id }}
+
+                                {% elif log.target_type == "complaint" %}
+                                    Şikayet No: #{{ log.target_id }}
+
+                                {% elif log.target_type == "user" %}
+                                    Kullanıcı No: #{{ log.target_id }}
+
+                                {% elif log.target_type == "company" %}
+                                    Şirket No: #{{ log.target_id }}
+
+                                {% elif log.target_type == "contact_request" %}
+                                    Talep No: #{{ log.target_id }}
+
+                                {% else %}
+                                    Kayıt No: #{{ log.target_id }}
+                                {% endif %}
+
+                            </span>
+
+                        {% endif %}
+
+
+                        {% if log.description %}
+
+                            <p class="audit-description">
+                                {{ log.description }}
+                            </p>
+
+                        {% endif %}
+
+
+                        {% if log.metadata %}
+
+                            <details class="audit-details">
+
+                                <summary>
+                                    Değişiklik ayrıntılarını göster
+                                </summary>
+
+
+                                <div class="audit-details-content">
+
+                                    {% for key, value in log.metadata.items %}
+
+                                        <div class="audit-meta-row">
+
+                                            <span>
+
+                                                {% if key == "previous_status" %}
+                                                    Önceki durum
+
+                                                {% elif key == "new_status" %}
+                                                    Yeni durum
+
+                                                {% elif key == "report_target_type" %}
+                                                    Raporlanan içerik
+
+                                                {% elif key == "report_reason" %}
+                                                    Rapor nedeni
+
+                                                {% elif key == "complaint_removed" %}
+                                                    Şikayet yayından kaldırıldı mı?
+
+                                                {% elif key == "violation_reason" %}
+                                                    İhlal nedeni
+
+                                                {% elif key == "content_report_id" %}
+                                                    İlgili rapor
+
+                                                {% elif key == "company_id" %}
+                                                    İlgili şirket
+
+                                                {% elif key == "complaint_id" %}
+                                                    İlgili şikayet
+
+                                                {% elif key == "user_id" %}
+                                                    İlgili kullanıcı
+
+                                                {% else %}
+                                                    Ek bilgi
+                                                {% endif %}
+
+                                            </span>
+
+
+                                            <strong>
+
+                                                {% if value == "PENDING" %}
+                                                    İncelemede
+
+                                                {% elif value == "REVIEWING" %}
+                                                    İnceleniyor
+
+                                                {% elif value == "PUBLISHED" %}
+                                                    Yayında
+
+                                                {% elif value == "RESOLVED" %}
+                                                    Çözüldü
+
+                                                {% elif value == "REJECTED" %}
+                                                    Reddedildi
+
+                                                {% elif value == "REMOVED" %}
+                                                    İhlal nedeniyle kaldırıldı
+
+
+                                                {% elif value == "COMPLAINT" %}
+                                                    Şikayet
+
+                                                {% elif value == "COMMENT" %}
+                                                    Yorum
+
+
+                                                {% elif value == "SPAM" %}
+                                                    Spam / Reklam
+
+                                                {% elif value == "HARASSMENT" %}
+                                                    Taciz / Rahatsız Edici İçerik
+
+                                                {% elif value == "HATE" %}
+                                                    Nefret Söylemi
+
+                                                {% elif value == "PERSONAL_DATA" %}
+                                                    Kişisel Veri İhlali
+
+                                                {% elif value == "MISLEADING" %}
+                                                    Yanıltıcı İçerik
+
+                                                {% elif value == "ILLEGAL" %}
+                                                    Yasa Dışı İçerik
+
+                                                {% elif value == "OTHER" %}
+                                                    Diğer
+
+
+                                                {% elif value == True %}
+                                                    Evet
+
+                                                {% elif value == False %}
+                                                    Hayır
+
+
+                                                {% elif key == "content_report_id" %}
+                                                    Rapor #{{ value }}
+
+                                                {% elif key == "complaint_id" %}
+                                                    Şikayet #{{ value }}
+
+                                                {% elif key == "company_id" %}
+                                                    Şirket #{{ value }}
+
+                                                {% elif key == "user_id" %}
+                                                    Kullanıcı #{{ value }}
+
+                                                {% else %}
+                                                    {{ value }}
+                                                {% endif %}
+
+                                            </strong>
+
+                                        </div>
+
+                                    {% endfor %}
+
+                                </div>
+
+                            </details>
+
+                        {% endif %}
+
+
+                        <div class="audit-ip">
+
+                            İşlemin yapıldığı IP:
+
+                            {% if log.ip_address %}
+
+                                <code>
+                                    {{ log.ip_address }}
+                                </code>
+
+                            {% else %}
+
+                                —
+
+                            {% endif %}
+
+                        </div>
+
+                    </div>
+
+                </article>
+
+            {% endfor %}
+
+        </section>
+
+
+        {% include "components/pagination.html" with page_obj=page_obj %}
+
+
+    {% else %}
+
+        <section class="audit-empty">
+
+            <h2>
+                Henüz yönetici işlemi bulunmuyor
+            </h2>
+
+            <p>
+                Yönetim panelinde işlem yapıldıkça kayıtlar burada görüntülenecek.
+            </p>
+
+        </section>
+
+    {% endif %}
+
+</main>
+{% endblock %}

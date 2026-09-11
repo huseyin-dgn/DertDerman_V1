@@ -1,10 +1,1020 @@
-{% extends "base.html" %}{% load static %}
-{% block title %}{{ complaint.title }} | DertDerman{% endblock %}{% block body_class %}public-site public-complaint-page{% endblock %}
-{% block extra_head %}<script src="{% static 'js/complaint-experience.js' %}" defer></script>{% endblock %}
-{% block content %}<main class="content-section public-detail-v2" id="main-content"><article class="section-inner public-detail-shell" aria-labelledby="complaint-title">
-<header class="public-detail-hero"><div class="public-detail-company"><span class="public-detail-logo">{% include 'components/company_avatar.html' with company=complaint.company image_class='public-detail-logo-image' fallback_class='public-detail-logo-fallback' only %}</span><div><p>{{ complaint.company.name }}{% if complaint.company.is_verified %}<span class="verified-mark" title="Doğrulanmış şirket">✓</span>{% endif %}</p><a class="detail-cta company-detail-cta" href="{% url 'companies_public:company_detail' complaint.company.slug %}">Şirkete Git</a></div></div><div class="public-detail-title"><div class="public-detail-status">{% include 'complaints/status_badge.html' with complaint=complaint only %}{% if complaint.has_response %}<span class="community-chip community-chip--response">Şirket cevapladı</span>{% endif %}</div><h1 id="complaint-title">{{ complaint.title }}</h1><div class="public-detail-author">{% include 'components/complaint_author_avatar.html' with complaint=complaint size_class='user-avatar--sm' only %}<span>DertDerman kullanıcısı tarafından · <time datetime="{{ complaint.created_at|date:'c' }}">{{ complaint.created_at|date:'d.m.Y H:i' }}</time></span>{% include 'components/public_user_badge.html' with badge=complaint_badge only %}</div></div></header>
-<section class="public-detail-card complaint-description" aria-labelledby="description-title"><h2 id="description-title">Açıklama</h2><p>{{ complaint.description }}</p><dl class="public-detail-dates"><div><dt>Oluşturulma tarihi</dt><dd>{{ complaint.created_at|date:'d.m.Y H:i' }}</dd></div><div><dt>Son güncelleme</dt><dd>{{ complaint.updated_at|date:'d.m.Y H:i' }}</dd></div></dl></section>
-<section class="interaction-panel" aria-labelledby="interaction-title"><header><div><p class="section-kicker">TOPLULUK DESTEĞİ</p><h2 id="interaction-title">Bu deneyim size de tanıdık geliyor mu?</h2></div><span>{{ complaint.comment_count }} yorum</span></header><div class="interaction-bar">{% if request.user.is_authenticated and request.user.user_type == 'USER' %}<form method="post" action="{% url 'complaints:like_toggle' complaint.pk %}">{% csrf_token %}<button class="reaction-button{% if liked %} is-active{% endif %}" type="submit" aria-pressed="{% if liked %}true{% else %}false{% endif %}">👍 <span>{% if liked %}Beğenildi{% else %}Katılıyorum{% endif %}</span> <b>{{ complaint.like_count }}</b></button></form><form class="emoji-picker" method="post" action="{% url 'complaints:react' complaint.pk %}" data-emoji-picker>{% csrf_token %}<div class="emoji-options" aria-label="Emoji seçenekleri">{% for reaction in reaction_options %}<button type="button" class="emoji-option{% if reaction.active %} is-active{% endif %}" data-emoji="{{ reaction.value }}" aria-pressed="{% if reaction.active %}true{% else %}false{% endif %}" title="{{ reaction.count }} tepki">{{ reaction.value }}{% if reaction.count %}<b>{{ reaction.count }}</b>{% endif %}</button>{% endfor %}</div><label class="emoji-custom"><span>Başka emoji</span><input name="reaction_type" maxlength="32" value="{{ active_reaction }}" placeholder="🙂" inputmode="text" autocomplete="off" aria-label="Başka bir emoji girin"></label><span class="emoji-picker-status" aria-live="polite"></span></form>{% else %}<a class="secondary-action" href="{% url 'accounts:login' %}?next={{ request.path|urlencode }}">Beğenmek veya tepki vermek için giriş yapın</a>{% endif %}<a class="comment-count-link" href="#community-comments">💬 {{ complaint.comment_count }} Yorum</a></div></section>
-<section class="official-response-section" aria-labelledby="company-responses-title"><header class="public-section-heading"><span aria-hidden="true">↩</span><div><p class="section-kicker">RESMİ YANIT</p><h2 id="company-responses-title">Şirketin Cevabı</h2></div></header>{% for response in company_response_page %}<article class="official-response"><header><span class="official-company-logo">{% include 'components/company_avatar.html' with company=complaint.company image_class='official-company-avatar-image' fallback_class='official-company-avatar-fallback' only %}</span><div><strong>{{ complaint.company.name }}</strong><span class="official-badge">Resmi Şirket Yanıtı</span></div><time datetime="{{ response.created_at|date:'c' }}">{{ response.created_at|date:'d.m.Y H:i' }}</time></header><p>{{ response.body|linebreaksbr }}</p></article>{% empty %}<p class="public-empty-note">Şirket henüz resmi bir yanıt paylaşmadı.</p>{% endfor %}{% include 'components/pagination.html' with page_obj=company_response_page page_param='response_page' label='Şirket cevabı sayfaları' %}</section>
-<section class="community-comments" id="community-comments" aria-labelledby="comments-title"><header class="public-section-heading"><span aria-hidden="true">◇</span><div><p class="section-kicker">TOPLULUK</p><h2 id="comments-title">Topluluk Yorumları</h2></div><b>{{ complaint.comment_count }}</b></header>{% if request.user.is_authenticated and request.user.user_type == 'USER' %}<form class="comment-form" method="post" action="{% url 'complaints:comment_create' complaint.pk %}" data-submit-form>{% csrf_token %}{% include 'components/field.html' with field=comment_form.body label='Yorumunuz' %}<button class="primary-action" type="submit" data-submit-label="Yorumu Paylaş">Yorumu Paylaş</button></form>{% elif not request.user.is_authenticated %}<div class="comment-login"><p>Deneyime katkıda bulunmak için giriş yapın.</p><a class="secondary-action" href="{% url 'accounts:login' %}?next={{ request.path|urlencode }}">Giriş Yap</a></div>{% endif %}<div class="comment-list">{% for comment in comment_page %}<article class="community-comment">{% include 'components/complaint_author_avatar.html' with complaint=comment size_class='user-avatar--comment' only %}<div><header><span><strong>{{ comment.author_username }}</strong>{% include 'components/public_user_badge.html' with badge=comment.display_badge only %}</span><span><time datetime="{{ comment.created_at|date:'c' }}">{{ comment.created_at|date:'d.m.Y H:i' }}</time>{% if request.user.pk == comment.author_user_id %}<form class="comment-delete-form" method="post" action="{% url 'complaints:comment_delete' complaint.pk comment.pk %}">{% csrf_token %}<button type="submit">Kaldır</button></form>{% endif %}</span></header><p>{{ comment.body|linebreaksbr }}</p></div></article>{% empty %}<div class="comment-empty"><span aria-hidden="true">◇</span><h3>Henüz topluluk yorumu yok</h3><p>İlk katkıyı siz yapabilirsiniz.</p></div>{% endfor %}</div>{% include 'components/pagination.html' with page_obj=comment_page page_param='comment_page' label='Yorum sayfaları' %}</section>
-<div class="public-detail-actions"><a class="secondary-action" href="{% url 'complaints:public_list' %}">Şikayetlere Dön</a></div></article></main>{% endblock %}
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ complaint.title }} | DertDerman{% endblock %}
+{% block body_class %}public-site public-complaint-page{% endblock %}
+
+{% block extra_head %}
+<script src="{% static 'js/complaint-experience.js' %}" defer></script>
+
+<style>
+    .report-action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 8px 12px;
+        border: 1px solid #e4e7ec;
+        border-radius: 10px;
+        background: #fff;
+        color: #475467;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        transition:
+            background 0.18s ease,
+            border-color 0.18s ease,
+            color 0.18s ease;
+    }
+
+    .report-action:hover {
+        background: #fef3f2;
+        border-color: #fecdca;
+        color: #b42318;
+    }
+
+    .report-dialog {
+        width: min(520px, calc(100vw - 32px));
+        max-width: 520px;
+        padding: 0;
+        border: 0;
+        border-radius: 18px;
+        background: #fff;
+        box-shadow: 0 24px 60px rgba(15, 23, 42, 0.22);
+    }
+
+    .report-dialog::backdrop {
+        background: rgba(15, 23, 42, 0.48);
+        backdrop-filter: blur(2px);
+    }
+
+    .report-dialog form {
+        padding: 24px;
+    }
+
+    .report-dialog-header {
+        margin-bottom: 20px;
+    }
+
+    .report-dialog-header > span {
+        display: inline-flex;
+        margin-bottom: 8px;
+        padding: 5px 9px;
+        border-radius: 999px;
+        background: #fef3f2;
+        color: #b42318;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+
+    .report-dialog-header h2 {
+        margin: 0 0 6px;
+        color: #101828;
+        font-size: 22px;
+    }
+
+    .report-dialog-header p {
+        margin: 0;
+        color: #667085;
+        line-height: 1.5;
+    }
+
+    .report-form-group {
+        display: grid;
+        gap: 7px;
+        margin-bottom: 16px;
+    }
+
+    .report-form-group label {
+        font-size: 13px;
+        font-weight: 700;
+        color: #344054;
+    }
+
+    .report-form-group select,
+    .report-form-group textarea {
+        width: 100%;
+        box-sizing: border-box;
+        border: 1px solid #d0d5dd;
+        border-radius: 10px;
+        background: #fff;
+        padding: 11px 12px;
+        color: #101828;
+        font: inherit;
+    }
+
+    .report-form-group textarea {
+        resize: vertical;
+        min-height: 105px;
+    }
+
+    .report-form-group select:focus,
+    .report-form-group textarea:focus {
+        outline: 2px solid rgba(29, 95, 167, 0.16);
+        border-color: #1d5fa7;
+    }
+
+    .report-form-help {
+        margin: 0;
+        font-size: 12px;
+        color: #667085;
+    }
+
+    .report-dialog-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 22px;
+    }
+
+    .report-cancel,
+    .report-submit {
+        padding: 9px 14px;
+        border-radius: 10px;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    .report-cancel {
+        border: 1px solid #d0d5dd;
+        background: #fff;
+        color: #344054;
+    }
+
+    .report-cancel:hover {
+        background: #f9fafb;
+    }
+
+    .report-submit {
+        border: 1px solid #b42318;
+        background: #b42318;
+        color: #fff;
+    }
+
+    .report-submit:hover {
+        background: #912018;
+        border-color: #912018;
+    }
+
+    .comment-report-button {
+        border: 0;
+        background: transparent;
+        padding: 0;
+        color: #667085;
+        font: inherit;
+        font-size: 12px;
+        cursor: pointer;
+    }
+
+    .comment-report-button:hover {
+        color: #b42318;
+        text-decoration: underline;
+    }
+
+    @media (max-width: 600px) {
+        .report-dialog form {
+            padding: 20px;
+        }
+
+        .report-dialog-actions {
+            flex-direction: column-reverse;
+        }
+
+        .report-cancel,
+        .report-submit {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+
+{% block content %}
+<main class="content-section public-detail-v2" id="main-content">
+
+    <article
+        class="section-inner public-detail-shell"
+        aria-labelledby="complaint-title"
+    >
+
+        <header class="public-detail-hero">
+
+            <div class="public-detail-company">
+
+                <span class="public-detail-logo">
+                    {% include 'components/company_avatar.html' with company=complaint.company image_class='public-detail-logo-image' fallback_class='public-detail-logo-fallback' only %}
+                </span>
+
+                <div>
+                    <p>
+                        {{ complaint.company.name }}
+
+                        {% if complaint.company.is_verified %}
+                            <span
+                                class="verified-mark"
+                                title="Doğrulanmış şirket"
+                            >
+                                ✓
+                            </span>
+                        {% endif %}
+                    </p>
+
+                    <a
+                        class="detail-cta company-detail-cta"
+                        href="{% url 'companies_public:company_detail' complaint.company.slug %}"
+                    >
+                        Şirkete Git
+                    </a>
+                </div>
+
+            </div>
+
+
+            <div class="public-detail-title">
+
+                <div class="public-detail-status">
+
+                    {% include 'complaints/status_badge.html' with complaint=complaint only %}
+
+                    {% if complaint.has_response %}
+                        <span class="community-chip community-chip--response">
+                            Şirket cevapladı
+                        </span>
+                    {% endif %}
+
+                </div>
+
+
+                <h1 id="complaint-title">
+                    {{ complaint.title }}
+                </h1>
+
+
+                <div class="public-detail-author">
+
+                    {% include 'components/complaint_author_avatar.html' with complaint=complaint size_class='user-avatar--sm' only %}
+
+                    <span>
+                        DertDerman kullanıcısı tarafından ·
+
+                        <time datetime="{{ complaint.created_at|date:'c' }}">
+                            {{ complaint.created_at|date:'d.m.Y H:i' }}
+                        </time>
+                    </span>
+
+                    {% include 'components/public_user_badge.html' with badge=complaint_badge only %}
+
+                </div>
+
+            </div>
+
+        </header>
+
+
+        <section
+            class="public-detail-card complaint-description"
+            aria-labelledby="description-title"
+        >
+
+            <h2 id="description-title">
+                Açıklama
+            </h2>
+
+            <p>
+                {{ complaint.description }}
+            </p>
+
+            <dl class="public-detail-dates">
+
+                <div>
+                    <dt>Oluşturulma tarihi</dt>
+
+                    <dd>
+                        {{ complaint.created_at|date:'d.m.Y H:i' }}
+                    </dd>
+                </div>
+
+                <div>
+                    <dt>Son güncelleme</dt>
+
+                    <dd>
+                        {{ complaint.updated_at|date:'d.m.Y H:i' }}
+                    </dd>
+                </div>
+
+            </dl>
+
+        </section>
+
+
+        <section
+            class="interaction-panel"
+            aria-labelledby="interaction-title"
+        >
+
+            <header>
+
+                <div>
+                    <p class="section-kicker">
+                        TOPLULUK DESTEĞİ
+                    </p>
+
+                    <h2 id="interaction-title">
+                        Bu deneyim size de tanıdık geliyor mu?
+                    </h2>
+                </div>
+
+                <span>
+                    {{ complaint.comment_count }} yorum
+                </span>
+
+            </header>
+
+
+            <div class="interaction-bar">
+
+                {% if request.user.is_authenticated and request.user.user_type == 'USER' %}
+
+                    <form
+                        method="post"
+                        action="{% url 'complaints:like_toggle' complaint.pk %}"
+                    >
+                        {% csrf_token %}
+
+                        <button
+                            class="reaction-button{% if liked %} is-active{% endif %}"
+                            type="submit"
+                            aria-pressed="{% if liked %}true{% else %}false{% endif %}"
+                        >
+                            👍
+
+                            <span>
+                                {% if liked %}
+                                    Beğenildi
+                                {% else %}
+                                    Katılıyorum
+                                {% endif %}
+                            </span>
+
+                            <b>
+                                {{ complaint.like_count }}
+                            </b>
+                        </button>
+                    </form>
+
+
+                    <form
+                        class="emoji-picker"
+                        method="post"
+                        action="{% url 'complaints:react' complaint.pk %}"
+                        data-emoji-picker
+                    >
+                        {% csrf_token %}
+
+                        <div
+                            class="emoji-options"
+                            aria-label="Emoji seçenekleri"
+                        >
+
+                            {% for reaction in reaction_options %}
+
+                                <button
+                                    type="button"
+                                    class="emoji-option{% if reaction.active %} is-active{% endif %}"
+                                    data-emoji="{{ reaction.value }}"
+                                    aria-pressed="{% if reaction.active %}true{% else %}false{% endif %}"
+                                    title="{{ reaction.count }} tepki"
+                                >
+                                    {{ reaction.value }}
+
+                                    {% if reaction.count %}
+                                        <b>{{ reaction.count }}</b>
+                                    {% endif %}
+                                </button>
+
+                            {% endfor %}
+
+                        </div>
+
+
+                        <label class="emoji-custom">
+
+                            <span>
+                                Başka emoji
+                            </span>
+
+                            <input
+                                name="reaction_type"
+                                maxlength="32"
+                                value="{{ active_reaction }}"
+                                placeholder="🙂"
+                                inputmode="text"
+                                autocomplete="off"
+                                aria-label="Başka bir emoji girin"
+                            >
+
+                        </label>
+
+
+                        <span
+                            class="emoji-picker-status"
+                            aria-live="polite"
+                        ></span>
+
+                    </form>
+
+
+                    {% if request.user.pk != complaint.user_id %}
+
+                        <button
+                            type="button"
+                            class="report-action"
+                            data-report-open="complaint-report-dialog"
+                        >
+                            ⚑ Raporla
+                        </button>
+
+                    {% endif %}
+
+                {% endif %}
+
+
+                {% if not request.user.is_authenticated %}
+
+                    <a
+                        class="secondary-action"
+                        href="{% url 'accounts:login' %}?next={{ request.path|urlencode }}"
+                    >
+                        Beğenmek veya tepki vermek için giriş yapın
+                    </a>
+
+                {% endif %}
+
+
+                <a
+                    class="comment-count-link"
+                    href="#community-comments"
+                >
+                    💬 {{ complaint.comment_count }} Yorum
+                </a>
+
+            </div>
+
+        </section>
+
+
+        <section
+            class="official-response-section"
+            aria-labelledby="company-responses-title"
+        >
+
+            <header class="public-section-heading">
+
+                <span aria-hidden="true">
+                    ↩
+                </span>
+
+                <div>
+                    <p class="section-kicker">
+                        RESMİ YANIT
+                    </p>
+
+                    <h2 id="company-responses-title">
+                        Şirketin Cevabı
+                    </h2>
+                </div>
+
+            </header>
+
+
+            {% for response in company_response_page %}
+
+                <article class="official-response">
+
+                    <header>
+
+                        <span class="official-company-logo">
+                            {% include 'components/company_avatar.html' with company=complaint.company image_class='official-company-avatar-image' fallback_class='official-company-avatar-fallback' only %}
+                        </span>
+
+                        <div>
+                            <strong>
+                                {{ complaint.company.name }}
+                            </strong>
+
+                            <span class="official-badge">
+                                Resmi Şirket Yanıtı
+                            </span>
+                        </div>
+
+                        <time datetime="{{ response.created_at|date:'c' }}">
+                            {{ response.created_at|date:'d.m.Y H:i' }}
+                        </time>
+
+                    </header>
+
+                    <p>
+                        {{ response.body|linebreaksbr }}
+                    </p>
+
+                </article>
+
+            {% empty %}
+
+                <p class="public-empty-note">
+                    Şirket henüz resmi bir yanıt paylaşmadı.
+                </p>
+
+            {% endfor %}
+
+
+            {% include 'components/pagination.html' with page_obj=company_response_page page_param='response_page' label='Şirket cevabı sayfaları' %}
+
+        </section>
+
+
+        <section
+            class="community-comments"
+            id="community-comments"
+            aria-labelledby="comments-title"
+        >
+
+            <header class="public-section-heading">
+
+                <span aria-hidden="true">
+                    ◇
+                </span>
+
+                <div>
+                    <p class="section-kicker">
+                        TOPLULUK
+                    </p>
+
+                    <h2 id="comments-title">
+                        Topluluk Yorumları
+                    </h2>
+                </div>
+
+                <b>
+                    {{ complaint.comment_count }}
+                </b>
+
+            </header>
+
+
+            {% if request.user.is_authenticated and request.user.user_type == 'USER' %}
+
+                <form
+                    class="comment-form"
+                    method="post"
+                    action="{% url 'complaints:comment_create' complaint.pk %}"
+                    data-submit-form
+                >
+
+                    {% csrf_token %}
+
+                    {% include 'components/field.html' with field=comment_form.body label='Yorumunuz' %}
+
+                    <button
+                        class="primary-action"
+                        type="submit"
+                        data-submit-label="Yorumu Paylaş"
+                    >
+                        Yorumu Paylaş
+                    </button>
+
+                </form>
+
+            {% endif %}
+
+
+            {% if not request.user.is_authenticated %}
+
+                <div class="comment-login">
+
+                    <p>
+                        Deneyime katkıda bulunmak için giriş yapın.
+                    </p>
+
+                    <a
+                        class="secondary-action"
+                        href="{% url 'accounts:login' %}?next={{ request.path|urlencode }}"
+                    >
+                        Giriş Yap
+                    </a>
+
+                </div>
+
+            {% endif %}
+
+
+            <div class="comment-list">
+
+                {% for comment in comment_page %}
+
+                    <article class="community-comment">
+
+                        {% include 'components/complaint_author_avatar.html' with complaint=comment size_class='user-avatar--comment' only %}
+
+                        <div>
+
+                            <header>
+
+                                <span>
+
+                                    <strong>
+                                        {{ comment.author_username }}
+                                    </strong>
+
+                                    {% include 'components/public_user_badge.html' with badge=comment.display_badge only %}
+
+                                </span>
+
+
+                                <span>
+
+                                    <time datetime="{{ comment.created_at|date:'c' }}">
+                                        {{ comment.created_at|date:'d.m.Y H:i' }}
+                                    </time>
+
+
+                                    {% if request.user.pk == comment.author_user_id %}
+
+                                        <form
+                                            class="comment-delete-form"
+                                            method="post"
+                                            action="{% url 'complaints:comment_delete' complaint.pk comment.pk %}"
+                                        >
+                                            {% csrf_token %}
+
+                                            <button type="submit">
+                                                Kaldır
+                                            </button>
+                                        </form>
+
+                                    {% endif %}
+
+
+                                    {% if request.user.is_authenticated and request.user.user_type == 'USER' and request.user.pk != comment.author_user_id %}
+
+                                        <button
+                                            type="button"
+                                            class="comment-report-button"
+                                            data-report-open="comment-report-{{ comment.pk }}"
+                                        >
+                                            Raporla
+                                        </button>
+
+                                    {% endif %}
+
+                                </span>
+
+                            </header>
+
+
+                            <p>
+                                {{ comment.body|linebreaksbr }}
+                            </p>
+
+                        </div>
+
+                    </article>
+
+
+                    {% if request.user.is_authenticated and request.user.user_type == 'USER' and request.user.pk != comment.author_user_id %}
+
+                        <dialog
+                            class="report-dialog"
+                            id="comment-report-{{ comment.pk }}"
+                        >
+
+                            <form
+                                method="post"
+                                action="{% url 'complaints:comment_report' complaint.pk comment.pk %}"
+                            >
+
+                                {% csrf_token %}
+
+
+                                <div class="report-dialog-header">
+
+                                    <span>
+                                        Yorum bildirimi
+                                    </span>
+
+                                    <h2>
+                                        Yorumu raporla
+                                    </h2>
+
+                                    <p>
+                                        Topluluk kurallarına aykırı olduğunu
+                                        düşündüğünüz içeriği yönetim ekibine
+                                        bildirebilirsiniz.
+                                    </p>
+
+                                </div>
+
+
+                                <div class="report-form-group">
+
+                                    <label for="comment-report-reason-{{ comment.pk }}">
+                                        Raporlama nedeni
+                                    </label>
+
+                                    <select
+                                        id="comment-report-reason-{{ comment.pk }}"
+                                        name="reason"
+                                        required
+                                    >
+                                        <option value="">
+                                            Bir neden seçin
+                                        </option>
+
+                                        <option value="SPAM">
+                                            Spam / reklam
+                                        </option>
+
+                                        <option value="HARASSMENT">
+                                            Hakaret / taciz
+                                        </option>
+
+                                        <option value="HATE">
+                                            Nefret söylemi
+                                        </option>
+
+                                        <option value="PERSONAL_DATA">
+                                            Kişisel veri paylaşımı
+                                        </option>
+
+                                        <option value="MISLEADING">
+                                            Yanıltıcı içerik
+                                        </option>
+
+                                        <option value="ILLEGAL">
+                                            Yasa dışı içerik
+                                        </option>
+
+                                        <option value="OTHER">
+                                            Diğer
+                                        </option>
+                                    </select>
+
+                                </div>
+
+
+                                <div class="report-form-group">
+
+                                    <label for="comment-report-description-{{ comment.pk }}">
+                                        Açıklama
+                                    </label>
+
+                                    <textarea
+                                        id="comment-report-description-{{ comment.pk }}"
+                                        name="description"
+                                        rows="4"
+                                        maxlength="1000"
+                                        placeholder="İsterseniz kısa bir açıklama ekleyin."
+                                    ></textarea>
+
+                                    <p class="report-form-help">
+                                        Açıklama isteğe bağlıdır.
+                                    </p>
+
+                                </div>
+
+
+                                <div class="report-dialog-actions">
+
+                                    <button
+                                        type="button"
+                                        class="report-cancel"
+                                        data-report-close
+                                    >
+                                        Vazgeç
+                                    </button>
+
+                                    <button
+                                        type="submit"
+                                        class="report-submit"
+                                    >
+                                        Raporu Gönder
+                                    </button>
+
+                                </div>
+
+                            </form>
+
+                        </dialog>
+
+                    {% endif %}
+
+
+                {% empty %}
+
+                    <div class="comment-empty">
+
+                        <span aria-hidden="true">
+                            ◇
+                        </span>
+
+                        <h3>
+                            Henüz topluluk yorumu yok
+                        </h3>
+
+                        <p>
+                            İlk katkıyı siz yapabilirsiniz.
+                        </p>
+
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+
+            {% include 'components/pagination.html' with page_obj=comment_page page_param='comment_page' label='Yorum sayfaları' %}
+
+        </section>
+
+
+        <div class="public-detail-actions">
+
+            <a
+                class="secondary-action"
+                href="{% url 'complaints:public_list' %}"
+            >
+                Şikayetlere Dön
+            </a>
+
+        </div>
+
+    </article>
+
+</main>
+
+
+{% if request.user.is_authenticated and request.user.user_type == 'USER' and request.user.pk != complaint.user_id %}
+
+    <dialog
+        class="report-dialog"
+        id="complaint-report-dialog"
+    >
+
+        <form
+            method="post"
+            action="{% url 'complaints:report' complaint.pk %}"
+        >
+
+            {% csrf_token %}
+
+
+            <div class="report-dialog-header">
+
+                <span>
+                    İçerik bildirimi
+                </span>
+
+                <h2>
+                    Şikayeti raporla
+                </h2>
+
+                <p>
+                    Bu şikayetin topluluk kurallarına aykırı olduğunu
+                    düşünüyorsanız nedenini seçerek yönetime bildirin.
+                </p>
+
+            </div>
+
+
+            <div class="report-form-group">
+
+                <label for="complaint-report-reason">
+                    Raporlama nedeni
+                </label>
+
+                <select
+                    id="complaint-report-reason"
+                    name="reason"
+                    required
+                >
+                    <option value="">
+                        Bir neden seçin
+                    </option>
+
+                    <option value="SPAM">
+                        Spam / reklam
+                    </option>
+
+                    <option value="HARASSMENT">
+                        Hakaret / taciz
+                    </option>
+
+                    <option value="HATE">
+                        Nefret söylemi
+                    </option>
+
+                    <option value="PERSONAL_DATA">
+                        Kişisel veri paylaşımı
+                    </option>
+
+                    <option value="MISLEADING">
+                        Yanıltıcı içerik
+                    </option>
+
+                    <option value="ILLEGAL">
+                        Yasa dışı içerik
+                    </option>
+
+                    <option value="OTHER">
+                        Diğer
+                    </option>
+                </select>
+
+            </div>
+
+
+            <div class="report-form-group">
+
+                <label for="complaint-report-description">
+                    Açıklama
+                </label>
+
+                <textarea
+                    id="complaint-report-description"
+                    name="description"
+                    rows="4"
+                    maxlength="1000"
+                    placeholder="İsterseniz neden raporladığınızı açıklayın."
+                ></textarea>
+
+                <p class="report-form-help">
+                    Açıklama isteğe bağlıdır.
+                </p>
+
+            </div>
+
+
+            <div class="report-dialog-actions">
+
+                <button
+                    type="button"
+                    class="report-cancel"
+                    data-report-close
+                >
+                    Vazgeç
+                </button>
+
+                <button
+                    type="submit"
+                    class="report-submit"
+                >
+                    Raporu Gönder
+                </button>
+
+            </div>
+
+        </form>
+
+    </dialog>
+
+{% endif %}
+
+
+<script>
+    document.addEventListener("click", function (event) {
+        const openButton = event.target.closest("[data-report-open]");
+
+        if (openButton) {
+            const dialogId = openButton.getAttribute("data-report-open");
+            const dialog = document.getElementById(dialogId);
+
+            if (dialog && typeof dialog.showModal === "function") {
+                dialog.showModal();
+            }
+
+            return;
+        }
+
+        const closeButton = event.target.closest("[data-report-close]");
+
+        if (closeButton) {
+            const dialog = closeButton.closest("dialog");
+
+            if (dialog) {
+                dialog.close();
+            }
+        }
+    });
+
+    document.querySelectorAll(".report-dialog").forEach(function (dialog) {
+        dialog.addEventListener("click", function (event) {
+            if (event.target === dialog) {
+                dialog.close();
+            }
+        });
+    });
+</script>
+
+{% endblock %}

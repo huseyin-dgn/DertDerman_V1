@@ -1,0 +1,577 @@
+{% extends "layouts/admin_base.html" %}
+
+{% block title %}Raporlar | DertDerman{% endblock %}
+
+{% block extra_head %}
+<style>
+    .report-page {
+        display: grid;
+        gap: 24px;
+    }
+
+    .report-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+
+    .report-header h1 {
+        margin: 6px 0 6px;
+        font-size: 30px;
+        line-height: 1.2;
+    }
+
+    .report-header p {
+        margin: 0;
+        max-width: 720px;
+        color: #667085;
+    }
+
+    .report-summary {
+        min-width: 160px;
+        padding: 14px 16px;
+        border: 1px solid #e4e7ec;
+        border-radius: 14px;
+        background: #fff;
+    }
+
+    .report-summary span {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 12px;
+        color: #667085;
+    }
+
+    .report-summary strong {
+        font-size: 22px;
+        color: #101828;
+    }
+
+    .report-filters {
+        display: grid;
+        grid-template-columns: minmax(240px, 1fr) auto;
+        gap: 12px;
+        padding: 16px;
+        border: 1px solid #e4e7ec;
+        border-radius: 16px;
+        background: #fff;
+    }
+
+    .report-search {
+        display: flex;
+        gap: 10px;
+    }
+
+    .report-search input {
+        width: 100%;
+        min-width: 0;
+        padding: 10px 12px;
+        border: 1px solid #d0d5dd;
+        border-radius: 10px;
+        font: inherit;
+        color: #101828;
+    }
+
+    .report-search input:focus {
+        outline: 2px solid rgba(29, 95, 167, 0.14);
+        border-color: #1d5fa7;
+    }
+
+    .report-search button {
+        padding: 10px 16px;
+        border: 1px solid #1d5fa7;
+        border-radius: 10px;
+        background: #1d5fa7;
+        color: #fff;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    .report-status-tabs {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 14px;
+    }
+
+    .report-status-tabs a {
+        display: inline-flex;
+        align-items: center;
+        padding: 7px 11px;
+        border: 1px solid #e4e7ec;
+        border-radius: 999px;
+        background: #fff;
+        color: #475467;
+        font-size: 12px;
+        font-weight: 700;
+        text-decoration: none;
+    }
+
+    .report-status-tabs a:hover {
+        border-color: #98a2b3;
+    }
+
+    .report-status-tabs a.is-active {
+        border-color: #1d5fa7;
+        background: #eef4ff;
+        color: #1d5fa7;
+    }
+
+    .report-list {
+        display: grid;
+        gap: 14px;
+    }
+
+    .report-card {
+        display: grid;
+        grid-template-columns: minmax(160px, 0.7fr) minmax(160px, 0.8fr) minmax(220px, 1.3fr) minmax(150px, 0.7fr) auto;
+        gap: 18px;
+        align-items: center;
+        padding: 18px;
+        border: 1px solid #e4e7ec;
+        border-radius: 16px;
+        background: #fff;
+        transition:
+            border-color 0.18s ease,
+            box-shadow 0.18s ease,
+            transform 0.18s ease;
+    }
+
+    .report-card:hover {
+        border-color: #cbd5e1;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+        transform: translateY(-1px);
+    }
+
+    .report-label {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: #98a2b3;
+    }
+
+    .report-user strong,
+    .report-target strong {
+        display: block;
+        color: #101828;
+        font-size: 14px;
+    }
+
+    .report-user small,
+    .report-target small {
+        display: block;
+        margin-top: 3px;
+        color: #667085;
+        font-size: 12px;
+    }
+
+    .report-reason {
+        display: inline-flex;
+        width: fit-content;
+        padding: 5px 9px;
+        border-radius: 999px;
+        background: #f2f4f7;
+        color: #344054;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .report-description {
+        margin-top: 7px;
+        color: #667085;
+        font-size: 12px;
+        line-height: 1.45;
+    }
+
+    .report-status {
+        display: inline-flex;
+        align-items: center;
+        width: fit-content;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 800;
+        border: 1px solid;
+    }
+
+    .report-status--pending {
+        background: #fffaeb;
+        border-color: #fedf89;
+        color: #b54708;
+    }
+
+    .report-status--reviewing {
+        background: #eff8ff;
+        border-color: #b2ddff;
+        color: #175cd3;
+    }
+
+    .report-status--resolved {
+        background: #ecfdf3;
+        border-color: #abefc6;
+        color: #027a48;
+    }
+
+    .report-status--rejected {
+        background: #f2f4f7;
+        border-color: #d0d5dd;
+        color: #475467;
+    }
+
+    .report-date {
+        font-size: 13px;
+        color: #344054;
+    }
+
+    .report-date small {
+        display: block;
+        margin-top: 3px;
+        color: #98a2b3;
+    }
+
+    .report-detail-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px 12px;
+        border: 1px solid #1d5fa7;
+        border-radius: 10px;
+        background: #fff;
+        color: #1d5fa7;
+        font-size: 12px;
+        font-weight: 800;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+
+    .report-detail-link:hover {
+        background: #1d5fa7;
+        color: #fff;
+    }
+
+    .report-empty {
+        padding: 52px 24px;
+        text-align: center;
+        border: 1px dashed #d0d5dd;
+        border-radius: 16px;
+        background: #fafafa;
+    }
+
+    .report-empty h2 {
+        margin: 0 0 6px;
+        font-size: 19px;
+        color: #101828;
+    }
+
+    .report-empty p {
+        margin: 0;
+        color: #667085;
+    }
+
+    @media (max-width: 1100px) {
+        .report-card {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+
+    @media (max-width: 760px) {
+        .report-filters {
+            grid-template-columns: 1fr;
+        }
+
+        .report-card {
+            grid-template-columns: 1fr;
+        }
+
+        .report-search {
+            flex-direction: column;
+        }
+
+        .report-detail-link {
+            width: 100%;
+            box-sizing: border-box;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<main id="main-content" class="report-page">
+
+    <header class="report-header">
+
+        <div>
+            <span class="ad-header-label">
+                YÖNETİM / MODERASYON
+            </span>
+
+            <h1>
+                İçerik Raporları
+            </h1>
+
+            <p>
+                Kullanıcılar tarafından bildirilen şikayetleri ve yorumları
+                inceleyin, değerlendirin ve moderasyon kararlarını yönetin.
+            </p>
+        </div>
+
+        <div class="report-summary">
+            <span>Toplam sonuç</span>
+            <strong>{{ page_obj.paginator.count }}</strong>
+        </div>
+
+    </header>
+
+
+    <section>
+
+        <form
+            method="get"
+            class="report-filters"
+        >
+
+            <div class="report-search">
+
+                <input
+                    type="search"
+                    name="q"
+                    value="{{ search }}"
+                    maxlength="100"
+                    placeholder="Kullanıcı, şikayet veya içerikte ara..."
+                    aria-label="Raporlarda ara"
+                >
+
+                {% if active_status %}
+                    <input
+                        type="hidden"
+                        name="status"
+                        value="{{ active_status }}"
+                    >
+                {% endif %}
+
+                <button type="submit">
+                    Ara
+                </button>
+
+            </div>
+
+        </form>
+
+
+        <nav
+            class="report-status-tabs"
+            aria-label="Rapor durumları"
+        >
+
+            <a
+                href="?status=all{% if search %}&q={{ search|urlencode }}{% endif %}"
+                class="{% if active_status == 'all' %}is-active{% endif %}"
+            >
+                Tümü
+            </a>
+
+            {% for value, label in status_options %}
+
+                <a
+                    href="?status={{ value }}{% if search %}&q={{ search|urlencode }}{% endif %}"
+                    class="{% if active_status == value %}is-active{% endif %}"
+                >
+                    {{ label }}
+                </a>
+
+            {% endfor %}
+
+        </nav>
+
+    </section>
+
+
+    {% if page_obj.object_list %}
+
+        <section class="report-list">
+
+            {% for report in page_obj %}
+
+                <article class="report-card">
+
+                    <div class="report-user">
+
+                        <span class="report-label">
+                            Bildiren kullanıcı
+                        </span>
+
+                        <strong>
+                            {% if report.reporter.get_full_name %}
+                                {{ report.reporter.get_full_name }}
+                            {% else %}
+                                {{ report.reporter.username }}
+                            {% endif %}
+                        </strong>
+
+                        <small>
+                            @{{ report.reporter.username }}
+                        </small>
+
+                    </div>
+
+
+                    <div>
+
+                        <span class="report-label">
+                            Rapor nedeni
+                        </span>
+
+                        <span class="report-reason">
+                            {{ report.get_reason_display }}
+                        </span>
+
+                    </div>
+
+
+                    <div class="report-target">
+
+                        <span class="report-label">
+                            Raporlanan içerik
+                        </span>
+
+
+                        {% if report.target_type == "COMPLAINT" %}
+
+                            <strong>
+                                Şikayet
+                            </strong>
+
+                            {% if report.complaint %}
+
+                                <small>
+                                    #{{ report.complaint.pk }} ·
+                                    {{ report.complaint.title|truncatechars:70 }}
+                                </small>
+
+                            {% else %}
+
+                                <small>
+                                    İçerik artık mevcut değil.
+                                </small>
+
+                            {% endif %}
+
+
+                        {% elif report.target_type == "COMMENT" %}
+
+                            <strong>
+                                Yorum
+                            </strong>
+
+                            {% if report.comment %}
+
+                                <small>
+                                    #{{ report.comment.pk }} ·
+                                    {{ report.comment.body|truncatechars:70 }}
+                                </small>
+
+                            {% else %}
+
+                                <small>
+                                    İçerik artık mevcut değil.
+                                </small>
+
+                            {% endif %}
+
+
+                        {% else %}
+
+                            <strong>
+                                {{ report.get_target_type_display }}
+                            </strong>
+
+                        {% endif %}
+
+
+                        {% if report.description %}
+
+                            <div class="report-description">
+                                {{ report.description|truncatechars:120 }}
+                            </div>
+
+                        {% endif %}
+
+                    </div>
+
+
+                    <div>
+
+                        <span class="report-label">
+                            Durum
+                        </span>
+
+                        <span
+                            class="report-status
+                            {% if report.status == 'PENDING' %}
+                                report-status--pending
+                            {% elif report.status == 'REVIEWING' %}
+                                report-status--reviewing
+                            {% elif report.status == 'RESOLVED' %}
+                                report-status--resolved
+                            {% elif report.status == 'REJECTED' %}
+                                report-status--rejected
+                            {% endif %}"
+                        >
+                            {{ report.get_status_display }}
+                        </span>
+
+                        <div class="report-date">
+                            {{ report.created_at|date:"d.m.Y" }}
+
+                            <small>
+                                {{ report.created_at|date:"H:i" }}
+                            </small>
+                        </div>
+
+                    </div>
+
+
+                    <div>
+
+                        <a
+                            class="report-detail-link"
+                            href="{% url 'adminx:report_detail' report.pk %}"
+                        >
+                            İncele
+                        </a>
+
+                    </div>
+
+                </article>
+
+            {% endfor %}
+
+        </section>
+
+
+        {% include "components/pagination.html" with page_obj=page_obj %}
+
+
+    {% else %}
+
+        <section class="report-empty">
+
+            <h2>
+                Rapor bulunamadı
+            </h2>
+
+            <p>
+                Bu filtreye uygun içerik raporu bulunmuyor.
+            </p>
+
+        </section>
+
+    {% endif %}
+
+</main>
+{% endblock %}

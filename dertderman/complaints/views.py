@@ -1,5 +1,5 @@
 from django.contrib import messages
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import Count, Exists, F, OuterRef, Q
 from django.utils import timezone
 from datetime import timedelta
@@ -10,8 +10,19 @@ from django.views.decorators.http import require_POST, require_safe
 from accounts.models import User
 from core.decorators import role_required
 
-from .forms import ComplaintCommentForm, ComplaintCreateForm, ComplaintEditForm
-from .models import Complaint, ComplaintComment, ComplaintLike, ComplaintReaction
+from .forms import (
+    ComplaintCommentForm,
+    ComplaintCreateForm,
+    ComplaintEditForm,
+    ContentReportForm,
+)
+from .models import (
+    Complaint,
+    ComplaintComment,
+    ComplaintLike,
+    ComplaintReaction,
+    ContentReport,
+)
 from .selectors import public_complaints
 from .services import ComplaintStateConflict, resolve_complaint
 from .validators import validate_single_emoji
@@ -202,6 +213,167 @@ def complaint_comment_delete(request, pk, comment_pk):
     messages.success(request, "Yorumunuz kaldırıldı.")
     return redirect("complaints:public_detail", pk=pk)
 
+@role_required(User.UserType.USER)
+@require_POST
+def complaint_report(request, pk):
+    complaint = get_object_or_404(
+        public_complaints(),
+        pk=pk,
+    )
+
+    # Kullanıcı kendi şikayetini raporlayamaz.
+    if complaint.user_id == request.user.pk:
+        messages.warning(
+            request,
+            "Kendi şikayetinizi raporlayamazsınız.",
+        )
+        return redirect(
+            "complaints:public_detail",
+            pk=complaint.pk,
+        )
+
+    # Aynı kullanıcı aynı şikayeti yalnızca bir kez raporlayabilir.
+    if ContentReport.objects.filter(
+        reporter=request.user,
+        complaint=complaint,
+    ).exists():
+        messages.info(
+            request,
+            "Bu şikayeti daha önce raporladınız.",
+        )
+        return redirect(
+            "complaints:public_detail",
+            pk=complaint.pk,
+        )
+
+    form = ContentReportForm(request.POST)
+
+    if not form.is_valid():
+        messages.error(
+            request,
+            "Rapor gönderilemedi. Lütfen geçerli bir neden seçin.",
+        )
+        return redirect(
+            "complaints:public_detail",
+            pk=complaint.pk,
+        )
+
+    report = form.save(commit=False)
+
+    report.reporter = request.user
+    report.target_type = ContentReport.TargetType.COMPLAINT
+    report.complaint = complaint
+    report.comment = None
+    report.status = ContentReport.Status.PENDING
+
+    try:
+        with transaction.atomic():
+            report.save()
+
+    except (ValidationError, IntegrityError):
+        messages.info(
+            request,
+            "Bu şikayeti daha önce raporladınız.",
+        )
+
+        return redirect(
+            "complaints:public_detail",
+            pk=complaint.pk,
+        )
+
+    messages.success(
+        request,
+        "Raporunuz alındı. İçerik yönetim ekibi tarafından incelenecek.",
+    )
+
+    return redirect(
+        "complaints:public_detail",
+        pk=complaint.pk,
+    )
+
+
+@role_required(User.UserType.USER)
+@require_POST
+def comment_report(request, pk, comment_pk):
+    complaint = get_object_or_404(
+        public_complaints(),
+        pk=pk,
+    )
+
+    comment = get_object_or_404(
+        ComplaintComment,
+        pk=comment_pk,
+        complaint=complaint,
+        is_active=True,
+    )
+
+    if comment.author_user_id == request.user.pk:
+        messages.warning(
+            request,
+            "Kendi yorumunuzu raporlayamazsınız.",
+        )
+        return redirect(
+            "complaints:public_detail",
+            pk=complaint.pk,
+        )
+
+    if ContentReport.objects.filter(
+        reporter=request.user,
+        comment=comment,
+    ).exists():
+        messages.info(
+            request,
+            "Bu yorumu daha önce raporladınız.",
+        )
+        return redirect(
+            "complaints:public_detail",
+            pk=complaint.pk,
+        )
+
+    form = ContentReportForm(request.POST)
+
+    if not form.is_valid():
+        messages.error(
+            request,
+            "Rapor gönderilemedi. Lütfen geçerli bir neden seçin.",
+        )
+        return redirect(
+            "complaints:public_detail",
+            pk=complaint.pk,
+        )
+
+    report = form.save(commit=False)
+
+    report.reporter = request.user
+    report.target_type = ContentReport.TargetType.COMMENT
+    report.complaint = None
+    report.comment = comment
+    report.status = ContentReport.Status.PENDING
+
+    try:
+        with transaction.atomic():
+            report.save()
+
+    except (ValidationError, IntegrityError):
+        messages.info(
+            request,
+            "Bu yorumu daha önce raporladınız.",
+        )
+
+        return redirect(
+            "complaints:public_detail",
+            pk=complaint.pk,
+        )
+
+    messages.success(
+        request,
+        "Raporunuz alındı. Yorum yönetim ekibi tarafından incelenecek.",
+    )
+
+    return redirect(
+        "complaints:public_detail",
+        pk=complaint.pk,
+    )
 
 @role_required(User.UserType.USER)
 @require_safe

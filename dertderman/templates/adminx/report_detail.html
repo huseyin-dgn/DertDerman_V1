@@ -1,0 +1,973 @@
+{% extends "layouts/admin_base.html" %}
+
+{% block title %}Rapor #{{ report.pk }} | DertDerman{% endblock %}
+
+
+{% block extra_head %}
+<style>
+    .report-detail-page {
+        display: grid;
+        gap: 22px;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+
+    .report-detail-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 18px;
+        flex-wrap: wrap;
+    }
+
+    .report-detail-header h1 {
+        margin: 5px 0 6px;
+        font-size: 28px;
+        line-height: 1.2;
+        color: #101828;
+    }
+
+    .report-detail-header p {
+        margin: 0;
+        color: #667085;
+        font-size: 14px;
+    }
+
+    .report-back-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 9px 13px;
+        border: 1px solid #d0d5dd;
+        border-radius: 10px;
+        background: #fff;
+        color: #344054;
+        font-size: 13px;
+        font-weight: 700;
+        text-decoration: none;
+        white-space: nowrap;
+        transition: 0.18s ease;
+    }
+
+    .report-back-link:hover {
+        background: #f9fafb;
+        border-color: #98a2b3;
+    }
+
+    .report-layout {
+        display: grid;
+        gap: 18px;
+    }
+
+    .report-card {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 22px;
+        border: 1px solid #e4e7ec;
+        border-radius: 16px;
+        background: #fff;
+        box-shadow: 0 1px 2px rgba(16, 24, 40, 0.02);
+    }
+
+    .report-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 18px;
+    }
+
+    .report-card-header h2 {
+        margin: 0;
+        font-size: 18px;
+        color: #101828;
+    }
+
+    .report-card-header p {
+        margin: 4px 0 0;
+        color: #667085;
+        font-size: 13px;
+    }
+
+    .report-info-list {
+        display: grid;
+        margin: 0;
+    }
+
+    .report-info-row {
+        display: grid;
+        grid-template-columns: 170px minmax(0, 1fr);
+        gap: 18px;
+        align-items: center;
+        min-height: 48px;
+        padding: 12px 0;
+        border-bottom: 1px solid #f2f4f7;
+    }
+
+    .report-info-row:first-child {
+        padding-top: 0;
+    }
+
+    .report-info-row:last-child {
+        padding-bottom: 0;
+        border-bottom: 0;
+    }
+
+    .report-info-row dt {
+        font-size: 11px;
+        font-weight: 800;
+        color: #667085;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+    }
+
+    .report-info-row dd {
+        margin: 0;
+        min-width: 0;
+        color: #101828;
+        font-size: 14px;
+        line-height: 1.55;
+        word-break: break-word;
+    }
+
+    .report-status,
+    .report-reason,
+    .report-target-type {
+        display: inline-flex;
+        align-items: center;
+        width: fit-content;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    .report-status {
+        border: 1px solid;
+    }
+
+    .report-status--pending {
+        background: #fffaeb;
+        border-color: #fedf89;
+        color: #b54708;
+    }
+
+    .report-status--reviewing {
+        background: #eff8ff;
+        border-color: #b2ddff;
+        color: #175cd3;
+    }
+
+    .report-status--resolved {
+        background: #ecfdf3;
+        border-color: #abefc6;
+        color: #027a48;
+    }
+
+    .report-status--rejected {
+        background: #f2f4f7;
+        border-color: #d0d5dd;
+        color: #475467;
+    }
+
+    .report-reason {
+        background: #fff6ed;
+        color: #b93815;
+        border: 1px solid #f9dbaf;
+    }
+
+    .report-target-type {
+        background: #eef4ff;
+        color: #1d5fa7;
+        border: 1px solid #d7e5f7;
+    }
+
+    .report-description-box {
+        padding: 13px 15px;
+        border: 1px solid #e4e7ec;
+        border-radius: 10px;
+        background: #f9fafb;
+        color: #344054;
+        line-height: 1.6;
+    }
+
+    .reported-content {
+        padding: 18px;
+        border: 1px solid #e4e7ec;
+        border-radius: 12px;
+        background: #f8fafc;
+    }
+
+    .reported-content-title {
+        margin: 0 0 10px;
+        color: #101828;
+        font-size: 17px;
+        line-height: 1.4;
+    }
+
+    .reported-content-body {
+        margin: 0;
+        color: #475467;
+        line-height: 1.65;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+    }
+
+    .reported-content-meta {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 16px;
+        padding-top: 14px;
+        border-top: 1px solid #e4e7ec;
+        color: #667085;
+        font-size: 12px;
+    }
+
+    .reported-content-meta strong {
+        color: #344054;
+    }
+
+    .reported-content-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 16px;
+    }
+
+    .reported-content-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px 11px;
+        border: 1px solid #d0d5dd;
+        border-radius: 9px;
+        background: #fff;
+        color: #344054;
+        font-size: 12px;
+        font-weight: 700;
+        text-decoration: none;
+        transition: 0.18s ease;
+    }
+
+    .reported-content-link:hover {
+        border-color: #1d5fa7;
+        color: #1d5fa7;
+    }
+
+    .moderation-card {
+        border-top: 3px solid #1d5fa7;
+    }
+
+    .moderation-intro {
+        margin: -7px 0 18px;
+        color: #667085;
+        font-size: 13px;
+        line-height: 1.55;
+    }
+
+    .moderation-actions {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .moderation-actions--two {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .moderation-actions form {
+        margin: 0;
+        min-width: 0;
+    }
+
+    .report-action-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        min-height: 44px;
+        box-sizing: border-box;
+        padding: 10px 14px;
+        border-radius: 10px;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 800;
+        cursor: pointer;
+        transition:
+            transform 0.15s ease,
+            box-shadow 0.15s ease,
+            background 0.15s ease;
+    }
+
+    .report-action-button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 10px rgba(16, 24, 40, 0.08);
+    }
+
+    .report-action-button--reviewing {
+        border: 1px solid #175cd3;
+        background: #175cd3;
+        color: #fff;
+    }
+
+    .report-action-button--reviewing:hover {
+        background: #1849a9;
+    }
+
+    .report-action-button--resolved {
+        border: 1px solid #027a48;
+        background: #027a48;
+        color: #fff;
+    }
+
+    .report-action-button--resolved:hover {
+        background: #05603a;
+    }
+
+    .report-action-button--rejected {
+        border: 1px solid #d0d5dd;
+        background: #fff;
+        color: #344054;
+    }
+
+    .report-action-button--rejected:hover {
+        background: #f9fafb;
+        border-color: #98a2b3;
+    }
+
+    .moderation-current {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        margin-top: 16px;
+        padding: 14px 16px;
+        border: 1px solid #e4e7ec;
+        border-radius: 10px;
+        background: #f8fafc;
+        color: #475467;
+        font-size: 13px;
+        line-height: 1.55;
+    }
+
+    .moderation-current--resolved {
+        border-color: #abefc6;
+        background: #ecfdf3;
+        color: #027a48;
+    }
+
+    .moderation-current--rejected {
+        border-color: #d0d5dd;
+        background: #f9fafb;
+        color: #475467;
+    }
+
+    .moderation-current--reviewing {
+        border-color: #b2ddff;
+        background: #eff8ff;
+        color: #175cd3;
+    }
+
+    .report-review-meta {
+        display: flex;
+        gap: 18px;
+        flex-wrap: wrap;
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid #e4e7ec;
+        color: #667085;
+        font-size: 12px;
+    }
+
+    .report-review-meta strong {
+        color: #344054;
+    }
+
+    @media (max-width: 1000px) {
+        .moderation-actions,
+        .moderation-actions--two {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 700px) {
+        .report-detail-header {
+            display: grid;
+        }
+
+        .report-back-link {
+            width: fit-content;
+        }
+
+        .report-info-row {
+            grid-template-columns: 1fr;
+            gap: 6px;
+        }
+
+        .report-card {
+            padding: 17px;
+        }
+
+        .reported-content-actions {
+            display: grid;
+        }
+
+        .reported-content-link {
+            width: 100%;
+            box-sizing: border-box;
+        }
+    }
+</style>
+{% endblock %}
+
+
+{% block content %}
+<main id="main-content" class="report-detail-page">
+
+    <header class="report-detail-header">
+
+        <div>
+            <span class="ad-header-label">
+                YÖNETİM / MODERASYON
+            </span>
+
+            <h1>
+                Rapor #{{ report.pk }}
+            </h1>
+
+            <p>
+                Kullanıcı bildirimini, raporlanan içeriği ve moderasyon durumunu inceleyin.
+            </p>
+        </div>
+
+        <a
+            href="{% url 'adminx:report_list' %}"
+            class="report-back-link"
+        >
+            ← Raporlara Dön
+        </a>
+
+    </header>
+
+
+    <div class="report-layout">
+
+        <!-- RAPOR BİLGİLERİ -->
+        <section class="report-card">
+
+            <div class="report-card-header">
+                <div>
+                    <h2>Rapor Bilgileri</h2>
+                    <p>Bildirimin temel bilgileri ve raporlama nedeni.</p>
+                </div>
+            </div>
+
+            <dl class="report-info-list">
+
+                <div class="report-info-row">
+                    <dt>Durum</dt>
+
+                    <dd>
+                        <span
+                            class="report-status
+                            {% if report.status == 'PENDING' %}
+                                report-status--pending
+                            {% elif report.status == 'REVIEWING' %}
+                                report-status--reviewing
+                            {% elif report.status == 'RESOLVED' %}
+                                report-status--resolved
+                            {% elif report.status == 'REJECTED' %}
+                                report-status--rejected
+                            {% endif %}"
+                        >
+                            {{ report.get_status_display }}
+                        </span>
+                    </dd>
+                </div>
+
+
+                <div class="report-info-row">
+                    <dt>Rapor nedeni</dt>
+
+                    <dd>
+                        <span class="report-reason">
+                            {{ report.get_reason_display }}
+                        </span>
+                    </dd>
+                </div>
+
+
+                <div class="report-info-row">
+                    <dt>Bildiren kullanıcı</dt>
+
+                    <dd>
+                        {% if report.reporter.get_full_name %}
+                            <strong>
+                                {{ report.reporter.get_full_name }}
+                            </strong>
+                            <br>
+                        {% endif %}
+
+                        @{{ report.reporter.username }}
+                    </dd>
+                </div>
+
+
+                <div class="report-info-row">
+                    <dt>Rapor tarihi</dt>
+
+                    <dd>
+                        {{ report.created_at|date:"d.m.Y H:i:s" }}
+                    </dd>
+                </div>
+
+
+                <div class="report-info-row">
+                    <dt>Hedef türü</dt>
+
+                    <dd>
+                        <span class="report-target-type">
+                            {{ report.get_target_type_display }}
+                        </span>
+                    </dd>
+                </div>
+
+
+                <div class="report-info-row">
+                    <dt>Kullanıcı açıklaması</dt>
+
+                    <dd>
+                        {% if report.description %}
+
+                            <div class="report-description-box">
+                                {{ report.description|linebreaksbr }}
+                            </div>
+
+                        {% else %}
+
+                            <span>—</span>
+
+                        {% endif %}
+                    </dd>
+                </div>
+
+            </dl>
+
+        </section>
+
+
+        <!-- RAPORLANAN İÇERİK -->
+        <section class="report-card">
+
+            <div class="report-card-header">
+
+                <div>
+                    <h2>Raporlanan İçerik</h2>
+                    <p>Karar vermeden önce bildirilen içeriği kontrol edin.</p>
+                </div>
+
+            </div>
+
+
+            {% if report.target_type == 'COMPLAINT' %}
+
+                {% if report.complaint %}
+
+                    <div class="reported-content">
+
+                        <h3 class="reported-content-title">
+                            {{ report.complaint.title }}
+                        </h3>
+
+                        <p class="reported-content-body">
+                            {{ report.complaint.description }}
+                        </p>
+
+
+                        <div class="reported-content-meta">
+
+                            <span>
+                                Şirket:
+                                <strong>
+                                    {{ report.complaint.company.name }}
+                                </strong>
+                            </span>
+
+                            <span>•</span>
+
+                            <span>
+                                Kullanıcı:
+                                <strong>
+                                    @{{ report.complaint.user.username }}
+                                </strong>
+                            </span>
+
+                            <span>•</span>
+
+                            <span>
+                                Durum:
+                                <strong>
+                                    {{ report.complaint.get_status_display }}
+                                </strong>
+                            </span>
+
+                        </div>
+
+
+                        <div class="reported-content-actions">
+
+                            {% if report.complaint.status != 'REMOVED' %}
+
+                                <a
+                                    class="reported-content-link"
+                                    href="{% url 'complaints:public_detail' report.complaint.pk %}"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    Public Sayfayı Aç ↗
+                                </a>
+
+                            {% endif %}
+
+
+                            <a
+                                class="reported-content-link"
+                                href="{% url 'adminx:complaint_detail' report.complaint.pk %}"
+                            >
+                                Admin Şikayet Detayı →
+                            </a>
+
+                        </div>
+
+                    </div>
+
+                {% else %}
+
+                    <div class="reported-content">
+
+                        <p class="reported-content-body">
+                            Raporlanan şikayet artık mevcut değil.
+                        </p>
+
+                    </div>
+
+                {% endif %}
+
+
+            {% elif report.target_type == 'COMMENT' %}
+
+                {% if report.comment %}
+
+                    <div class="reported-content">
+
+                        <h3 class="reported-content-title">
+                            Yorum #{{ report.comment.pk }}
+                        </h3>
+
+                        <p class="reported-content-body">
+                            {{ report.comment.body }}
+                        </p>
+
+
+                        <div class="reported-content-meta">
+
+                            <span>
+                                Yazan:
+                                <strong>
+                                    @{{ report.comment.author_user.username }}
+                                </strong>
+                            </span>
+
+                            <span>•</span>
+
+                            <span>
+                                Durum:
+
+                                <strong>
+                                    {% if report.comment.is_active %}
+                                        Aktif
+                                    {% else %}
+                                        Kaldırılmış
+                                    {% endif %}
+                                </strong>
+                            </span>
+
+                        </div>
+
+
+                        {% if report.comment.complaint_id %}
+
+                            <div class="reported-content-actions">
+
+                                <a
+                                    class="reported-content-link"
+                                    href="{% url 'complaints:public_detail' report.comment.complaint_id %}#community-comments"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    Yorumu Sayfada Görüntüle ↗
+                                </a>
+
+                            </div>
+
+                        {% endif %}
+
+                    </div>
+
+                {% else %}
+
+                    <div class="reported-content">
+
+                        <p class="reported-content-body">
+                            Raporlanan yorum artık mevcut değil.
+                        </p>
+
+                    </div>
+
+                {% endif %}
+
+
+            {% else %}
+
+                <div class="reported-content">
+
+                    <p class="reported-content-body">
+                        Raporlanan içerik türü tanınmıyor.
+                    </p>
+
+                </div>
+
+            {% endif %}
+
+        </section>
+
+
+        <!-- MODERASYON -->
+        <section class="report-card moderation-card">
+
+            <div class="report-card-header">
+
+                <div>
+                    <h2>Moderasyon Kararı</h2>
+
+                    {% if report.status == 'PENDING' %}
+                        <p>Rapor için moderasyon kararı verin.</p>
+
+                    {% elif report.status == 'REVIEWING' %}
+                        <p>İncelenen rapor için nihai karar verin.</p>
+
+                    {% else %}
+                        <p>Bu rapor için moderasyon süreci tamamlandı.</p>
+                    {% endif %}
+                </div>
+
+
+                <span
+                    class="report-status
+                    {% if report.status == 'PENDING' %}
+                        report-status--pending
+                    {% elif report.status == 'REVIEWING' %}
+                        report-status--reviewing
+                    {% elif report.status == 'RESOLVED' %}
+                        report-status--resolved
+                    {% elif report.status == 'REJECTED' %}
+                        report-status--rejected
+                    {% endif %}"
+                >
+                    {{ report.get_status_display }}
+                </span>
+
+            </div>
+
+
+            {% if report.status == 'PENDING' %}
+
+                <p class="moderation-intro">
+                    Raporu incelemeye alabilir, doğrudan ihlal kararı verebilir
+                    veya herhangi bir ihlal bulunmadığını belirtebilirsiniz.
+                </p>
+
+
+                <div class="moderation-actions">
+
+                    <form
+                        method="post"
+                        action="{% url 'adminx:report_status' report.pk %}"
+                    >
+                        {% csrf_token %}
+
+                        <input
+                            type="hidden"
+                            name="status"
+                            value="REVIEWING"
+                        >
+
+                        <button
+                            type="submit"
+                            class="report-action-button report-action-button--reviewing"
+                        >
+                            İncelemeye Al
+                        </button>
+                    </form>
+
+
+                    <form
+                        method="post"
+                        action="{% url 'adminx:report_status' report.pk %}"
+                    >
+                        {% csrf_token %}
+
+                        <input
+                            type="hidden"
+                            name="status"
+                            value="RESOLVED"
+                        >
+
+                        <button
+                            type="submit"
+                            class="report-action-button report-action-button--resolved"
+                        >
+                            İhlal Var / Sonuçlandır
+                        </button>
+                    </form>
+
+
+                    <form
+                        method="post"
+                        action="{% url 'adminx:report_status' report.pk %}"
+                    >
+                        {% csrf_token %}
+
+                        <input
+                            type="hidden"
+                            name="status"
+                            value="REJECTED"
+                        >
+
+                        <button
+                            type="submit"
+                            class="report-action-button report-action-button--rejected"
+                        >
+                            İhlal Bulunmadı
+                        </button>
+                    </form>
+
+                </div>
+
+
+            {% elif report.status == 'REVIEWING' %}
+
+                <p class="moderation-intro">
+                    Rapor inceleme aşamasında. Nihai kararınızı verin.
+                </p>
+
+
+                <div class="moderation-actions moderation-actions--two">
+
+                    <form
+                        method="post"
+                        action="{% url 'adminx:report_status' report.pk %}"
+                    >
+                        {% csrf_token %}
+
+                        <input
+                            type="hidden"
+                            name="status"
+                            value="RESOLVED"
+                        >
+
+                        <button
+                            type="submit"
+                            class="report-action-button report-action-button--resolved"
+                        >
+                            İhlal Var / Sonuçlandır
+                        </button>
+                    </form>
+
+
+                    <form
+                        method="post"
+                        action="{% url 'adminx:report_status' report.pk %}"
+                    >
+                        {% csrf_token %}
+
+                        <input
+                            type="hidden"
+                            name="status"
+                            value="REJECTED"
+                        >
+
+                        <button
+                            type="submit"
+                            class="report-action-button report-action-button--rejected"
+                        >
+                            İhlal Bulunmadı
+                        </button>
+                    </form>
+
+                </div>
+
+
+                <div class="moderation-current moderation-current--reviewing">
+                    Bu rapor şu anda inceleme aşamasında.
+                </div>
+
+
+            {% elif report.status == 'RESOLVED' %}
+
+                <div class="moderation-current moderation-current--resolved">
+                    Bu raporda ihlal tespit edildi ve moderasyon süreci
+                    sonuçlandırıldı. Bu karar artık değiştirilemez.
+                </div>
+
+
+            {% elif report.status == 'REJECTED' %}
+
+                <div class="moderation-current moderation-current--rejected">
+                    Bu raporda ihlal bulunmadığına karar verildi ve moderasyon
+                    süreci kapatıldı. Bu karar artık değiştirilemez.
+                </div>
+
+            {% endif %}
+
+
+            {% if report.reviewed_by or report.reviewed_at %}
+
+                <div class="report-review-meta">
+
+                    {% if report.reviewed_by %}
+
+                        <span>
+                            <strong>İnceleyen:</strong>
+
+                            {% if report.reviewed_by.get_full_name %}
+                                {{ report.reviewed_by.get_full_name }}
+                            {% else %}
+                                {{ report.reviewed_by.username }}
+                            {% endif %}
+                        </span>
+
+                    {% endif %}
+
+
+                    {% if report.reviewed_at %}
+
+                        <span>
+                            <strong>Sonuç tarihi:</strong>
+                            {{ report.reviewed_at|date:"d.m.Y H:i" }}
+                        </span>
+
+                    {% endif %}
+
+                </div>
+
+            {% endif %}
+
+        </section>
+
+    </div>
+
+</main>
+{% endblock %}

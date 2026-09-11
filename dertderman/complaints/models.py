@@ -12,38 +12,91 @@ class Complaint(models.Model):
         PUBLISHED = "PUBLISHED", "Yayında"
         RESOLVED = "RESOLVED", "Çözüldü"
         REJECTED = "REJECTED", "Reddedildi"
+        REMOVED = "REMOVED", "İhlal nedeniyle kaldırıldı"
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="complaints",
     )
+
     company = models.ForeignKey(
         Company,
         on_delete=models.PROTECT,
         related_name="complaints",
     )
-    title = models.CharField(max_length=150)
+
+    title = models.CharField(
+        max_length=150,
+    )
+
     description = models.TextField()
+
     status = models.CharField(
         max_length=20,
         choices=Status.choices,
         default=Status.PENDING,
     )
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    withdrawn_at = models.DateTimeField(null=True, blank=True, editable=False)
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True,
+    )
+
+    withdrawn_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        editable=False,
+    )
+
+    removed_for_violation = models.BooleanField(
+        default=False,
+        db_index=True,
+    )
+
+    violation_removed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        editable=False,
+    )
+
+    violation_removed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="violation_removed_complaints",
+    )
+
+    violation_reason = models.CharField(
+        max_length=30,
+        blank=True,
+        default="",
+    )
+
+    violation_report = models.ForeignKey(
+        "ContentReport",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="removed_complaints",
+    )
 
     class Meta:
         ordering = ("-created_at",)
 
     def clean(self):
         errors = {}
+
         title = self.title.strip() if self.title else ""
         description = self.description.strip() if self.description else ""
 
         if len(title) < 5:
             errors["title"] = "Başlık en az 5 karakter olmalıdır."
+
         if len(description) < 20:
             errors["description"] = "Açıklama en az 20 karakter olmalıdır."
 
@@ -62,9 +115,9 @@ class ComplaintEvent(models.Model):
         COMPANY_RESPONDED = "COMPANY_RESPONDED", "Şirket cevapladı"
         RESOLVED = "RESOLVED", "Çözüldü"
         REJECTED = "REJECTED", "Reddedildi"
+        REMOVED = "REMOVED", "İhlal nedeniyle kaldırıldı"
         EDITED = "EDITED", "Kullanıcı tarafından düzenlendi"
         WITHDRAWN = "WITHDRAWN", "Geri çekildi"
-
     class Actor(models.TextChoices):
         SYSTEM = "SYSTEM", "Sistem"
         USER = "USER", "Kullanıcı"
@@ -72,21 +125,48 @@ class ComplaintEvent(models.Model):
         COMPANY = "COMPANY", "Şirket"
 
     complaint = models.ForeignKey(
-        Complaint, on_delete=models.CASCADE, related_name="timeline_events"
+        Complaint,
+        on_delete=models.CASCADE,
+        related_name="timeline_events",
     )
-    event_type = models.CharField(max_length=24, choices=Type.choices)
+
+    event_type = models.CharField(
+        max_length=24,
+        choices=Type.choices,
+    )
+
     actor_type = models.CharField(
-        max_length=12, choices=Actor.choices, default=Actor.SYSTEM
+        max_length=12,
+        choices=Actor.choices,
+        default=Actor.SYSTEM,
     )
-    message = models.CharField(max_length=300)
-    source_key = models.CharField(max_length=180, unique=True)
-    occurred_at = models.DateTimeField(default=timezone.now)
+
+    message = models.CharField(
+        max_length=300,
+    )
+
+    source_key = models.CharField(
+        max_length=180,
+        unique=True,
+    )
+
+    occurred_at = models.DateTimeField(
+        default=timezone.now,
+    )
 
     class Meta:
-        ordering = ("occurred_at", "pk")
+        ordering = (
+            "occurred_at",
+            "pk",
+        )
+
         indexes = [
             models.Index(
-                fields=("complaint", "occurred_at"), name="complaint_timeline"
+                fields=(
+                    "complaint",
+                    "occurred_at",
+                ),
+                name="complaint_timeline",
             )
         ]
 
@@ -96,82 +176,340 @@ class ComplaintEvent(models.Model):
 
 class ComplaintLike(models.Model):
     complaint = models.ForeignKey(
-        Complaint, on_delete=models.CASCADE, related_name="likes"
+        Complaint,
+        on_delete=models.CASCADE,
+        related_name="likes",
     )
+
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="complaint_likes",
     )
-    created_at = models.DateTimeField(auto_now_add=True)
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
 
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=("complaint", "user"), name="unique_complaint_like"
+                fields=(
+                    "complaint",
+                    "user",
+                ),
+                name="unique_complaint_like",
             )
         ]
-        ordering = ("-created_at", "-pk")
+
+        ordering = (
+            "-created_at",
+            "-pk",
+        )
 
 
 class ComplaintReaction(models.Model):
     class Type:
-        # Compatibility names for callers; values are now the actual emoji.
         AGREE = "👍"
         SUPPORT = "❤️"
         SURPRISED = "😮"
         SAD = "😕"
 
     complaint = models.ForeignKey(
-        Complaint, on_delete=models.CASCADE, related_name="reactions"
+        Complaint,
+        on_delete=models.CASCADE,
+        related_name="reactions",
     )
+
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="complaint_reactions",
     )
-    reaction_type = models.CharField(max_length=32)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+
+    reaction_type = models.CharField(
+        max_length=32,
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True,
+    )
 
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=("complaint", "user"), name="unique_complaint_reaction"
+                fields=(
+                    "complaint",
+                    "user",
+                ),
+                name="unique_complaint_reaction",
             )
         ]
-        ordering = ("-updated_at", "-pk")
+
+        ordering = (
+            "-updated_at",
+            "-pk",
+        )
 
 
 class ComplaintComment(models.Model):
     complaint = models.ForeignKey(
-        Complaint, on_delete=models.CASCADE, related_name="comments"
+        Complaint,
+        on_delete=models.CASCADE,
+        related_name="comments",
     )
+
     author_user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="complaint_comments",
     )
-    body = models.TextField(max_length=1000)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    is_active = models.BooleanField(default=True)
+
+    body = models.TextField(
+        max_length=1000,
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True,
+    )
+
+    is_active = models.BooleanField(
+        default=True,
+    )
 
     class Meta:
-        ordering = ("-created_at", "-pk")
+        ordering = (
+            "-created_at",
+            "-pk",
+        )
+
         indexes = [
             models.Index(
-                fields=("complaint", "is_active", "-created_at"),
+                fields=(
+                    "complaint",
+                    "is_active",
+                    "-created_at",
+                ),
                 name="complaint_comment_recent",
             )
         ]
 
     def clean(self):
         super().clean()
-        self.body = (self.body or "").strip()
+
+        self.body = (
+            self.body or ""
+        ).strip()
+
         if not self.body:
-            raise ValidationError({"body": "Yorum boş bırakılamaz."})
+            raise ValidationError(
+                {
+                    "body": "Yorum boş bırakılamaz.",
+                }
+            )
 
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
+
+
+class ContentReport(models.Model):
+    class TargetType(models.TextChoices):
+        COMPLAINT = "COMPLAINT", "Şikayet"
+        COMMENT = "COMMENT", "Yorum"
+
+    class Reason(models.TextChoices):
+        SPAM = "SPAM", "Spam / reklam"
+        HARASSMENT = "HARASSMENT", "Hakaret / taciz"
+        HATE = "HATE", "Nefret söylemi"
+        PERSONAL_DATA = "PERSONAL_DATA", "Kişisel veri paylaşımı"
+        MISLEADING = "MISLEADING", "Yanıltıcı içerik"
+        ILLEGAL = "ILLEGAL", "Yasa dışı içerik"
+        OTHER = "OTHER", "Diğer"
+
+    class Status(models.TextChoices):
+        PENDING = "PENDING", "İncelenmeyi bekliyor"
+        REVIEWING = "REVIEWING", "İnceleniyor"
+        RESOLVED = "RESOLVED", "Sonuçlandırıldı"
+        REJECTED = "REJECTED", "İhlal bulunmadı"
+
+    reporter = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="content_reports",
+    )
+
+    target_type = models.CharField(
+        max_length=20,
+        choices=TargetType.choices,
+    )
+
+    complaint = models.ForeignKey(
+        Complaint,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="reports",
+    )
+
+    comment = models.ForeignKey(
+        ComplaintComment,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="reports",
+    )
+
+    reason = models.CharField(
+        max_length=30,
+        choices=Reason.choices,
+    )
+
+    description = models.TextField(
+        max_length=1000,
+        blank=True,
+        default="",
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING,
+    )
+
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="reviewed_content_reports",
+    )
+
+    admin_note = models.TextField(
+        max_length=1000,
+        blank=True,
+        default="",
+    )
+
+    reviewed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True,
+    )
+
+    class Meta:
+        ordering = (
+            "-created_at",
+            "-pk",
+        )
+
+        indexes = [
+            models.Index(
+                fields=(
+                    "status",
+                    "-created_at",
+                ),
+                name="content_report_status",
+            ),
+            models.Index(
+                fields=(
+                    "target_type",
+                    "-created_at",
+                ),
+                name="content_report_target",
+            ),
+            models.Index(
+                fields=(
+                    "reporter",
+                    "-created_at",
+                ),
+                name="content_report_reporter",
+            ),
+        ]
+
+        constraints = [
+            models.UniqueConstraint(
+                fields=(
+                    "reporter",
+                    "complaint",
+                ),
+                condition=models.Q(
+                    complaint__isnull=False,
+                ),
+                name="unique_user_complaint_report",
+            ),
+            models.UniqueConstraint(
+                fields=(
+                    "reporter",
+                    "comment",
+                ),
+                condition=models.Q(
+                    comment__isnull=False,
+                ),
+                name="unique_user_comment_report",
+            ),
+        ]
+
+    def clean(self):
+        super().clean()
+
+        errors = {}
+
+        if self.target_type == self.TargetType.COMPLAINT:
+            if not self.complaint:
+                errors["complaint"] = (
+                    "Şikayet raporu için şikayet seçilmelidir."
+                )
+
+            if self.comment:
+                errors["comment"] = (
+                    "Şikayet raporunda yorum seçilemez."
+                )
+
+        elif self.target_type == self.TargetType.COMMENT:
+            if not self.comment:
+                errors["comment"] = (
+                    "Yorum raporu için yorum seçilmelidir."
+                )
+
+            if self.complaint:
+                errors["complaint"] = (
+                    "Yorum raporunda şikayet seçilemez."
+                )
+
+        if self.description:
+            self.description = self.description.strip()
+
+        if self.admin_note:
+            self.admin_note = self.admin_note.strip()
+
+        if errors:
+            raise ValidationError(errors)
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        target = (
+            f"Şikayet #{self.complaint_id}"
+            if self.target_type == self.TargetType.COMPLAINT
+            else f"Yorum #{self.comment_id}"
+        )
+
+        return f"{target} - {self.get_reason_display()}"

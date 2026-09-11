@@ -4,23 +4,20 @@ from django.urls import reverse
 
 
 class Notification(models.Model):
-    """Personal USER/ADMIN inbox. Company inbox and per-member reads stay in companies."""
     class Scope(models.TextChoices):
         USER = 'USER', 'Bireysel'
         ADMIN = 'ADMIN', 'Yönetim'
 
     class Type(models.TextChoices):
-        RECEIVED = 'RECEIVED', 'Şikayet alındı'
-        PUBLISHED = 'PUBLISHED', 'Şikayet yayınlandı'
-        REJECTED = 'REJECTED', 'Şikayet reddedildi'
-        RESPONSE = 'RESPONSE', 'Şirket yanıtı'
-        RESOLVED = 'RESOLVED', 'Şikayet çözüldü'
-        UPDATED = 'UPDATED', 'Durum güncellemesi'
-        MODERATION = 'MODERATION', 'Moderasyon bekliyor'
-        APPLICATION = 'APPLICATION', 'Şirket başvurusu'
-        LIKE = 'LIKE', 'Şikayet beğenisi'
-        REACTION = 'REACTION', 'Şikayet tepkisi'
-        COMMENT = 'COMMENT', 'Şikayet yorumu'
+        CREATED = "CREATED", "Şikayet oluşturuldu"
+        PENDING = "PENDING", "İncelemeye alındı"
+        PUBLISHED = "PUBLISHED", "Yayınlandı"
+        COMPANY_RESPONDED = "COMPANY_RESPONDED", "Şirket cevapladı"
+        RESOLVED = "RESOLVED", "Çözüldü"
+        REJECTED = "REJECTED", "Reddedildi"
+        REMOVED = "REMOVED", "İhlal nedeniyle kaldırıldı"
+        EDITED = "EDITED", "Kullanıcı tarafından düzenlendi"
+        WITHDRAWN = "WITHDRAWN", "Geri çekildi"
 
     recipient_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='notifications')
     recipient_role = models.CharField(max_length=10, choices=Scope.choices)

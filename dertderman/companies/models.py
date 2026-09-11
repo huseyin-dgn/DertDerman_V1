@@ -189,6 +189,7 @@ class CompanyNotification(models.Model):
         NEW = "NEW", "Yeni şikayet"
         PUBLISHED = "PUBLISHED", "Şikayet yayınlandı"
         RESOLVED = "RESOLVED", "Şikayet çözüldü"
+        REMOVED = "REMOVED", "Şikayet ihlal nedeniyle kaldırıldı"
         UPDATED = "UPDATED", "Şikayet güncellendi"
         ADMIN = "ADMIN", "Yönetim işlemi"
 
