@@ -1,131 +1,799 @@
-{% extends "base.html" %}{% load static %}
-{% block title %}{{ complaint.title }} | DertDerman{% endblock %}{% block body_class %}public-site public-complaint-page{% endblock %}
-{% block extra_head %}<link rel="stylesheet" href="{% static 'css/report-modal.css' %}"><script src="{% static 'js/complaint-experience.js' %}" defer></script><script src="{% static 'js/report-modal.js' %}" defer></script>{% endblock %}
-{% block content %}<main class="content-section public-detail-v2" id="main-content"><article class="section-inner public-detail-shell" aria-labelledby="complaint-title">
-<header class="public-detail-hero"><div class="public-detail-company"><span class="public-detail-logo">{% include 'components/company_avatar.html' with company=complaint.company image_class='public-detail-logo-image' fallback_class='public-detail-logo-fallback' only %}</span><div><p>{{ complaint.company.name }}{% if complaint.company.is_verified %}<span class="verified-mark" title="Doğrulanmış şirket">✓</span>{% endif %}</p><a class="detail-cta company-detail-cta" href="{% url 'companies_public:company_detail' complaint.company.slug %}">Şirkete Git</a></div></div><div class="public-detail-title"><div class="public-detail-status">{% include 'complaints/status_badge.html' with complaint=complaint only %}{% if complaint.has_response %}<span class="community-chip community-chip--response">Şirket cevapladı</span>{% endif %}</div><h1 id="complaint-title">{{ complaint.title }}</h1><div class="public-detail-author">{% include 'components/complaint_author_avatar.html' with complaint=complaint size_class='user-avatar--sm' only %}<span><a href="{% url 'accounts:public_profile' complaint.user.username %}">@{{ complaint.user.username }}</a> tarafından · <time datetime="{{ complaint.created_at|date:'c' }}">{{ complaint.created_at|date:'d.m.Y H:i' }}</time></span>{% include 'components/public_user_badge.html' with badge=complaint_badge only %}</div></div></header>
-<section class="public-detail-card complaint-description" aria-labelledby="description-title"><h2 id="description-title">Açıklama</h2><p>{{ complaint.description }}</p><dl class="public-detail-dates"><div><dt>Oluşturulma tarihi</dt><dd>{{ complaint.created_at|date:'d.m.Y H:i' }}</dd></div><div><dt>Son güncelleme</dt><dd>{{ complaint.updated_at|date:'d.m.Y H:i' }}</dd></div></dl></section>
-<section class="interaction-panel" aria-labelledby="interaction-title">
-  <header>
-    <div>
-      <p class="section-kicker">TOPLULUK DESTEĞİ</p>
-      <h2 id="interaction-title">Bu deneyim size de tanıdık geliyor mu?</h2>
-    </div>
+{% extends "base.html" %}
+{% load static %}
 
-    <div class="interaction-summary interaction-summary--clean" aria-label="Şikayet istatistikleri">
-      <span class="interaction-stat">
-        {% include 'components/icon.html' with name='eye' %}
-        <b>{{ complaint.view_count|default:0 }}</b>
-        <small>görüntülenme</small>
-      </span>
+{% block title %}
+{{ complaint.title }} | DertDerman
+{% endblock %}
 
-      <span class="interaction-stat">
-        <b>{{ complaint.comment_count|default:0 }}</b>
-        <small>yorum</small>
-      </span>
-    </div>
-  </header>
+{% block body_class %}
+public-site public-complaint-page
+{% endblock %}
 
-  <div class="interaction-bar">
-    {% if request.user.is_authenticated and request.user.user_type == 'USER' %}
+{% block extra_head %}
+<link
+    rel="stylesheet"
+    href="{% static 'css/report-modal.css' %}"
+>
+<link
+    rel="stylesheet"
+    href="{% static 'css/category-system.css' %}"
+>
 
-      <form
-        class="emoji-picker emoji-picker--direct"
-        method="post"
-        action="{% url 'complaints:react' complaint.pk %}"
-      >
-        {% csrf_token %}
+<script
+    src="{% static 'js/complaint-experience.js' %}"
+    defer
+></script>
 
-        <div
-          class="emoji-options"
-          aria-label="Emoji tepkileri"
-        >
-          {% for reaction in reaction_options %}
+<script
+    src="{% static 'js/report-modal.js' %}"
+    defer
+></script>
+{% endblock %}
 
-            <button
-              type="submit"
-              name="reaction_type"
-              value="{{ reaction.value }}"
-              class="emoji-option{% if reaction.active %} is-active{% endif %}"
-              aria-pressed="{% if reaction.active %}true{% else %}false{% endif %}"
-              title="{{ reaction.count }} tepki"
-            >
-              <span aria-hidden="true">
-                {{ reaction.value }}
-              </span>
 
-              <b>{{ reaction.count }}</b>
-            </button>
+{% block content %}
 
-          {% endfor %}
-        </div>
-      </form>
+<main
+    class="content-section public-detail-v2"
+    id="main-content"
+>
 
-      {% if request.user.pk != complaint.user_id %}
-        <button
-          type="button"
-          class="report-trigger"
-          data-report-open="complaint-report-dialog"
-        >
-          ⚑ Raporla
-        </button>
-      {% endif %}
-
-    {% else %}
-
-      <a
-        class="secondary-action"
-        href="{% url 'accounts:login' %}?next={{ request.path|urlencode }}"
-      >
-        Tepki vermek için giriş yapın
-      </a>
-
-    {% endif %}
-
-    <a
-      class="comment-count-link"
-      href="#community-comments"
+    <article
+        class="section-inner public-detail-shell"
+        aria-labelledby="complaint-title"
     >
-      💬 {{ complaint.comment_count }} Yorum
-    </a>
-  </div>
-</section>
 
-<section class="official-response-section" aria-labelledby="company-responses-title"><header class="public-section-heading"><span aria-hidden="true">↩</span><div><p class="section-kicker">RESMİ YANIT</p><h2 id="company-responses-title">Şirketin Cevabı</h2></div></header>{% for response in company_response_page %}<article class="official-response"><header><span class="official-company-logo">{% include 'components/company_avatar.html' with company=complaint.company image_class='official-company-avatar-image' fallback_class='official-company-avatar-fallback' only %}</span><div><strong>{{ complaint.company.name }}</strong><span class="official-badge">Resmi Şirket Yanıtı</span></div><time datetime="{{ response.created_at|date:'c' }}">{{ response.created_at|date:'d.m.Y H:i' }}</time></header><p>{{ response.body|linebreaksbr }}</p></article>{% empty %}<p class="public-empty-note">Şirket henüz resmi bir yanıt paylaşmadı.</p>{% endfor %}{% include 'components/pagination.html' with page_obj=company_response_page page_param='response_page' label='Şirket cevabı sayfaları' %}</section>
-<section class="community-comments" id="community-comments" aria-labelledby="comments-title"><header class="public-section-heading"><span aria-hidden="true">◇</span><div><p class="section-kicker">TOPLULUK</p><h2 id="comments-title">Topluluk Yorumları</h2></div><b>{{ complaint.comment_count }}</b></header>{% if request.user.is_authenticated and request.user.user_type == 'USER' %}<form class="comment-form" method="post" action="{% url 'complaints:comment_create' complaint.pk %}" data-submit-form>{% csrf_token %}{% include 'components/field.html' with field=comment_form.body label='Yorumunuz' %}<button class="primary-action" type="submit" data-submit-label="Yorumu Paylaş">Yorumu Paylaş</button></form>{% elif not request.user.is_authenticated %}<div class="comment-login"><p>Deneyime katkıda bulunmak için giriş yapın.</p><a class="secondary-action" href="{% url 'accounts:login' %}?next={{ request.path|urlencode }}">Giriş Yap</a></div>{% endif %}<div class="comment-list">{% for comment in comment_page %}<article class="community-comment">{% include 'components/complaint_author_avatar.html' with complaint=comment size_class='user-avatar--comment' only %}<div><header><span><a href="{% url 'accounts:public_profile' comment.author_username %}"><strong>@{{ comment.author_username }}</strong></a>{% include 'components/public_user_badge.html' with badge=comment.display_badge only %}</span><span><time datetime="{{ comment.created_at|date:'c' }}">{{ comment.created_at|date:'d.m.Y H:i' }}</time>{% if request.user.pk == comment.author_user_id %}<form class="comment-delete-form" method="post" action="{% url 'complaints:comment_delete' complaint.pk comment.pk %}">{% csrf_token %}<button type="submit">Kaldır</button></form>{% endif %}</span></header><p>{{ comment.body|linebreaksbr }}</p></div></article>{% empty %}<div class="comment-empty"><span aria-hidden="true">◇</span><h3>Henüz topluluk yorumu yok</h3><p>İlk katkıyı siz yapabilirsiniz.</p></div>{% endfor %}</div>{% include 'components/pagination.html' with page_obj=comment_page page_param='comment_page' label='Yorum sayfaları' %}</section>
-<div class="public-detail-actions"><a class="secondary-action" href="{% url 'complaints:public_list' %}">Şikayetlere Dön</a></div>
-{% if request.user.is_authenticated and request.user.user_type == 'USER' and request.user.pk != complaint.user_id %}
-<div class="report-modal" id="complaint-report-dialog" data-report-modal hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="complaint-report-title">
-  <div class="report-modal-card">
-    <header class="report-modal-head">
-      <div>
-        <p class="report-modal-kicker">İÇERİK RAPORU</p>
-        <h2 id="complaint-report-title">Bu şikayeti raporla</h2>
-        <p>Yalnızca topluluk kurallarını ihlal ettiğini düşündüğünüz içerikleri raporlayın.</p>
-      </div>
-      <button type="button" class="report-modal-close" data-report-close aria-label="Pencereyi kapat">×</button>
-    </header>
+        <header class="public-detail-hero">
 
-    <form method="post" action="{% url 'complaints:report' complaint.pk %}" class="report-modal-body">
-      {% csrf_token %}
-      <label class="report-modal-field">
-        <span>Raporlama nedeni</span>
-        {{ content_report_form.reason }}
-      </label>
+            <div class="public-detail-company">
 
-      <label class="report-modal-field">
-        <span>Açıklama</span>
-        {{ content_report_form.description }}
-      </label>
+                <span class="public-detail-logo">
 
-      <p class="report-modal-note">Asılsız veya kötü niyetli raporlar hesap moderasyonuna konu olabilir.</p>
+                    {% include 'components/company_avatar.html' with company=complaint.company image_class='public-detail-logo-image' fallback_class='public-detail-logo-fallback' only %}
 
-      <div class="report-modal-actions">
-        <button type="button" class="report-cancel" data-report-close>Vazgeç</button>
-        <button type="submit" class="report-submit">Raporu Gönder</button>
-      </div>
-    </form>
-  </div>
-</div>
-{% endif %}
+                </span>
 
-</article></main>{% endblock %}
+
+                <div>
+
+                    <p>
+                        {{ complaint.company.name }}
+
+                        {% if complaint.company.is_verified %}
+                            <span
+                                class="verified-mark"
+                                title="Doğrulanmış şirket"
+                            >
+                                ✓
+                            </span>
+                        {% endif %}
+                    </p>
+
+
+                    <a
+                        class="detail-cta company-detail-cta"
+                        href="{% url 'companies_public:company_detail' complaint.company.slug %}"
+                    >
+                        Şirkete Git
+                    </a>
+
+                </div>
+
+            </div>
+
+
+            <div class="public-detail-title">
+
+                <div class="public-detail-status">
+
+                    <span class="complaint-category-chip">
+                        {{ complaint.get_category_display }}
+                    </span>
+
+                    {% include 'complaints/status_badge.html' with complaint=complaint only %}
+
+                    {% if complaint.has_response %}
+
+                        <span class="community-chip community-chip--response">
+                            Şirket cevapladı
+                        </span>
+
+                    {% endif %}
+
+                </div>
+
+
+                <h1 id="complaint-title">
+                    {{ complaint.title }}
+                </h1>
+
+
+                <div class="public-detail-author">
+
+                    {% include 'components/complaint_author_avatar.html' with complaint=complaint size_class='user-avatar--sm' only %}
+
+                    <span>
+
+                        <a
+                            href="{% url 'accounts:public_profile' complaint.user.username %}"
+                        >
+                            @{{ complaint.user.username }}
+                        </a>
+
+                        tarafından ·
+
+                        <time
+                            datetime="{{ complaint.created_at|date:'c' }}"
+                        >
+                            {{ complaint.created_at|date:'d.m.Y H:i' }}
+                        </time>
+
+                    </span>
+
+                    {% include 'components/public_user_badge.html' with badge=complaint_badge only %}
+
+                </div>
+
+            </div>
+
+        </header>
+
+
+        <div class="complaint-context-grid">
+
+            <section
+                class="public-detail-card complaint-description"
+                aria-labelledby="description-title"
+            >
+
+                <h2 id="description-title">
+                    Açıklama
+                </h2>
+
+
+                <p>
+                    {{ complaint.description }}
+                </p>
+
+
+                <dl class="public-detail-dates">
+
+                    <div>
+
+                        <dt>
+                            Oluşturulma tarihi
+                        </dt>
+
+                        <dd>
+                            {{ complaint.created_at|date:'d.m.Y H:i' }}
+                        </dd>
+
+                    </div>
+
+
+                    <div>
+
+                        <dt>
+                            Son güncelleme
+                        </dt>
+
+                        <dd>
+                            {{ complaint.updated_at|date:'d.m.Y H:i' }}
+                        </dd>
+
+                    </div>
+
+                </dl>
+
+            </section>
+
+
+            <aside
+                class="related-company-complaints"
+                aria-labelledby="related-company-title"
+            >
+
+                <header class="related-company-heading">
+
+                    <p>
+                        AYNI ŞİRKETTEN
+                    </p>
+
+                    <h2 id="related-company-title">
+                        Diğer kullanıcı deneyimleri
+                    </h2>
+
+                </header>
+
+
+                {% if related_complaints %}
+
+                    <div class="related-company-list">
+
+                        {% for item in related_complaints %}
+
+                            <a
+                                class="related-complaint-card"
+                                href="{% url 'complaints:public_detail' item.pk %}"
+                            >
+
+                                <span class="complaint-category-chip">
+                                    {{ item.get_category_display }}
+                                </span>
+
+
+                                <h3>
+                                    {{ item.title }}
+                                </h3>
+
+
+                                <footer>
+
+                                    <time
+                                        datetime="{{ item.created_at|date:'c' }}"
+                                    >
+                                        {{ item.created_at|date:'d.m.Y' }}
+                                    </time>
+
+
+                                    <span>
+
+                                        {% if item.status == 'RESOLVED' %}
+                                            Çözüldü
+                                        {% else %}
+                                            Yayında
+                                        {% endif %}
+
+                                    </span>
+
+                                </footer>
+
+                            </a>
+
+                        {% endfor %}
+
+                    </div>
+
+
+                    <a
+                        class="related-company-all"
+                        href="{% url 'companies_public:company_detail' complaint.company.slug %}"
+                    >
+                        {{ complaint.company.name }} hakkındaki tüm şikayetler →
+                    </a>
+
+                {% else %}
+
+                    <p class="public-empty-note">
+                        Bu şirket hakkında başka yayınlanmış şikayet bulunmuyor.
+                    </p>
+
+                {% endif %}
+
+            </aside>
+
+        </div>
+
+
+        <section
+            class="interaction-panel"
+            aria-labelledby="interaction-title"
+        >
+
+            <header>
+
+                <div>
+
+                    <p class="section-kicker">
+                        TOPLULUK DESTEĞİ
+                    </p>
+
+                    <h2 id="interaction-title">
+                        Bu deneyim size de tanıdık geliyor mu?
+                    </h2>
+
+                </div>
+
+
+                <div
+                    class="interaction-summary interaction-summary--clean"
+                    aria-label="Şikayet istatistikleri"
+                >
+
+                    <span class="interaction-stat">
+
+                        {% include 'components/icon.html' with name='eye' %}
+
+                        <b>
+                            {{ complaint.view_count|default:0 }}
+                        </b>
+
+                        <small>
+                            görüntülenme
+                        </small>
+
+                    </span>
+
+
+                    <span class="interaction-stat">
+
+                        <b>
+                            {{ complaint.comment_count|default:0 }}
+                        </b>
+
+                        <small>
+                            yorum
+                        </small>
+
+                    </span>
+
+                </div>
+
+            </header>
+
+
+            <div class="interaction-bar">
+
+                {% if request.user.is_authenticated and request.user.user_type == 'USER' %}
+
+                    <form
+                        class="emoji-picker emoji-picker--direct"
+                        method="post"
+                        action="{% url 'complaints:react' complaint.pk %}"
+                    >
+
+                        {% csrf_token %}
+
+
+                        <div
+                            class="emoji-options"
+                            aria-label="Emoji tepkileri"
+                        >
+
+                            {% for reaction in reaction_options %}
+
+                                <button
+                                    type="submit"
+                                    name="reaction_type"
+                                    value="{{ reaction.value }}"
+                                    class="emoji-option{% if reaction.active %} is-active{% endif %}"
+                                    aria-pressed="{% if reaction.active %}true{% else %}false{% endif %}"
+                                    title="{{ reaction.count }} tepki"
+                                >
+
+                                    <span aria-hidden="true">
+                                        {{ reaction.value }}
+                                    </span>
+
+                                    <b>
+                                        {{ reaction.count }}
+                                    </b>
+
+                                </button>
+
+                            {% endfor %}
+
+                        </div>
+
+                    </form>
+
+
+                    {% if request.user.pk != complaint.user_id %}
+
+                        <button
+                            type="button"
+                            class="report-trigger"
+                            data-report-open="complaint-report-dialog"
+                        >
+                            ⚑ Raporla
+                        </button>
+
+                    {% endif %}
+
+                {% else %}
+
+                    <a
+                        class="secondary-action"
+                        href="{% url 'accounts:login' %}?next={{ request.path|urlencode }}"
+                    >
+                        Tepki vermek için giriş yapın
+                    </a>
+
+                {% endif %}
+
+
+                <a
+                    class="comment-count-link"
+                    href="#community-comments"
+                >
+                    💬 {{ complaint.comment_count }} Yorum
+                </a>
+
+            </div>
+
+        </section>
+
+
+        <section
+            class="official-response-section"
+            aria-labelledby="company-responses-title"
+        >
+
+            <header class="public-section-heading">
+
+                <span aria-hidden="true">
+                    ↩
+                </span>
+
+                <div>
+
+                    <p class="section-kicker">
+                        RESMİ YANIT
+                    </p>
+
+                    <h2 id="company-responses-title">
+                        Şirketin Cevabı
+                    </h2>
+
+                </div>
+
+            </header>
+
+
+            {% for response in company_response_page %}
+
+                <article class="official-response">
+
+                    <header>
+
+                        <span class="official-company-logo">
+
+                            {% include 'components/company_avatar.html' with company=complaint.company image_class='official-company-avatar-image' fallback_class='official-company-avatar-fallback' only %}
+
+                        </span>
+
+
+                        <div>
+
+                            <strong>
+                                {{ complaint.company.name }}
+                            </strong>
+
+                            <span class="official-badge">
+                                Resmi Şirket Yanıtı
+                            </span>
+
+                        </div>
+
+
+                        <time
+                            datetime="{{ response.created_at|date:'c' }}"
+                        >
+                            {{ response.created_at|date:'d.m.Y H:i' }}
+                        </time>
+
+                    </header>
+
+
+                    <p>
+                        {{ response.body|linebreaksbr }}
+                    </p>
+
+                </article>
+
+            {% empty %}
+
+                <p class="public-empty-note">
+                    Şirket henüz resmi bir yanıt paylaşmadı.
+                </p>
+
+            {% endfor %}
+
+
+            {% include 'components/pagination.html' with page_obj=company_response_page page_param='response_page' label='Şirket cevabı sayfaları' %}
+
+        </section>
+
+
+        <section
+            class="community-comments"
+            id="community-comments"
+            aria-labelledby="comments-title"
+        >
+
+            <header class="public-section-heading">
+
+                <span aria-hidden="true">
+                    ◇
+                </span>
+
+
+                <div>
+
+                    <p class="section-kicker">
+                        TOPLULUK
+                    </p>
+
+                    <h2 id="comments-title">
+                        Topluluk Yorumları
+                    </h2>
+
+                </div>
+
+
+                <b>
+                    {{ complaint.comment_count }}
+                </b>
+
+            </header>
+
+
+            {% if request.user.is_authenticated and request.user.user_type == 'USER' %}
+
+                <form
+                    class="comment-form"
+                    method="post"
+                    action="{% url 'complaints:comment_create' complaint.pk %}"
+                    data-submit-form
+                >
+
+                    {% csrf_token %}
+
+                    {% include 'components/field.html' with field=comment_form.body label='Yorumunuz' %}
+
+
+                    <button
+                        class="primary-action"
+                        type="submit"
+                        data-submit-label="Yorumu Paylaş"
+                    >
+                        Yorumu Paylaş
+                    </button>
+
+                </form>
+
+            {% elif not request.user.is_authenticated %}
+
+                <div class="comment-login">
+
+                    <p>
+                        Deneyime katkıda bulunmak için giriş yapın.
+                    </p>
+
+                    <a
+                        class="secondary-action"
+                        href="{% url 'accounts:login' %}?next={{ request.path|urlencode }}"
+                    >
+                        Giriş Yap
+                    </a>
+
+                </div>
+
+            {% endif %}
+
+
+            <div class="comment-list">
+
+                {% for comment in comment_page %}
+
+                    <article class="community-comment">
+
+                        {% include 'components/complaint_author_avatar.html' with complaint=comment size_class='user-avatar--comment' only %}
+
+
+                        <div>
+
+                            <header>
+
+                                <span>
+
+                                    <a
+                                        href="{% url 'accounts:public_profile' comment.author_username %}"
+                                    >
+                                        <strong>
+                                            @{{ comment.author_username }}
+                                        </strong>
+                                    </a>
+
+                                    {% include 'components/public_user_badge.html' with badge=comment.display_badge only %}
+
+                                </span>
+
+
+                                <span>
+
+                                    <time
+                                        datetime="{{ comment.created_at|date:'c' }}"
+                                    >
+                                        {{ comment.created_at|date:'d.m.Y H:i' }}
+                                    </time>
+
+
+                                    {% if request.user.pk == comment.author_user_id %}
+
+                                        <form
+                                            class="comment-delete-form"
+                                            method="post"
+                                            action="{% url 'complaints:comment_delete' complaint.pk comment.pk %}"
+                                        >
+
+                                            {% csrf_token %}
+
+                                            <button type="submit">
+                                                Kaldır
+                                            </button>
+
+                                        </form>
+
+                                    {% endif %}
+
+                                </span>
+
+                            </header>
+
+
+                            <p>
+                                {{ comment.body|linebreaksbr }}
+                            </p>
+
+                        </div>
+
+                    </article>
+
+                {% empty %}
+
+                    <div class="comment-empty">
+
+                        <span aria-hidden="true">
+                            ◇
+                        </span>
+
+                        <h3>
+                            Henüz topluluk yorumu yok
+                        </h3>
+
+                        <p>
+                            İlk katkıyı siz yapabilirsiniz.
+                        </p>
+
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+
+            {% include 'components/pagination.html' with page_obj=comment_page page_param='comment_page' label='Yorum sayfaları' %}
+
+        </section>
+
+
+        <div class="public-detail-actions">
+
+            <a
+                class="secondary-action"
+                href="{% url 'complaints:public_list' %}"
+            >
+                Şikayetlere Dön
+            </a>
+
+        </div>
+
+
+        {% if request.user.is_authenticated and request.user.user_type == 'USER' and request.user.pk != complaint.user_id %}
+
+            <div
+                class="report-modal"
+                id="complaint-report-dialog"
+                data-report-modal
+                hidden
+                aria-hidden="true"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="complaint-report-title"
+            >
+
+                <div class="report-modal-card">
+
+                    <header class="report-modal-head">
+
+                        <div>
+
+                            <p class="report-modal-kicker">
+                                İÇERİK RAPORU
+                            </p>
+
+                            <h2 id="complaint-report-title">
+                                Bu şikayeti raporla
+                            </h2>
+
+                            <p>
+                                Yalnızca topluluk kurallarını ihlal ettiğini
+                                düşündüğünüz içerikleri raporlayın.
+                            </p>
+
+                        </div>
+
+
+                        <button
+                            type="button"
+                            class="report-modal-close"
+                            data-report-close
+                            aria-label="Pencereyi kapat"
+                        >
+                            ×
+                        </button>
+
+                    </header>
+
+
+                    <form
+                        method="post"
+                        action="{% url 'complaints:report' complaint.pk %}"
+                        class="report-modal-body"
+                    >
+
+                        {% csrf_token %}
+
+
+                        <label class="report-modal-field">
+
+                            <span>
+                                Raporlama nedeni
+                            </span>
+
+                            {{ content_report_form.reason }}
+
+                        </label>
+
+
+                        <label class="report-modal-field">
+
+                            <span>
+                                Açıklama
+                            </span>
+
+                            {{ content_report_form.description }}
+
+                        </label>
+
+
+                        <p class="report-modal-note">
+                            Asılsız veya kötü niyetli raporlar
+                            hesap moderasyonuna konu olabilir.
+                        </p>
+
+
+                        <div class="report-modal-actions">
+
+                            <button
+                                type="button"
+                                class="report-cancel"
+                                data-report-close
+                            >
+                                Vazgeç
+                            </button>
+
+
+                            <button
+                                type="submit"
+                                class="report-submit"
+                            >
+                                Raporu Gönder
+                            </button>
+
+                        </div>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        {% endif %}
+
+    </article>
+
+</main>
+
+{% endblock %}

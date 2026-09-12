@@ -1,62 +1,158 @@
 <article class="public-complaint-card">
+
   <header class="public-card-company">
+
     <span class="public-card-logo">
       {% include 'components/company_avatar.html' with company=complaint.company image_class='public-card-logo-image' fallback_class='public-card-logo-fallback' only %}
     </span>
+
     <span class="public-card-company-name">
+
       {{ complaint.company.name }}
+
       {% if complaint.company.is_verified %}
-        <span class="verified-mark" title="Doğrulanmış şirket" aria-label="Doğrulanmış şirket">✓</span>
+
+        <span
+          class="verified-mark"
+          title="Doğrulanmış şirket"
+          aria-label="Doğrulanmış şirket"
+        >
+          ✓
+        </span>
+
       {% endif %}
+
     </span>
+
     {% include 'complaints/status_badge.html' with complaint=complaint only %}
+
   </header>
 
+
   <div class="public-card-content">
+
+    <div class="public-card-category-row">
+
+      <span class="complaint-category-chip">
+        {{ complaint.get_category_display }}
+      </span>
+
+    </div>
+
+
     <h3 class="complaint-card-title">
-      <a href="{% url 'complaints:public_detail' complaint.pk %}">{{ complaint.title }}</a>
+
+      <a href="{% url 'complaints:public_detail' complaint.pk %}">
+        {{ complaint.title }}
+      </a>
+
     </h3>
-    <p class="complaint-preview">{{ complaint.description|truncatechars:165 }}</p>
+
+
+    <p class="complaint-preview">
+      {{ complaint.description|truncatechars:165 }}
+    </p>
+
 
     <div class="public-card-badges">
+
       {% if complaint.has_response %}
-        <span class="community-chip community-chip--response">Şirket cevapladı</span>
+
+        <span class="community-chip community-chip--response">
+          Şirket cevapladı
+        </span>
+
       {% endif %}
+
+
       {% if complaint.status == 'RESOLVED' %}
-        <span class="community-chip community-chip--resolved">Sorun çözüldü</span>
+
+        <span class="community-chip community-chip--resolved">
+          Sorun çözüldü
+        </span>
+
       {% endif %}
+
     </div>
+
   </div>
 
+
   <footer class="public-complaint-meta public-complaint-meta--clean">
+
     <div class="public-card-author">
+
       {% include 'components/complaint_author_avatar.html' with complaint=complaint size_class='user-avatar--xs' only %}
+
       <span>
         DertDerman kullanıcısı ·
-        <time datetime="{{ complaint.created_at|date:'c' }}">{{ complaint.created_at|date:'d.m.Y' }}</time>
+
+        <time datetime="{{ complaint.created_at|date:'c' }}">
+          {{ complaint.created_at|date:'d.m.Y' }}
+        </time>
       </span>
+
     </div>
+
 
     <div class="public-card-bottom">
-      <div class="public-card-counts public-card-counts--clean" aria-label="Etkileşimler">
-        <span class="metric-chip" title="Görüntülenme">
+
+      <div
+        class="public-card-counts public-card-counts--clean"
+        aria-label="Etkileşimler"
+      >
+
+        <span
+          class="metric-chip"
+          title="Görüntülenme"
+        >
+
           {% include 'components/icon.html' with name='eye' %}
-          <b>{{ complaint.view_count|default:0 }}</b>
+
+          <b>
+            {{ complaint.view_count|default:0 }}
+          </b>
+
         </span>
+
+
         <span class="metric-chip">
-          <span class="metric-chip-label">Tepki</span>
-          <b>{{ complaint.reaction_count|default:0 }}</b>
+
+          <span class="metric-chip-label">
+            Tepki
+          </span>
+
+          <b>
+            {{ complaint.reaction_count|default:0 }}
+          </b>
+
         </span>
+
+
         <span class="metric-chip">
-          <span class="metric-chip-label">Yorum</span>
-          <b>{{ complaint.comment_count|default:0 }}</b>
+
+          <span class="metric-chip-label">
+            Yorum
+          </span>
+
+          <b>
+            {{ complaint.comment_count|default:0 }}
+          </b>
+
         </span>
+
       </div>
 
-      <a class="detail-cta public-card-action public-card-action--compact"
-         href="{% url 'complaints:public_detail' complaint.pk %}">
+
+      <a
+        class="detail-cta public-card-action public-card-action--compact"
+        href="{% url 'complaints:public_detail' complaint.pk %}"
+      >
         İncele →
       </a>
+
     </div>
+
   </footer>
+
 </article>

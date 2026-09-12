@@ -23,3 +23,10 @@ templates/adminx/company_report_list.html
 templates/adminx/user_list.html
 templates/core/contact.html
 templates/accounts/public_profile.html
+templates/companies/company_register.html
+templates/complaints/complaint_create.html
+templates/complaints/public_card.html
+templates/companies/company_list.html
+templates/companies/company_detail.html
+templates/complaints/complaint_edit.html
+templates/companies/company_register.html

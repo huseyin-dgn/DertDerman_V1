@@ -1,19 +1,44 @@
 {% load static %}
 <!doctype html>
-<html lang="tr" data-auth-role="{% if request.user.is_authenticated %}{{ request.user.user_type }}{% endif %}" data-history-invalidate-url="{% url 'accounts:history_invalidate' %}">
-<head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="robots" content="noindex, nofollow"><meta name="theme-color" content="{% block theme_color %}#f3f8ff{% endblock %}">
-  <script src="{% static 'js/history-session.js' %}"></script>
-  <title>{% block title %}Hesabınız | DertDerman{% endblock %}</title>
-  <link rel="stylesheet" href="{% static 'css/tokens.css' %}"><link rel="stylesheet" href="{% static 'css/base.css' %}">
-  <link rel="stylesheet" href="{% static 'css/components.css' %}"><link rel="stylesheet" href="{% static 'css/pages.css' %}">
-  <link rel="stylesheet" href="{% static 'css/auth.css' %}"><link rel="stylesheet" href="{% static 'css/identity-v1.css' %}"><script src="{% static 'js/auth.js' %}" defer></script>
-</head>
-<body class="ax-page {% block auth_variant %}{% endblock %}">
-<a class="skip-link" href="#main-content">İçeriğe geç</a>
-<header class="ax-header">{% include 'components/brand.html' with compact_brand=True %}<div class="ax-header-actions"><a class="ax-home" href="{% url 'core:home' %}">{% include 'components/icon.html' with name='back' %}<span>Ana Sayfaya Dön</span></a></div></header>
-{% block content %}{% endblock %}
-<footer class="ax-footer"><span>DertDerman</span><span>Bir sözle başlar. Dertten dermana.</span></footer>
-</body>
+<html
+  lang="tr"
+  data-auth-role="{% if request.user.is_authenticated %}{{ request.user.user_type }}{% endif %}"
+  data-history-invalidate-url="{% url 'accounts:history_invalidate' %}"
+>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta
+      name="theme-color"
+      content="{% block theme_color %}#f3f8ff{% endblock %}"
+    />
+    <script src="{% static 'js/history-session.js' %}"></script>
+    <title>{% block title %}Hesabınız | DertDerman{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/tokens.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/base.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/components.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/pages.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/auth.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/category-system.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/identity-v1.css' %}" />
+    <script src="{% static 'js/auth.js' %}" defer></script>
+  </head>
+  <body class="ax-page {% block auth_variant %}{% endblock %}">
+    <a class="skip-link" href="#main-content">İçeriğe geç</a>
+    <header class="ax-header">
+      {% include 'components/brand.html' with compact_brand=True %}
+      <div class="ax-header-actions">
+        <a class="ax-home" href="{% url 'core:home' %}"
+          >{% include 'components/icon.html' with name='back' %}<span
+            >Ana Sayfaya Dön</span
+          ></a
+        >
+      </div>
+    </header>
+    {% block content %}{% endblock %}
+    <footer class="ax-footer">
+      <span>DertDerman</span><span>Bir sözle başlar. Dertten dermana.</span>
+    </footer>
+  </body>
 </html>

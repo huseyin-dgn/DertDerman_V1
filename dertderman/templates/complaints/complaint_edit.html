@@ -1,2 +1,313 @@
-{% extends 'complaints/private_base.html' %}{% load static %}{% block title %}Şikayeti Düzenle | DertDerman{% endblock %}
-{% block content %}<main class="content-section complaint-create-v2" id="main-content">{% include 'components/workspace_nav.html' %}<div class="section-inner complaint-create-layout"><section class="complaint-create-card"><header class="complaint-create-heading"><p class="section-kicker">ŞİKAYETİM</p><h1>Şikayeti Düzenle</h1><p>Yayınlanan veya reddedilen şikayetler değişiklikten sonra yeniden incelemeye alınır.</p></header>{% if edit_blocked %}<div class="complaint-edit-blocked"><h2>Bu şikayet düzenlenemez</h2><p>Çözülen veya geri çekilen şikayetlerde düzenleme kapalıdır.</p><a class="secondary-action" href="{% url 'complaints:detail' complaint.pk %}">Detaya dön</a></div>{% else %}<form method="post" class="account-form complaint-create-form">{% csrf_token %}{{ form.non_field_errors }}{% include 'components/field.html' with field=form.company %}{% include 'components/field.html' with field=form.title %}{% include 'components/field.html' with field=form.description %}<div class="complaint-create-actions"><button class="primary-action" type="submit">Kaydet ve İncelemeye Gönder</button><a class="secondary-action" href="{% url 'complaints:detail' complaint.pk %}">Vazgeç</a></div></form>{% endif %}</section><aside class="complaint-writing-guide"><p class="section-kicker">YAYIN POLİTİKASI</p><h2>Değişiklikler neden incelenir?</h2><p>Public içerikteki önemli değişiklikler, platform güvenliği için yeniden moderasyon sürecine girer.</p></aside></div></main>{% endblock %}
+{% extends 'complaints/private_base.html' %}
+{% load static %}
+
+{% block extra_head %}
+{{ block.super }}
+
+<link
+    rel="stylesheet"
+    href="{% static 'css/category-system.css' %}"
+>
+{% endblock %}
+{% block title %}
+Şikayeti Düzenle | DertDerman
+{% endblock %}
+
+
+{% block content %}
+
+<main
+    class="content-section complaint-create-v2"
+    id="main-content"
+>
+
+    {% include 'components/workspace_nav.html' %}
+
+
+    <div class="section-inner complaint-create-layout">
+
+        <section class="complaint-create-card">
+
+            <header class="complaint-create-heading">
+
+                <p class="section-kicker">
+                    ŞİKAYETİM
+                </p>
+
+                <h1>
+                    Şikayeti Düzenle
+                </h1>
+
+                <p>
+                    Yayınlanan veya reddedilen şikayetler
+                    değişiklikten sonra yeniden incelemeye alınır.
+                </p>
+
+            </header>
+
+
+            {% if edit_blocked %}
+
+                <div class="complaint-edit-blocked">
+
+                    <h2>
+                        Bu şikayet düzenlenemez
+                    </h2>
+
+                    <p>
+                        Çözülen veya geri çekilen
+                        şikayetlerde düzenleme kapalıdır.
+                    </p>
+
+                    <a
+                        class="secondary-action"
+                        href="{% url 'complaints:detail' complaint.pk %}"
+                    >
+                        Detaya dön
+                    </a>
+
+                </div>
+
+            {% else %}
+
+                <form
+                    method="post"
+                    class="account-form complaint-create-form"
+                    data-submit-form
+                >
+
+                    {% csrf_token %}
+
+
+                    {% if form.non_field_errors %}
+
+                        <div
+                            class="form-alert"
+                            role="alert"
+                        >
+                            {{ form.non_field_errors }}
+                        </div>
+
+                    {% endif %}
+
+
+                    <section class="complaint-form-step">
+
+                        <span>
+                            01
+                        </span>
+
+                        <div>
+
+                            <h2>
+                                Şirket
+                            </h2>
+
+                            <p>
+                                Şikayetin ilgili olduğu
+                                şirketi kontrol edin.
+                            </p>
+
+                        </div>
+
+                    </section>
+
+
+                    {% include 'components/field.html' with field=form.company label='Şirket' %}
+
+
+                    <section class="complaint-form-step">
+
+                        <span>
+                            02
+                        </span>
+
+                        <div>
+
+                            <h2>
+                                Şikayet kategorisi
+                            </h2>
+
+                            <p>
+                                Sorununuzu en iyi açıklayan
+                                kategoriyi seçin.
+                            </p>
+
+                        </div>
+
+                    </section>
+
+
+                    {% include 'components/field.html' with field=form.category label='Şikayet kategorisi' %}
+
+
+                    <section class="complaint-form-step">
+
+                        <span>
+                            03
+                        </span>
+
+                        <div>
+
+                            <h2>
+                                Başlık
+                            </h2>
+
+                            <p>
+                                Şikayetinizi kısa ve
+                                anlaşılır şekilde özetleyin.
+                            </p>
+
+                        </div>
+
+                    </section>
+
+
+                    {% include 'components/field.html' with field=form.title label='Şikayet başlığı' %}
+
+
+                    <section class="complaint-form-step">
+
+                        <span>
+                            04
+                        </span>
+
+                        <div>
+
+                            <h2>
+                                Açıklama
+                            </h2>
+
+                            <p>
+                                Deneyiminizi ve beklediğiniz
+                                çözümü açık şekilde anlatın.
+                            </p>
+
+                        </div>
+
+                    </section>
+
+
+                    {% include 'components/field.html' with field=form.description label='Şikayet içeriği' %}
+
+
+                    <div class="complaint-create-actions">
+
+                        <button
+                            class="primary-action"
+                            type="submit"
+                            data-submit-label="Kaydet ve İncelemeye Gönder"
+                        >
+                            Kaydet ve İncelemeye Gönder
+                        </button>
+
+
+                        <a
+                            class="secondary-action"
+                            href="{% url 'complaints:detail' complaint.pk %}"
+                        >
+                            Vazgeç
+                        </a>
+
+                    </div>
+
+                </form>
+
+            {% endif %}
+
+        </section>
+
+
+        <aside class="complaint-writing-guide">
+
+            <p class="section-kicker">
+                YAYIN POLİTİKASI
+            </p>
+
+            <h2>
+                Değişiklikler neden incelenir?
+            </h2>
+
+            <p>
+                Public içerikteki önemli değişiklikler,
+                platform güvenliği için yeniden moderasyon
+                sürecine girer.
+            </p>
+
+
+            <ul>
+
+                <li>
+
+                    <span aria-hidden="true">
+                        ✓
+                    </span>
+
+                    <p>
+
+                        <strong>
+                            Doğru kategori
+                        </strong>
+
+                        <small>
+                            Sorununuzu en iyi açıklayan
+                            kategoriyi seçin.
+                        </small>
+
+                    </p>
+
+                </li>
+
+
+                <li>
+
+                    <span aria-hidden="true">
+                        ⌁
+                    </span>
+
+                    <p>
+
+                        <strong>
+                            Hassas bilgi paylaşmayın
+                        </strong>
+
+                        <small>
+                            Kimlik, kart ve parola gibi
+                            kişisel bilgileri içerikten çıkarın.
+                        </small>
+
+                    </p>
+
+                </li>
+
+
+                <li>
+
+                    <span aria-hidden="true">
+                        ◷
+                    </span>
+
+                    <p>
+
+                        <strong>
+                            Değişiklik yeniden incelenir
+                        </strong>
+
+                        <small>
+                            Güncel içerik moderasyon
+                            kontrolünden sonra yayınlanır.
+                        </small>
+
+                    </p>
+
+                </li>
+
+            </ul>
+
+        </aside>
+
+    </div>
+
+</main>
+
+{% endblock %}

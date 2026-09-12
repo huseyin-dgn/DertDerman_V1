@@ -1,171 +1,525 @@
 from django.contrib import messages
-from django.core.exceptions import ValidationError
-from django.db import IntegrityError, transaction
-from django.shortcuts import get_object_or_404, redirect, render
+from django.core.exceptions import (
+    ValidationError,
+)
+from django.db import (
+    IntegrityError,
+    transaction,
+)
 from django.db.models import Count, Q
-from django.views.decorators.http import require_POST, require_safe
-from core.pagination import paginate
-from core.decorators import role_required
+from django.shortcuts import (
+    get_object_or_404,
+    redirect,
+    render,
+)
+from django.views.decorators.http import (
+    require_POST,
+    require_safe,
+)
+
 from accounts.models import User
+from core.decorators import role_required
+from core.pagination import paginate
 
-from complaints.selectors import public_complaints
-from complaints.forms import CompanyReportForm
-from complaints.models import CompanyReport
-from complaints.reporting_policy import check_general_reporting_allowed
+from complaints.forms import (
+    CompanyReportForm,
+)
+from complaints.models import (
+    CompanyReport,
+    Complaint,
+)
+from complaints.reporting_policy import (
+    check_general_reporting_allowed,
+)
+from complaints.selectors import (
+    public_complaints,
+)
 
-from .models import Company, CompanyResponse
-from .selectors import public_companies, public_company_performance
-from .badges import primary_company_badge, resolve_company_badges_from_performance
-from .panel_views import dashboard as company_panel, legacy_company_dashboard as company_panel_detail
+from .badges import (
+    primary_company_badge,
+    resolve_company_badges_from_performance,
+)
+from .models import (
+    Company,
+    CompanyCategory,
+    CompanyResponse,
+)
+from .panel_views import (
+    dashboard as company_panel,
+    legacy_company_dashboard
+    as company_panel_detail,
+)
+from .selectors import (
+    public_companies,
+    public_company_performance,
+)
 
 
 @require_safe
-def public_company_list(request):
-    search = request.GET.get("s", request.GET.get("q", "")).strip()[:180]
-    companies = public_companies().annotate(
-        public_complaint_count=Count("complaints", filter=Q(complaints__status="PUBLISHED")))
+def public_company_list(
+    request
+):
+    search = (
+        request.GET.get(
+            "s",
+            request.GET.get(
+                "q",
+                "",
+            ),
+        )
+        .strip()[:180]
+    )
+
+    active_category = (
+        request.GET.get(
+            "category",
+            ""
+        )
+        .strip()[:140]
+    )
+
+    category_options = list(
+        CompanyCategory.objects
+        .filter(
+            is_active=True
+        )
+        .only(
+            "pk",
+            "name",
+            "slug",
+        )
+        .order_by(
+            "name"
+        )
+    )
+
+    valid_category_slugs = {
+        category.slug
+        for category
+        in category_options
+    }
+
+    if (
+        active_category
+        not in valid_category_slugs
+    ):
+        active_category = ""
+
+    companies = (
+        public_companies()
+        .annotate(
+            public_complaint_count=Count(
+                "complaints",
+                filter=Q(
+                    complaints__status__in=(
+                        Complaint.Status.PUBLISHED,
+                        Complaint.Status.RESOLVED,
+                    ),
+
+                    complaints__withdrawn_at__isnull=True,
+
+                    complaints__removed_for_violation=False,
+                ),
+
+                distinct=True,
+            )
+        )
+    )
+
     if search:
-        companies = companies.filter(Q(name__icontains=search) | Q(description__icontains=search) | Q(category__name__icontains=search))
-    page = paginate(request, companies, "public_companies")
+        companies = companies.filter(
+            Q(
+                name__icontains=search
+            )
+            | Q(
+                description__icontains=search
+            )
+            | Q(
+                category__name__icontains=search
+            )
+        )
+
+    if active_category:
+        companies = (
+            companies.filter(
+                category__slug=(
+                    active_category
+                )
+            )
+        )
+
+    page = paginate(
+        request,
+        companies,
+        "public_companies",
+    )
+
     return render(
         request,
         "companies/company_list.html",
-        {"companies": page, "page_obj": page, "search": search},
+        {
+            "companies":
+                page,
+
+            "page_obj":
+                page,
+
+            "search":
+                search,
+
+            "category_options":
+                category_options,
+
+            "active_category":
+                active_category,
+        },
     )
 
 
 @require_safe
-def public_company_detail(request, slug):
+def public_company_detail(
+    request,
+    slug,
+):
     company = get_object_or_404(
         public_companies(),
         slug=slug,
     )
-    complaints = public_complaints().filter(company=company)
-    active_filter = request.GET.get("status", "all")
+
+    complaints = (
+        public_complaints()
+        .filter(
+            company=company
+        )
+    )
+
+    active_filter = (
+        request.GET.get(
+            "status",
+            "all"
+        )
+        .strip()[:20]
+    )
+
+    active_category = (
+        request.GET.get(
+            "category",
+            ""
+        )
+        .strip()[:32]
+    )
+
+    valid_categories = {
+        value
+        for value, _
+        in Complaint.Category.choices
+    }
+
+    if (
+        active_category
+        not in valid_categories
+    ):
+        active_category = ""
+
+    if active_category:
+        complaints = (
+            complaints.filter(
+                category=active_category
+            )
+        )
+
     if active_filter == "answered":
-        complaints = complaints.filter(has_response=True)
+        complaints = (
+            complaints.filter(
+                has_response=True
+            )
+        )
+
     elif active_filter == "resolved":
-        complaints = complaints.filter(status="RESOLVED")
+        complaints = (
+            complaints.filter(
+                status=(
+                    Complaint.Status.RESOLVED
+                )
+            )
+        )
+
     elif active_filter != "all":
         active_filter = "all"
 
-    page_obj = paginate(request, complaints, "company_public_complaints")
+    page_obj = paginate(
+        request,
+        complaints,
+        "company_public_complaints",
+    )
+
     recent_responses = (
-        CompanyResponse.objects.filter(
+        CompanyResponse.objects
+        .filter(
             company=company,
+
             complaint__company=company,
-            complaint__status__in=("PUBLISHED", "RESOLVED"),
+
+            complaint__status__in=(
+                Complaint.Status.PUBLISHED,
+                Complaint.Status.RESOLVED,
+            ),
+
             complaint__withdrawn_at__isnull=True,
+
+            complaint__removed_for_violation=False,
+
             is_active=True,
         )
-        .select_related("complaint")
-        .order_by("-created_at", "-pk")[:4]
+        .select_related(
+            "complaint"
+        )
+        .order_by(
+            "-created_at",
+            "-pk",
+        )[:4]
     )
-    performance = public_company_performance(company)
-    average_response = _format_response_time(performance["average_response_seconds"])
-    company_badges = resolve_company_badges_from_performance(company, performance)
-    return render(request, "companies/company_detail.html", {
-        "company": company,
-        "page_obj": page_obj,
-        "active_filter": active_filter,
-        "filter_options": (
-            ("all", "Tümü"),
-            ("answered", "Şirket Cevapladı"),
-            ("resolved", "Çözüldü"),
-        ),
-        "performance": performance,
-        "average_response": average_response,
-        "recent_responses": recent_responses,
-        "company_badges": company_badges,
-        "primary_company_badge": primary_company_badge(company_badges),
-        "company_report_form": CompanyReportForm(),
-    })
+
+    performance = (
+        public_company_performance(
+            company
+        )
+    )
+
+    average_response = (
+        _format_response_time(
+            performance[
+                "average_response_seconds"
+            ]
+        )
+    )
+
+    company_badges = (
+        resolve_company_badges_from_performance(
+            company,
+            performance,
+        )
+    )
+
+    return render(
+        request,
+        "companies/company_detail.html",
+        {
+            "company":
+                company,
+
+            "page_obj":
+                page_obj,
+
+            "active_filter":
+                active_filter,
+
+            "active_category":
+                active_category,
+
+            "category_options":
+                Complaint.Category.choices,
+
+            "filter_options": (
+                (
+                    "all",
+                    "Tümü",
+                ),
+                (
+                    "answered",
+                    "Şirket Cevapladı",
+                ),
+                (
+                    "resolved",
+                    "Çözüldü",
+                ),
+            ),
+
+            "performance":
+                performance,
+
+            "average_response":
+                average_response,
+
+            "recent_responses":
+                recent_responses,
+
+            "company_badges":
+                company_badges,
+
+            "primary_company_badge":
+                primary_company_badge(
+                    company_badges
+                ),
+
+            "company_report_form":
+                CompanyReportForm(),
+        },
+    )
 
 
-def _format_response_time(seconds):
+def _format_response_time(
+    seconds
+):
     if seconds is None:
         return None
-    total_minutes = max(0, round(seconds / 60))
-    hours, minutes = divmod(total_minutes, 60)
+
+    total_minutes = max(
+        0,
+        round(
+            seconds / 60
+        ),
+    )
+
+    hours, minutes = divmod(
+        total_minutes,
+        60,
+    )
+
     if hours and minutes:
-        return f"{hours} sa {minutes} dk"
+        return (
+            f"{hours} sa "
+            f"{minutes} dk"
+        )
+
     if hours:
-        return f"{hours} sa"
-    return f"{minutes} dk"
+        return (
+            f"{hours} sa"
+        )
+
+    return (
+        f"{minutes} dk"
+    )
 
 
-
-
-@role_required(User.UserType.USER)
+@role_required(
+    User.UserType.USER
+)
 @require_POST
-def public_company_report(request, slug):
+def public_company_report(
+    request,
+    slug,
+):
     company = get_object_or_404(
         public_companies(),
         slug=slug,
     )
 
-    policy = check_general_reporting_allowed(
-        user=request.user,
-        request=request,
+    policy = (
+        check_general_reporting_allowed(
+            user=request.user,
+            request=request,
+        )
     )
+
     if not policy.allowed:
-        messages.error(request, policy.message)
+        messages.error(
+            request,
+            policy.message,
+        )
+
         return redirect(
-            "companies_public:company_detail",
+            "companies_public:"
+            "company_detail",
             slug=company.slug,
         )
 
-    if CompanyReport.objects.filter(
-        reporter=request.user,
-        company=company,
-    ).exists():
+    if (
+        CompanyReport.objects
+        .filter(
+            reporter=request.user,
+            company=company,
+        )
+        .exists()
+    ):
         messages.info(
             request,
-            "Bu şirketi daha önce raporladınız.",
+            (
+                "Bu şirketi daha "
+                "önce raporladınız."
+            ),
         )
+
         return redirect(
-            "companies_public:company_detail",
+            "companies_public:"
+            "company_detail",
             slug=company.slug,
         )
 
-    form = CompanyReportForm(request.POST)
+    form = CompanyReportForm(
+        request.POST
+    )
 
     if not form.is_valid():
         messages.error(
             request,
-            "Şirket raporu gönderilemedi. Lütfen geçerli bir neden seçin.",
+            (
+                "Şirket raporu gönderilemedi. "
+                "Lütfen geçerli bir neden seçin."
+            ),
         )
+
         return redirect(
-            "companies_public:company_detail",
+            "companies_public:"
+            "company_detail",
             slug=company.slug,
         )
 
-    report = form.save(commit=False)
-    report.reporter = request.user
+    report = form.save(
+        commit=False
+    )
+
+    report.reporter = (
+        request.user
+    )
+
     report.company = company
-    report.status = CompanyReport.Status.PENDING
+
+    report.status = (
+        CompanyReport.Status.PENDING
+    )
 
     try:
         with transaction.atomic():
             report.save()
-            from notifications.services import notify_admins_company_report
-            notify_admins_company_report(report)
 
-    except (ValidationError, IntegrityError):
+            from notifications.services import (
+                notify_admins_company_report,
+            )
+
+            notify_admins_company_report(
+                report
+            )
+
+    except (
+        ValidationError,
+        IntegrityError,
+    ):
         messages.info(
             request,
-            "Bu şirketi daha önce raporladınız.",
+            (
+                "Bu şirketi daha "
+                "önce raporladınız."
+            ),
         )
+
         return redirect(
-            "companies_public:company_detail",
+            "companies_public:"
+            "company_detail",
             slug=company.slug,
         )
 
     messages.success(
         request,
-        "Şirket raporunuz alındı ve yönetim incelemesine gönderildi.",
+        (
+            "Şirket raporunuz alındı "
+            "ve yönetim incelemesine "
+            "gönderildi."
+        ),
     )
+
     return redirect(
-        "companies_public:company_detail",
+        "companies_public:"
+        "company_detail",
         slug=company.slug,
     )

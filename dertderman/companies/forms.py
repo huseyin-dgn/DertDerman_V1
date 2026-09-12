@@ -8,7 +8,11 @@ from django.db import transaction
 
 from accounts.models import User
 
-from .models import Company, CompanyMembership
+from .models import (
+    Company,
+    CompanyCategory,
+    CompanyMembership,
+)
 from .services import active_company_memberships_for
 
 
@@ -17,6 +21,13 @@ COMPANY_LOGIN_ERROR = "Kurumsal giriş bilgileri doğrulanamadı."
 
 class CompanyRegistrationForm(UserCreationForm):
     company_name = forms.CharField(label="Şirket adı", max_length=255)
+    category = forms.ModelChoiceField(
+        label="Şirket kategorisi",
+        queryset=(
+            CompanyCategory.objects.none()
+        ),
+        empty_label="Kategori seçin",
+    )
     first_name = forms.CharField(label="Yetkili adı", max_length=150)
     last_name = forms.CharField(label="Yetkili soyadı", max_length=150)
     email = forms.EmailField(
@@ -28,6 +39,7 @@ class CompanyRegistrationForm(UserCreationForm):
 
     field_order = (
         "company_name",
+        "category",
         "first_name",
         "last_name",
         "email",
@@ -54,10 +66,43 @@ class CompanyRegistrationForm(UserCreationForm):
             "phone": "Telefon",
         }
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields["password1"].widget.attrs["autocomplete"] = "new-password"
-        self.fields["password2"].widget.attrs["autocomplete"] = "new-password"
+    def __init__(
+        self,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(
+            *args,
+            **kwargs,
+        )
+
+        self.fields[
+            "password1"
+        ].widget.attrs[
+            "autocomplete"
+        ] = "new-password"
+
+        self.fields[
+            "password2"
+        ].widget.attrs[
+            "autocomplete"
+        ] = "new-password"
+
+        self.fields[
+            "category"
+        ].queryset = (
+            CompanyCategory.objects
+            .filter(
+                is_active=True
+            )
+            .only(
+                "pk",
+                "name",
+            )
+            .order_by(
+                "name"
+            )
+        )
 
     def clean_email(self):
         email = User.objects.normalize_email(self.cleaned_data["email"].strip()).lower()
@@ -83,6 +128,9 @@ class CompanyRegistrationForm(UserCreationForm):
         company = Company.objects.create(
             name=self.cleaned_data["company_name"],
             website=self.cleaned_data["website"],
+            category=self.cleaned_data[
+                    "category"
+                ],
             email=user.email,
             phone=user.phone,
             approval_status=Company.ApprovalStatus.PENDING,

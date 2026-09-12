@@ -1,96 +1,755 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}{{ company.name }} | DertDerman{% endblock %}
-{% block body_class %}public-site company-profile-v2{% endblock %}
-{% block extra_head %}<link rel="stylesheet" href="{% static 'css/company-public-profile.css' %}"><link rel="stylesheet" href="{% static 'css/report-modal.css' %}"><script src="{% static 'js/report-modal.js' %}" defer></script>{% endblock %}
-{% block content %}
-<main id="main-content">
-  <section class="company-profile-hero"><div class="section-inner">
-    <a class="company-profile-back" href="{% url 'companies_public:company_list' %}">{% include 'components/icon.html' with name='back' %} Şirketlere dön</a>
-    <div class="company-profile-hero-grid">
-      <div class="company-profile-identity">
-        <span class="company-profile-logo">{% include 'components/company_avatar.html' with company=company image_class='company-profile-avatar-image' fallback_class='company-profile-avatar-fallback' only %}</span>
-        <div><p class="company-profile-category">{{ company.category.name|default:"Şirket" }}</p><h1>{{ company.name }}</h1>
-          <div class="company-profile-trust-row">{% if company.is_verified %}<span class="company-verified" title="Bu şirket hesabı DertDerman'da doğrulanmıştır." aria-label="Bu şirket hesabı DertDerman'da doğrulanmıştır."><b aria-hidden="true">✓</b> Doğrulanmış şirket</span>{% endif %}{% if primary_company_badge %}{% include 'components/public_company_badge.html' with badge=primary_company_badge only %}{% endif %}</div>
-        </div>
-      </div>
-      <div class="company-profile-summary">
-        <p>{{ company.description|default:"Bu şirket henüz kısa bir profil açıklaması paylaşmadı."|truncatechars:360 }}</p>
-        {% if company.website or company.email or company.phone %}<ul class="company-contact-list" aria-label="Şirket iletişim bilgileri">
-          {% if company.website %}<li><span>Web</span><a href="{{ company.website }}" target="_blank" rel="noopener noreferrer">Web sitesini ziyaret et ↗</a></li>{% endif %}
-          {% if company.email %}<li><span>E-posta</span><a href="mailto:{{ company.email }}">{{ company.email }}</a></li>{% endif %}
-          {% if company.phone %}<li><span>Telefon</span><a href="tel:{{ company.phone }}">{{ company.phone }}</a></li>{% endif %}
-        </ul>{% endif %}
-        {% if not request.user.is_authenticated or request.user.user_type == 'USER' %}<a class="company-profile-cta" href="{% url 'complaints:create' %}?company={{ company.pk }}">Bu şirket hakkında şikayet yaz {% include 'components/icon.html' with name='write' %}</a>{% endif %}
-        {% if request.user.is_authenticated and request.user.user_type == 'USER' %}
-        <button type="button" class="report-trigger" data-report-open="company-report-dialog">⚑ Şirketi Raporla</button>
-        {% endif %}
-      </div>
-    </div>
-  </div></section>
 
-  <section class="company-profile-content"><div class="section-inner company-profile-shell">
-    <section aria-labelledby="performance-title">
-      <header class="company-section-heading"><div><p>DertDerman performansı</p><h2 id="performance-title">Şirketin public görünümü</h2></div><span>Gerçek yayın verileri</span></header>
-      <div class="company-metric-grid">
-        <article class="company-metric"><span>Toplam Şikayet</span>{% if performance.total %}<strong>{{ performance.total }}</strong><small>public kayıt</small>{% else %}<p>Henüz yeterli veri yok</p>{% endif %}</article>
-        <article class="company-metric company-metric--cyan"><span>Cevap Oranı</span>{% if performance.response_ratio is not None %}<strong>%{{ performance.response_ratio }}</strong><small>{{ performance.answered }} şikayete yanıt</small>{% else %}<p>Henüz yeterli veri yok</p>{% endif %}</article>
-        <article class="company-metric company-metric--green"><span>Çözüm Oranı</span>{% if performance.resolved_ratio is not None %}<strong>%{{ performance.resolved_ratio }}</strong><small>{{ performance.resolved }} çözülen kayıt</small>{% else %}<p>Henüz yeterli veri yok</p>{% endif %}</article>
-        <article class="company-metric company-metric--navy"><span>Ortalama Cevap</span>{% if average_response %}<strong>{{ average_response }}</strong><small>ilk aktif şirket yanıtı</small>{% else %}<p>Henüz yeterli veri yok</p>{% endif %}</article>
-      </div>
+{% block title %}
+{{ company.name }} | DertDerman
+{% endblock %}
+
+{% block body_class %}
+public-site company-profile-v2
+{% endblock %}
+
+{% block extra_head %}
+
+<link
+    rel="stylesheet"
+    href="{% static 'css/company-public-profile.css' %}"
+>
+
+<link
+    rel="stylesheet"
+    href="{% static 'css/report-modal.css' %}"
+>
+
+<link
+    rel="stylesheet"
+    href="{% static 'css/category-system.css' %}"
+>
+
+<script
+    src="{% static 'js/report-modal.js' %}"
+    defer
+></script>
+
+{% endblock %}
+
+
+{% block content %}
+
+<main id="main-content">
+
+    <section class="company-profile-hero">
+
+        <div class="section-inner">
+
+            <a
+                class="company-profile-back"
+                href="{% url 'companies_public:company_list' %}"
+            >
+                {% include 'components/icon.html' with name='back' %}
+                Şirketlere dön
+            </a>
+
+
+            <div class="company-profile-hero-grid">
+
+                <div class="company-profile-identity">
+
+                    <span class="company-profile-logo">
+
+                        {% include 'components/company_avatar.html' with company=company image_class='company-profile-avatar-image' fallback_class='company-profile-avatar-fallback' only %}
+
+                    </span>
+
+
+                    <div>
+
+                        <p class="company-profile-category">
+                            {{ company.category.name|default:"Şirket" }}
+                        </p>
+
+                        <h1>
+                            {{ company.name }}
+                        </h1>
+
+
+                        <div class="company-profile-trust-row">
+
+                            {% if company.is_verified %}
+
+                                <span
+                                    class="company-verified"
+                                    title="Bu şirket hesabı DertDerman'da doğrulanmıştır."
+                                    aria-label="Bu şirket hesabı DertDerman'da doğrulanmıştır."
+                                >
+                                    <b aria-hidden="true">
+                                        ✓
+                                    </b>
+
+                                    Doğrulanmış şirket
+                                </span>
+
+                            {% endif %}
+
+
+                            {% if primary_company_badge %}
+
+                                {% include 'components/public_company_badge.html' with badge=primary_company_badge only %}
+
+                            {% endif %}
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="company-profile-summary">
+
+                    <p>
+                        {{ company.description|default:"Bu şirket henüz kısa bir profil açıklaması paylaşmadı."|truncatechars:360 }}
+                    </p>
+
+
+                    {% if company.website or company.email or company.phone %}
+
+                        <ul
+                            class="company-contact-list"
+                            aria-label="Şirket iletişim bilgileri"
+                        >
+
+                            {% if company.website %}
+
+                                <li>
+
+                                    <span>
+                                        Web
+                                    </span>
+
+                                    <a
+                                        href="{{ company.website }}"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                    >
+                                        Web sitesini ziyaret et ↗
+                                    </a>
+
+                                </li>
+
+                            {% endif %}
+
+
+                            {% if company.email %}
+
+                                <li>
+
+                                    <span>
+                                        E-posta
+                                    </span>
+
+                                    <a href="mailto:{{ company.email }}">
+                                        {{ company.email }}
+                                    </a>
+
+                                </li>
+
+                            {% endif %}
+
+
+                            {% if company.phone %}
+
+                                <li>
+
+                                    <span>
+                                        Telefon
+                                    </span>
+
+                                    <a href="tel:{{ company.phone }}">
+                                        {{ company.phone }}
+                                    </a>
+
+                                </li>
+
+                            {% endif %}
+
+                        </ul>
+
+                    {% endif %}
+
+
+                    {% if not request.user.is_authenticated or request.user.user_type == 'USER' %}
+
+                        <a
+                            class="company-profile-cta"
+                            href="{% url 'complaints:create' %}?company={{ company.pk }}"
+                        >
+                            Bu şirket hakkında şikayet yaz
+
+                            {% include 'components/icon.html' with name='write' %}
+                        </a>
+
+                    {% endif %}
+
+
+                    {% if request.user.is_authenticated and request.user.user_type == 'USER' %}
+
+                        <button
+                            type="button"
+                            class="report-trigger"
+                            data-report-open="company-report-dialog"
+                        >
+                            ⚑ Şirketi Raporla
+                        </button>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+        </div>
+
     </section>
 
-    <section class="public-company-badges" aria-labelledby="company-badges-title"><header class="company-section-heading"><div><p>Gerçek performanstan</p><h2 id="company-badges-title">Kurumsal Rozetler</h2></div><span>Otomatik hesaplanır</span></header><div class="achievement-grid achievement-grid--company">{% for badge in company_badges %}{% include 'components/achievement_badge.html' with badge=badge badge_kind='company' only %}{% empty %}<p class="achievement-empty">Henüz kurumsal rozet için yeterli public performans verisi yok.</p>{% endfor %}</div></section>
 
-    <div class="company-profile-columns">
-      <section class="company-complaints" aria-labelledby="company-complaints-title">
-        <header class="company-section-heading company-list-heading"><div><p>Topluluk deneyimleri</p><h2 id="company-complaints-title">{{ company.name }} şikayetleri</h2></div></header>
-        <nav class="company-filter-tabs" aria-label="Şirket şikayet filtreleri">{% for key, label in filter_options %}<a href="?status={{ key }}" {% if key == active_filter %}aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}</nav>
-        {% if page_obj %}<div class="company-complaint-grid">{% for complaint in page_obj %}{% include 'companies/company_complaint_card.html' with complaint=complaint only %}{% endfor %}</div>{% else %}<div class="company-profile-empty"><h3>Bu filtrede şikayet bulunmuyor</h3><p>Yalnızca yayınlanmış ve çözülen kayıtlar burada görünür.</p></div>{% endif %}
-        {% include 'components/pagination.html' with label='Şirket şikayet sayfaları' %}
-      </section>
+    <section class="company-profile-content">
 
-      <aside class="company-response-panel" aria-labelledby="recent-responses-title">
-        <header><p>Doğrudan şirketten</p><h2 id="recent-responses-title">Son Şirket Yanıtları</h2></header>
-        <div class="company-response-list">{% for response in recent_responses %}<article><span class="response-check" aria-hidden="true">✓</span><div><h3>{{ response.complaint.title }}</h3><p>{{ response.body|truncatechars:150 }}</p><footer><time datetime="{{ response.created_at|date:'c' }}">{{ response.created_at|date:'d.m.Y' }}</time><a class="detail-cta" href="{% url 'complaints:public_detail' response.complaint.pk %}">Şikayeti Gör →</a></footer></div></article>{% empty %}<div class="company-response-empty"><span aria-hidden="true">↗</span><p>Henüz public bir şirket yanıtı bulunmuyor.</p></div>{% endfor %}</div>
-      </aside>
-    </div>
-  </div></section>
+        <div class="section-inner company-profile-shell">
 
-{% if request.user.is_authenticated and request.user.user_type == 'USER' %}
-<div class="report-modal" id="company-report-dialog" data-report-modal hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="company-report-title">
-  <div class="report-modal-card">
-    <header class="report-modal-head">
-      <div>
-        <p class="report-modal-kicker">ŞİRKET RAPORU</p>
-        <h2 id="company-report-title">{{ company.name }} şirketini raporla</h2>
-        <p>Şirket profili veya davranışıyla ilgili doğrulanabilir bir sorun varsa rapor gönderebilirsiniz.</p>
-      </div>
-      <button type="button" class="report-modal-close" data-report-close aria-label="Pencereyi kapat">×</button>
-    </header>
+            <section aria-labelledby="performance-title">
 
-    <form method="post" action="{% url 'companies_public:company_report' company.slug %}" class="report-modal-body">
-      {% csrf_token %}
-      <label class="report-modal-field">
-        <span>Raporlama nedeni</span>
-        {{ company_report_form.reason }}
-      </label>
+                <header class="company-section-heading">
 
-      <label class="report-modal-field">
-        <span>Açıklama</span>
-        {{ company_report_form.description }}
-      </label>
+                    <div>
 
-      <p class="report-modal-note">Raporunuz yönetim ekibi tarafından incelenir. Asılsız veya kötü niyetli raporlar hesabınıza ihlal olarak yansıyabilir.</p>
+                        <p>
+                            DertDerman performansı
+                        </p>
 
-      <div class="report-modal-actions">
-        <button type="button" class="report-cancel" data-report-close>Vazgeç</button>
-        <button type="submit" class="report-submit">Şirket Raporunu Gönder</button>
-      </div>
-    </form>
-  </div>
-</div>
-{% endif %}
+                        <h2 id="performance-title">
+                            Şirketin public görünümü
+                        </h2>
+
+                    </div>
+
+                    <span>
+                        Gerçek yayın verileri
+                    </span>
+
+                </header>
+
+
+                <div class="company-metric-grid">
+
+                    <article class="company-metric">
+
+                        <span>
+                            Toplam Şikayet
+                        </span>
+
+                        {% if performance.total %}
+
+                            <strong>
+                                {{ performance.total }}
+                            </strong>
+
+                            <small>
+                                public kayıt
+                            </small>
+
+                        {% else %}
+
+                            <p>
+                                Henüz yeterli veri yok
+                            </p>
+
+                        {% endif %}
+
+                    </article>
+
+
+                    <article class="company-metric company-metric--cyan">
+
+                        <span>
+                            Cevap Oranı
+                        </span>
+
+                        {% if performance.response_ratio is not None %}
+
+                            <strong>
+                                %{{ performance.response_ratio }}
+                            </strong>
+
+                            <small>
+                                {{ performance.answered }} şikayete yanıt
+                            </small>
+
+                        {% else %}
+
+                            <p>
+                                Henüz yeterli veri yok
+                            </p>
+
+                        {% endif %}
+
+                    </article>
+
+
+                    <article class="company-metric company-metric--green">
+
+                        <span>
+                            Çözüm Oranı
+                        </span>
+
+                        {% if performance.resolved_ratio is not None %}
+
+                            <strong>
+                                %{{ performance.resolved_ratio }}
+                            </strong>
+
+                            <small>
+                                {{ performance.resolved }} çözülen kayıt
+                            </small>
+
+                        {% else %}
+
+                            <p>
+                                Henüz yeterli veri yok
+                            </p>
+
+                        {% endif %}
+
+                    </article>
+
+
+                    <article class="company-metric company-metric--navy">
+
+                        <span>
+                            Ortalama Cevap
+                        </span>
+
+                        {% if average_response %}
+
+                            <strong>
+                                {{ average_response }}
+                            </strong>
+
+                            <small>
+                                ilk aktif şirket yanıtı
+                            </small>
+
+                        {% else %}
+
+                            <p>
+                                Henüz yeterli veri yok
+                            </p>
+
+                        {% endif %}
+
+                    </article>
+
+                </div>
+
+            </section>
+
+
+            <section
+                class="public-company-badges"
+                aria-labelledby="company-badges-title"
+            >
+
+                <header class="company-section-heading">
+
+                    <div>
+
+                        <p>
+                            Gerçek performanstan
+                        </p>
+
+                        <h2 id="company-badges-title">
+                            Kurumsal Rozetler
+                        </h2>
+
+                    </div>
+
+                    <span>
+                        Otomatik hesaplanır
+                    </span>
+
+                </header>
+
+
+                <div class="achievement-grid achievement-grid--company">
+
+                    {% for badge in company_badges %}
+
+                        {% include 'components/achievement_badge.html' with badge=badge badge_kind='company' only %}
+
+                    {% empty %}
+
+                        <p class="achievement-empty">
+                            Henüz kurumsal rozet için
+                            yeterli public performans verisi yok.
+                        </p>
+
+                    {% endfor %}
+
+                </div>
+
+            </section>
+
+
+            <div class="company-profile-columns">
+
+                <section
+                    class="company-complaints"
+                    aria-labelledby="company-complaints-title"
+                >
+
+                    <header class="company-section-heading company-list-heading">
+
+                        <div>
+
+                            <p>
+                                Topluluk deneyimleri
+                            </p>
+
+                            <h2 id="company-complaints-title">
+                                {{ company.name }} şikayetleri
+                            </h2>
+
+                        </div>
+
+                    </header>
+
+
+                    <form
+                        class="company-category-filter"
+                        method="get"
+                    >
+
+                        <label>
+
+                            <span class="visually-hidden">
+                                Şikayet kategorisi
+                            </span>
+
+                            <select
+                                name="category"
+                                aria-label="Şikayet kategorisi"
+                            >
+
+                                <option value="">
+                                    Tüm şikayet kategorileri
+                                </option>
+
+                                {% for value, label in category_options %}
+
+                                    <option
+                                        value="{{ value }}"
+                                        {% if active_category == value %}
+                                            selected
+                                        {% endif %}
+                                    >
+                                        {{ label }}
+                                    </option>
+
+                                {% endfor %}
+
+                            </select>
+
+                        </label>
+
+
+                        {% if active_filter != 'all' %}
+
+                            <input
+                                type="hidden"
+                                name="status"
+                                value="{{ active_filter }}"
+                            >
+
+                        {% endif %}
+
+
+                        <button type="submit">
+                            Uygula
+                        </button>
+
+
+                        {% if active_category %}
+
+                            <a
+                                class="discovery-search-clear"
+                                href="?{% if active_filter != 'all' %}status={{ active_filter|urlencode }}{% endif %}"
+                            >
+                                Kategoriyi Temizle
+                            </a>
+
+                        {% endif %}
+
+                    </form>
+
+
+                    <nav
+                        class="company-filter-tabs"
+                        aria-label="Şirket şikayet filtreleri"
+                    >
+
+                        {% for key, label in filter_options %}
+
+                            <a
+                                href="?{% if active_category %}category={{ active_category|urlencode }}&amp;{% endif %}status={{ key }}"
+                                {% if key == active_filter %}
+                                    aria-current="page"
+                                {% endif %}
+                            >
+                                {{ label }}
+                            </a>
+
+                        {% endfor %}
+
+                    </nav>
+
+
+                    {% if page_obj %}
+
+                        <div class="company-complaint-grid">
+
+                            {% for complaint in page_obj %}
+
+                                {% include 'companies/company_complaint_card.html' with complaint=complaint only %}
+
+                            {% endfor %}
+
+                        </div>
+
+                    {% else %}
+
+                        <div class="company-profile-empty">
+
+                            <h3>
+                                Bu filtrede şikayet bulunmuyor
+                            </h3>
+
+                            <p>
+                                Yalnızca yayınlanmış ve çözülen
+                                kayıtlar burada görünür.
+                            </p>
+
+                        </div>
+
+                    {% endif %}
+
+
+                    {% include 'components/pagination.html' with label='Şirket şikayet sayfaları' %}
+
+                </section>
+
+
+                <aside
+                    class="company-response-panel"
+                    aria-labelledby="recent-responses-title"
+                >
+
+                    <header>
+
+                        <p>
+                            Doğrudan şirketten
+                        </p>
+
+                        <h2 id="recent-responses-title">
+                            Son Şirket Yanıtları
+                        </h2>
+
+                    </header>
+
+
+                    <div class="company-response-list">
+
+                        {% for response in recent_responses %}
+
+                            <article>
+
+                                <span
+                                    class="response-check"
+                                    aria-hidden="true"
+                                >
+                                    ✓
+                                </span>
+
+
+                                <div>
+
+                                    <h3>
+                                        {{ response.complaint.title }}
+                                    </h3>
+
+                                    <p>
+                                        {{ response.body|truncatechars:150 }}
+                                    </p>
+
+
+                                    <footer>
+
+                                        <time datetime="{{ response.created_at|date:'c' }}">
+                                            {{ response.created_at|date:'d.m.Y' }}
+                                        </time>
+
+                                        <a
+                                            class="detail-cta"
+                                            href="{% url 'complaints:public_detail' response.complaint.pk %}"
+                                        >
+                                            Şikayeti Gör →
+                                        </a>
+
+                                    </footer>
+
+                                </div>
+
+                            </article>
+
+                        {% empty %}
+
+                            <div class="company-response-empty">
+
+                                <span aria-hidden="true">
+                                    ↗
+                                </span>
+
+                                <p>
+                                    Henüz public bir şirket yanıtı bulunmuyor.
+                                </p>
+
+                            </div>
+
+                        {% endfor %}
+
+                    </div>
+
+                </aside>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    {% if request.user.is_authenticated and request.user.user_type == 'USER' %}
+
+        <div
+            class="report-modal"
+            id="company-report-dialog"
+            data-report-modal
+            hidden
+            aria-hidden="true"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="company-report-title"
+        >
+
+            <div class="report-modal-card">
+
+                <header class="report-modal-head">
+
+                    <div>
+
+                        <p class="report-modal-kicker">
+                            ŞİRKET RAPORU
+                        </p>
+
+                        <h2 id="company-report-title">
+                            {{ company.name }} şirketini raporla
+                        </h2>
+
+                        <p>
+                            Şirket profili veya davranışıyla ilgili
+                            doğrulanabilir bir sorun varsa rapor
+                            gönderebilirsiniz.
+                        </p>
+
+                    </div>
+
+
+                    <button
+                        type="button"
+                        class="report-modal-close"
+                        data-report-close
+                        aria-label="Pencereyi kapat"
+                    >
+                        ×
+                    </button>
+
+                </header>
+
+
+                <form
+                    method="post"
+                    action="{% url 'companies_public:company_report' company.slug %}"
+                    class="report-modal-body"
+                >
+
+                    {% csrf_token %}
+
+
+                    <label class="report-modal-field">
+
+                        <span>
+                            Raporlama nedeni
+                        </span>
+
+                        {{ company_report_form.reason }}
+
+                    </label>
+
+
+                    <label class="report-modal-field">
+
+                        <span>
+                            Açıklama
+                        </span>
+
+                        {{ company_report_form.description }}
+
+                    </label>
+
+
+                    <p class="report-modal-note">
+                        Raporunuz yönetim ekibi tarafından incelenir.
+                        Asılsız veya kötü niyetli raporlar hesabınıza
+                        ihlal olarak yansıyabilir.
+                    </p>
+
+
+                    <div class="report-modal-actions">
+
+                        <button
+                            type="button"
+                            class="report-cancel"
+                            data-report-close
+                        >
+                            Vazgeç
+                        </button>
+
+                        <button
+                            type="submit"
+                            class="report-submit"
+                        >
+                            Şirket Raporunu Gönder
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </div>
+
+        </div>
+
+    {% endif %}
 
 </main>
+
 {% endblock %}

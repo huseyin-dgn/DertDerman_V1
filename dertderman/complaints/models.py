@@ -14,6 +14,52 @@ class Complaint(models.Model):
         REJECTED = "REJECTED", "Reddedildi"
         REMOVED = "REMOVED", "İhlal nedeniyle kaldırıldı"
 
+    class Category(models.TextChoices):
+        PRODUCT_SERVICE = (
+            "PRODUCT_SERVICE",
+            "Ürün / Hizmet Kalitesi",
+        )
+        DELIVERY = (
+            "DELIVERY",
+            "Teslimat / Kargo",
+        )
+        REFUND = (
+            "REFUND",
+            "İade / Ücret",
+        )
+        BILLING = (
+            "BILLING",
+            "Ödeme / Faturalandırma",
+        )
+        CUSTOMER_SERVICE = (
+            "CUSTOMER_SERVICE",
+            "Müşteri Hizmetleri",
+        )
+        ACCOUNT = (
+            "ACCOUNT",
+            "Hesap / Üyelik",
+        )
+        TECHNICAL = (
+            "TECHNICAL",
+            "Teknik Sorun",
+        )
+        CAMPAIGN_PRICE = (
+            "CAMPAIGN_PRICE",
+            "Kampanya / Fiyat",
+        )
+        WARRANTY_SERVICE = (
+            "WARRANTY_SERVICE",
+            "Garanti / Servis",
+        )
+        PRIVACY_SECURITY = (
+            "PRIVACY_SECURITY",
+            "Gizlilik / Güvenlik",
+        )
+        OTHER = (
+            "OTHER",
+            "Diğer",
+        )
+
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -24,6 +70,12 @@ class Complaint(models.Model):
         Company,
         on_delete=models.PROTECT,
         related_name="complaints",
+    )
+    category = models.CharField(
+        max_length=32,
+        choices=Category.choices,
+        default=Category.OTHER,
+        db_index=True,
     )
 
     title = models.CharField(
@@ -91,7 +143,22 @@ class Complaint(models.Model):
     )
 
     class Meta:
-        ordering = ("-created_at",)
+        ordering = (
+            "-created_at",
+            "-pk",
+        )
+
+        indexes = [
+            models.Index(
+                fields=(
+                    "company",
+                    "category",
+                    "status",
+                    "-created_at",
+                ),
+                name="compl_pub_cat_recent",
+            ),
+        ]
 
     def clean(self):
         errors = {}

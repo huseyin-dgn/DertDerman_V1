@@ -1,25 +1,207 @@
 {% extends "base.html" %}
+{% load static %}
 
-{% block title %}Şikayetler | DertDerman{% endblock %}
-{% block body_class %}public-site public-index complaints-index{% endblock %}
+{% block title %}
+Şikayetler | DertDerman
+{% endblock %}
+
+{% block body_class %}
+public-site public-index complaints-index
+{% endblock %}
+
+{% block extra_head %}
+<link
+    rel="stylesheet"
+    href="{% static 'css/category-system.css' %}"
+>
+{% endblock %}
+
 
 {% block content %}
+
 <main id="main-content">
-    <section class="public-page-hero"><div class="section-inner public-page-heading" aria-labelledby="public-complaints-title">
-        <p class="page-code">DD / DENEYİMLER</p>
-        <header><p class="section-kicker">Paylaşılan deneyimler</p><h1 id="public-complaints-title">Şikayetler,<br><span>olduğu gibi.</span></h1><p>İnceleme sürecinden geçerek yayınlanan tüketici deneyimlerini en yeniden en eskiye okuyun.</p></header>
-        {% if not request.user.is_authenticated or request.user.user_type == 'USER' %}<a class="primary-action button-lg" href="{% url 'complaints:create' %}">Şikayet Yaz {% include 'components/icon.html' with name='write' %}</a>{% endif %}
-    </div></section>
-    <section class="content-section public-complaints-section"><div class="section-inner">
-        <form class="public-complaint-tools" method="get" role="search">
-            <label class="public-search"><span class="visually-hidden">Şikayet veya şirket ara</span>{% include 'components/icon.html' with name='search' %}<input type="search" name="q" value="{{ search }}" placeholder="Şikayet veya şirket ara"><button type="submit">Ara</button></label>
-            <nav class="public-filter-tabs" aria-label="Şikayet filtreleri">
-                {% for value, label in filter_options %}<a href="?{% if search %}q={{ search|urlencode }}&amp;{% endif %}status={{ value }}" {% if active_filter == value %}aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}
+
+    <section class="public-page-hero">
+
+        <div
+            class="section-inner public-page-heading"
+            aria-labelledby="public-complaints-title"
+        >
+
+            <p class="page-code">
+                DD / DENEYİMLER
+            </p>
+
+            <header>
+
+                <p class="section-kicker">
+                    Paylaşılan deneyimler
+                </p>
+
+                <h1 id="public-complaints-title">
+                    Şikayetler,
+                    <br>
+                    <span>
+                        olduğu gibi.
+                    </span>
+                </h1>
+
+                <p>
+                    İnceleme sürecinden geçerek
+                    yayınlanan tüketici deneyimlerini
+                    en yeniden en eskiye okuyun.
+                </p>
+
+            </header>
+
+
+            {% if not request.user.is_authenticated or request.user.user_type == 'USER' %}
+
+                <a
+                    class="primary-action button-lg"
+                    href="{% url 'complaints:create' %}"
+                >
+                    Şikayet Yaz
+
+                    {% include 'components/icon.html' with name='write' %}
+                </a>
+
+            {% endif %}
+
+        </div>
+
+    </section>
+
+
+    <section class="content-section public-complaints-section">
+
+        <div class="section-inner">
+
+            <form
+                class="public-complaint-tools"
+                method="get"
+                role="search"
+            >
+
+                <label class="public-search">
+
+                    <span class="visually-hidden">
+                        Şikayet veya şirket ara
+                    </span>
+
+                    {% include 'components/icon.html' with name='search' %}
+
+                    <input
+                        type="search"
+                        name="q"
+                        value="{{ search }}"
+                        placeholder="Şikayet veya şirket ara"
+                        maxlength="100"
+                    >
+
+                    <button type="submit">
+                        Ara
+                    </button>
+
+                </label>
+
+
+                <label class="category-filter">
+
+                    <span class="visually-hidden">
+                        Şikayet kategorisi
+                    </span>
+
+                    <select name="category">
+
+                        <option value="">
+                            Tüm kategoriler
+                        </option>
+
+                        {% for value, label in category_options %}
+
+                            <option
+                                value="{{ value }}"
+                                {% if active_category == value %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ label }}
+                            </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </label>
+
+
+                {% if active_filter != 'all' %}
+
+                    <input
+                        type="hidden"
+                        name="status"
+                        value="{{ active_filter }}"
+                    >
+
+                {% endif %}
+
+            </form>
+
+
+            <nav
+                class="public-filter-tabs"
+                aria-label="Şikayet filtreleri"
+            >
+
+                {% for value, label in filter_options %}
+
+                    <a
+                        href="?{% if search %}q={{ search|urlencode }}&amp;{% endif %}{% if active_category %}category={{ active_category|urlencode }}&amp;{% endif %}status={{ value }}"
+                        {% if active_filter == value %}
+                            aria-current="page"
+                        {% endif %}
+                    >
+                        {{ label }}
+                    </a>
+
+                {% endfor %}
+
             </nav>
-        </form>
-        {% if page_obj %}<div class="public-complaint-grid complaint-feed public-two-column">{% for complaint in page_obj %}{% include "complaints/public_card.html" with complaint=complaint only %}{% endfor %}</div>
-        {% else %}<div class="empty-state"><p>Henüz yayınlanmış şikayet bulunmuyor.</p></div>{% endif %}
-        {% include 'components/pagination.html' %}
-    </div></section>
+
+
+            {% if page_obj %}
+
+                <div class="public-complaint-grid complaint-feed public-two-column">
+
+                    {% for complaint in page_obj %}
+
+                        {% include "complaints/public_card.html" with complaint=complaint only %}
+
+                    {% endfor %}
+
+                </div>
+
+            {% else %}
+
+                <div class="empty-state">
+
+                    <p>
+                        Bu kriterlere uygun yayınlanmış
+                        şikayet bulunmuyor.
+                    </p>
+
+                </div>
+
+            {% endif %}
+
+
+            {% include 'components/pagination.html' %}
+
+        </div>
+
+    </section>
+
 </main>
+
 {% endblock %}

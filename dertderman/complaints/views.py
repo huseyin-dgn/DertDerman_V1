@@ -1,20 +1,40 @@
-from django.contrib import messages
-from django.db import IntegrityError, transaction
-from django.db.models import Count, Exists, F, OuterRef, Q
-from django.utils import timezone
 from datetime import timedelta
+
+from django.contrib import messages
+from django.core.exceptions import ValidationError
+from django.db import IntegrityError, transaction
+from django.db.models import (
+    Case,
+    Count,
+    Exists,
+    F,
+    IntegerField,
+    OuterRef,
+    Q,
+    Value,
+    When,
+)
+from django.shortcuts import (
+    get_object_or_404,
+    redirect,
+    render,
+)
+from django.utils import timezone
+from django.views.decorators.http import (
+    require_POST,
+    require_safe,
+)
+
+from accounts.models import User
+from core.decorators import role_required
 from core.pagination import paginate
-from django.shortcuts import get_object_or_404, redirect, render
-from django.views.decorators.http import require_POST, require_safe
+from core.view_tracking import record_unique_session_view
+
 from .anti_abuse import (
     check_complaint_submission,
     mark_complaint_form_opened,
     reset_complaint_form_timer,
 )
-from accounts.models import User
-from core.decorators import role_required
-from core.view_tracking import record_unique_session_view
-
 from .forms import (
     ComplaintCommentForm,
     ComplaintCreateForm,
@@ -30,57 +50,129 @@ from .models import (
     ContentReport,
     UserReport,
 )
-from .selectors import public_complaints
-from .services import ComplaintStateConflict, resolve_complaint
-from .validators import validate_single_emoji
 from .reporting_policy import (
     check_complaint_creation_allowed,
     check_general_reporting_allowed,
     check_user_report_allowed,
 )
-from django.core.exceptions import ValidationError
-
+from .selectors import public_complaints
+from .services import (
+    ComplaintStateConflict,
+    resolve_complaint,
+)
+from .validators import validate_single_emoji
 
 
 def _suspended_response(request):
     if (
         request.user.is_authenticated
-        and getattr(request.user, "is_currently_suspended", False)
+        and getattr(
+            request.user,
+            "is_currently_suspended",
+            False,
+        )
     ):
         messages.error(
             request,
-            "Hesabınız askıya alındığı için bu işlemi gerçekleştiremezsiniz.",
+            (
+                "Hesabınız askıya alındığı için "
+                "bu işlemi gerçekleştiremezsiniz."
+            ),
         )
-        return redirect("accounts:profile")
+
+        return redirect(
+            "accounts:profile"
+        )
 
     return None
 
 
 @require_safe
-def public_complaint_list(request):
-    complaints = public_complaints()
-    search = request.GET.get("q", "").strip()[:100]
-    active_filter = request.GET.get("status", "all")
+def public_complaint_list(
+    request
+):
+    complaints = (
+        public_complaints()
+    )
+
+    search = (
+        request.GET.get(
+            "q",
+            "",
+        )
+        .strip()[:100]
+    )
+
+    active_filter = (
+        request.GET.get(
+            "status",
+            "all",
+        )
+        .strip()[:20]
+    )
+
+    active_category = (
+        request.GET.get(
+            "category",
+            "",
+        )
+        .strip()[:32]
+    )
+
+    valid_categories = {
+        value
+        for value, _
+        in Complaint.Category.choices
+    }
+
+    if (
+        active_category
+        not in valid_categories
+    ):
+        active_category = ""
 
     if search:
-        complaints = complaints.filter(
-            Q(title__icontains=search)
-            | Q(company__name__icontains=search)
+        complaints = (
+            complaints.filter(
+                Q(
+                    title__icontains=search
+                )
+                | Q(
+                    company__name__icontains=search
+                )
+            )
+        )
+
+    if active_category:
+        complaints = (
+            complaints.filter(
+                category=active_category
+            )
         )
 
     if active_filter == "published":
-        complaints = complaints.filter(
-            status=Complaint.Status.PUBLISHED
+        complaints = (
+            complaints.filter(
+                status=(
+                    Complaint.Status.PUBLISHED
+                )
+            )
         )
 
     elif active_filter == "resolved":
-        complaints = complaints.filter(
-            status=Complaint.Status.RESOLVED
+        complaints = (
+            complaints.filter(
+                status=(
+                    Complaint.Status.RESOLVED
+                )
+            )
         )
 
     elif active_filter == "answered":
-        complaints = complaints.filter(
-            has_response=True
+        complaints = (
+            complaints.filter(
+                has_response=True
+            )
         )
 
     elif active_filter != "all":
@@ -89,21 +181,45 @@ def public_complaint_list(request):
     page_obj = paginate(
         request,
         complaints,
-        "public_complaints"
+        "public_complaints",
     )
 
     return render(
         request,
         "complaints/public_list.html",
         {
-            "page_obj": page_obj,
-            "search": search,
-            "active_filter": active_filter,
+            "page_obj":
+                page_obj,
+
+            "search":
+                search,
+
+            "active_filter":
+                active_filter,
+
+            "active_category":
+                active_category,
+
+            "category_options":
+                Complaint.Category.choices,
+
             "filter_options": (
-                ("all", "Tümü"),
-                ("published", "Yayında"),
-                ("answered", "Şirket Cevapladı"),
-                ("resolved", "Çözüldü"),
+                (
+                    "all",
+                    "Tümü",
+                ),
+                (
+                    "published",
+                    "Yayında",
+                ),
+                (
+                    "answered",
+                    "Şirket Cevapladı",
+                ),
+                (
+                    "resolved",
+                    "Çözüldü",
+                ),
             ),
         },
     )
@@ -115,31 +231,40 @@ def _public_detail_context(
     *,
     comment_form=None,
 ):
-    from companies.panel_selectors import company_responses
     from accounts.badges import (
         primary_badge,
         resolve_badges_for_users,
     )
-
-    responses = company_responses(
-        complaint.company
-    ).filter(
-        complaint=complaint
+    from companies.panel_selectors import (
+        company_responses,
     )
 
-    comments = ComplaintComment.objects.filter(
-        complaint=complaint,
-        is_active=True
-    ).annotate(
-        author_username=F(
-            "author_user__username"
-        ),
-        author_first_name=F(
-            "author_user__first_name"
-        ),
-        author_selected_avatar=F(
-            "author_user__selected_avatar"
-        ),
+    responses = (
+        company_responses(
+            complaint.company
+        )
+        .filter(
+            complaint=complaint
+        )
+    )
+
+    comments = (
+        ComplaintComment.objects
+        .filter(
+            complaint=complaint,
+            is_active=True,
+        )
+        .annotate(
+            author_username=F(
+                "author_user__username"
+            ),
+            author_first_name=F(
+                "author_user__first_name"
+            ),
+            author_selected_avatar=F(
+                "author_user__selected_avatar"
+            ),
+        )
     )
 
     reaction_counts = dict(
@@ -157,21 +282,27 @@ def _public_detail_context(
 
     if (
         request.user.is_authenticated
-        and request.user.user_type == User.UserType.USER
+        and request.user.user_type
+        == User.UserType.USER
     ):
-        liked = ComplaintLike.objects.filter(
-            complaint=complaint,
-            user=request.user
-        ).exists()
+        liked = (
+            ComplaintLike.objects
+            .filter(
+                complaint=complaint,
+                user=request.user,
+            )
+            .exists()
+        )
 
         active_reaction = (
-            ComplaintReaction.objects.filter(
+            ComplaintReaction.objects
+            .filter(
                 complaint=complaint,
-                user=request.user
+                user=request.user,
             )
             .values_list(
                 "reaction_type",
-                flat=True
+                flat=True,
             )
             .first()
             or ""
@@ -192,19 +323,24 @@ def _public_detail_context(
 
     reaction_options = [
         {
-            "value": value,
-            "count": reaction_counts.get(
+            "value":
                 value,
-                0
-            ),
-            "active": (
-                active_reaction == value
-            ),
+
+            "count":
+                reaction_counts.get(
+                    value,
+                    0,
+                ),
+
+            "active":
+                active_reaction
+                == value,
         }
-        for value in dict.fromkeys(
+        for value
+        in dict.fromkeys(
             (
                 *common_emojis,
-                *reaction_counts.keys()
+                *reaction_counts.keys(),
             )
         )
     ]
@@ -213,73 +349,157 @@ def _public_detail_context(
         request,
         comments,
         "public_comments",
-        page_param="comment_page"
+        page_param="comment_page",
     )
 
-    badge_map = resolve_badges_for_users(
-        (
-            complaint.user_id,
-            *(
-                comment.author_user_id
-                for comment
-                in comment_page.object_list
+    badge_map = (
+        resolve_badges_for_users(
+            (
+                complaint.user_id,
+                *(
+                    comment.author_user_id
+                    for comment
+                    in comment_page.object_list
+                ),
             )
         )
     )
 
-    for comment in comment_page.object_list:
-        comment.display_badge = primary_badge(
-            badge_map.get(
-                comment.author_user_id,
-                ()
+    for comment in (
+        comment_page.object_list
+    ):
+        comment.display_badge = (
+            primary_badge(
+                badge_map.get(
+                    comment.author_user_id,
+                    (),
+                )
             )
         )
+
+    # ---------------------------------------------------------
+    # AYNI ŞİRKET HAKKINDAKİ DİĞER PUBLIC ŞİKAYETLER
+    #
+    # public_complaints() kullanıldığı için:
+    # - PENDING görünmez
+    # - REJECTED görünmez
+    # - REMOVED görünmez
+    # - geri çekilen görünmez
+    # - violation nedeniyle kaldırılan görünmez
+    #
+    # Mevcut şikayet hariç tutulur.
+    # Aynı kategoridekiler önce gösterilir.
+    # En fazla 4 kayıt alınır.
+    # ---------------------------------------------------------
+
+    related_complaints = (
+        public_complaints()
+        .filter(
+            company_id=(
+                complaint.company_id
+            )
+        )
+        .exclude(
+            pk=complaint.pk
+        )
+    )
+
+    if (
+        complaint.category
+        != Complaint.Category.OTHER
+    ):
+        related_complaints = (
+            related_complaints
+            .annotate(
+                category_priority=Case(
+                    When(
+                        category=(
+                            complaint.category
+                        ),
+                        then=Value(0),
+                    ),
+                    default=Value(1),
+                    output_field=(
+                        IntegerField()
+                    ),
+                )
+            )
+            .order_by(
+                "category_priority",
+                "-created_at",
+                "-pk",
+            )
+        )
+
+    related_complaints = (
+        related_complaints[:4]
+    )
 
     return {
-        "complaint": complaint,
+        "complaint":
+            complaint,
 
-        "company_response_page": paginate(
-            request,
-            responses,
-            "company_responses",
-            page_param="response_page"
-        ),
+        "company_response_page":
+            paginate(
+                request,
+                responses,
+                "company_responses",
+                page_param=(
+                    "response_page"
+                ),
+            ),
 
-        "comment_page": comment_page,
+        "comment_page":
+            comment_page,
 
-        "complaint_badge": primary_badge(
-            badge_map.get(
-                complaint.user_id,
-                ()
-            )
-        ),
+        "complaint_badge":
+            primary_badge(
+                badge_map.get(
+                    complaint.user_id,
+                    (),
+                )
+            ),
 
         "comment_form": (
             comment_form
-            if comment_form is not None
+            if comment_form
+            is not None
             else ComplaintCommentForm()
         ),
 
         "content_report_form":
             ContentReportForm(),
 
-        "liked": liked,
-        "active_reaction": active_reaction,
-        "reaction_options": reaction_options,
+        "liked":
+            liked,
+
+        "active_reaction":
+            active_reaction,
+
+        "reaction_options":
+            reaction_options,
+
+        "related_complaints":
+            related_complaints,
     }
 
 
 @require_safe
-def public_complaint_detail(request, pk):
+def public_complaint_detail(
+    request,
+    pk,
+):
     complaint = get_object_or_404(
         public_complaints(),
-        pk=pk
+        pk=pk,
     )
 
-    complaint.view_count = record_unique_session_view(
-        request,
-        instance=complaint,
-        namespace="complaint",
+    complaint.view_count = (
+        record_unique_session_view(
+            request,
+            instance=complaint,
+            namespace="complaint",
+        )
     )
 
     return render(
@@ -287,21 +507,31 @@ def public_complaint_detail(request, pk):
         "complaints/public_detail.html",
         _public_detail_context(
             request,
-            complaint
+            complaint,
         ),
     )
 
 
-@role_required(User.UserType.USER)
+@role_required(
+    User.UserType.USER
+)
 @require_POST
-def complaint_like_toggle(request, pk):
-    blocked = _suspended_response(request)
+def complaint_like_toggle(
+    request,
+    pk,
+):
+    blocked = (
+        _suspended_response(
+            request
+        )
+    )
+
     if blocked:
         return blocked
 
     complaint = get_object_or_404(
         public_complaints(),
-        pk=pk
+        pk=pk,
     )
 
     with transaction.atomic():
@@ -309,7 +539,7 @@ def complaint_like_toggle(request, pk):
             ComplaintLike.objects
             .get_or_create(
                 complaint=complaint,
-                user=request.user
+                user=request.user,
             )
         )
 
@@ -318,7 +548,7 @@ def complaint_like_toggle(request, pk):
 
     if created:
         from notifications.services import (
-            complaint_social_event
+            complaint_social_event,
         )
 
         complaint_social_event(
@@ -334,39 +564,51 @@ def complaint_like_toggle(request, pk):
 
     return redirect(
         "complaints:public_detail",
-        pk=pk
+        pk=pk,
     )
 
 
-@role_required(User.UserType.USER)
+@role_required(
+    User.UserType.USER
+)
 @require_POST
-def complaint_react(request, pk):
-    blocked = _suspended_response(request)
+def complaint_react(
+    request,
+    pk,
+):
+    blocked = (
+        _suspended_response(
+            request
+        )
+    )
+
     if blocked:
         return blocked
 
     complaint = get_object_or_404(
         public_complaints(),
-        pk=pk
+        pk=pk,
     )
 
     try:
-        reaction_type = validate_single_emoji(
-            request.POST.get(
-                "reaction_type",
-                ""
+        reaction_type = (
+            validate_single_emoji(
+                request.POST.get(
+                    "reaction_type",
+                    "",
+                )
             )
         )
 
     except ValidationError as error:
         messages.error(
             request,
-            error.messages[0]
+            error.messages[0],
         )
 
         return redirect(
             "complaints:public_detail",
-            pk=pk
+            pk=pk,
         )
 
     with transaction.atomic():
@@ -375,42 +617,51 @@ def complaint_react(request, pk):
             .select_for_update()
             .filter(
                 complaint=complaint,
-                user=request.user
+                user=request.user,
             )
             .first()
         )
 
         if (
             current
-            and current.reaction_type == reaction_type
+            and current.reaction_type
+            == reaction_type
         ):
-            # Aynı emojiye tekrar basmak tepkiyi kaldırmaz.
+            # Aynı emojiye tekrar
+            # basmak tepkiyi kaldırmaz.
             created = False
 
         elif current:
-            current.reaction_type = reaction_type
+            current.reaction_type = (
+                reaction_type
+            )
 
             current.save(
                 update_fields=(
                     "reaction_type",
-                    "updated_at"
+                    "updated_at",
                 )
             )
 
             created = False
 
         else:
-            ComplaintReaction.objects.create(
-                complaint=complaint,
-                user=request.user,
-                reaction_type=reaction_type
+            (
+                ComplaintReaction.objects
+                .create(
+                    complaint=complaint,
+                    user=request.user,
+                    reaction_type=(
+                        reaction_type
+                    ),
+                )
             )
 
             created = True
 
     if created:
         from notifications.services import (
-            complaint_social_event
+            complaint_social_event,
         )
 
         complaint_social_event(
@@ -426,23 +677,30 @@ def complaint_react(request, pk):
 
     return redirect(
         "complaints:public_detail",
-        pk=pk
+        pk=pk,
     )
 
 
-@role_required(User.UserType.USER)
+@role_required(
+    User.UserType.USER
+)
 @require_POST
 def complaint_comment_create(
     request,
-    pk
+    pk,
 ):
-    blocked = _suspended_response(request)
+    blocked = (
+        _suspended_response(
+            request
+        )
+    )
+
     if blocked:
         return blocked
 
     complaint = get_object_or_404(
         public_complaints(),
-        pk=pk
+        pk=pk,
     )
 
     form = ComplaintCommentForm(
@@ -456,7 +714,7 @@ def complaint_comment_create(
             _public_detail_context(
                 request,
                 complaint,
-                comment_form=form
+                comment_form=form,
             ),
             status=400,
         )
@@ -466,11 +724,14 @@ def complaint_comment_create(
     )
 
     comment.complaint = complaint
-    comment.author_user = request.user
+    comment.author_user = (
+        request.user
+    )
+
     comment.save()
 
     from notifications.services import (
-        complaint_social_event
+        complaint_social_event,
     )
 
     complaint_social_event(
@@ -485,29 +746,36 @@ def complaint_comment_create(
 
     messages.success(
         request,
-        "Yorumunuz yayınlandı."
+        "Yorumunuz yayınlandı.",
     )
 
     return redirect(
         "complaints:public_detail",
-        pk=pk
+        pk=pk,
     )
 
 
-@role_required(User.UserType.USER)
+@role_required(
+    User.UserType.USER
+)
 @require_POST
 def complaint_comment_delete(
     request,
     pk,
-    comment_pk
+    comment_pk,
 ):
-    blocked = _suspended_response(request)
+    blocked = (
+        _suspended_response(
+            request
+        )
+    )
+
     if blocked:
         return blocked
 
     complaint = get_object_or_404(
         public_complaints(),
-        pk=pk
+        pk=pk,
     )
 
     comment = get_object_or_404(
@@ -523,37 +791,51 @@ def complaint_comment_delete(
     comment.save(
         update_fields=(
             "is_active",
-            "updated_at"
+            "updated_at",
         )
     )
 
     messages.success(
         request,
-        "Yorumunuz kaldırıldı."
+        "Yorumunuz kaldırıldı.",
     )
 
     return redirect(
         "complaints:public_detail",
-        pk=pk
+        pk=pk,
     )
 
 
-@role_required(User.UserType.USER)
+@role_required(
+    User.UserType.USER
+)
 @require_POST
-def complaint_report(request, pk):
-    blocked = _suspended_response(request)
+def complaint_report(
+    request,
+    pk,
+):
+    blocked = (
+        _suspended_response(
+            request
+        )
+    )
+
     if blocked:
         return blocked
 
-    reporting_policy = check_general_reporting_allowed(
-        user=request.user,
-        request=request,
+    reporting_policy = (
+        check_general_reporting_allowed(
+            user=request.user,
+            request=request,
+        )
     )
+
     if not reporting_policy.allowed:
         messages.error(
             request,
             reporting_policy.message,
         )
+
         return redirect(
             "complaints:public_detail",
             pk=pk,
@@ -564,11 +846,18 @@ def complaint_report(request, pk):
         pk=pk,
     )
 
-    # Kullanıcı kendi şikayetini raporlayamaz.
-    if complaint.user_id == request.user.pk:
+    # Kullanıcı kendi şikayetini
+    # raporlayamaz.
+    if (
+        complaint.user_id
+        == request.user.pk
+    ):
         messages.warning(
             request,
-            "Kendi şikayetinizi raporlayamazsınız.",
+            (
+                "Kendi şikayetinizi "
+                "raporlayamazsınız."
+            ),
         )
 
         return redirect(
@@ -576,14 +865,22 @@ def complaint_report(request, pk):
             pk=complaint.pk,
         )
 
-    # Aynı kullanıcı aynı şikayeti yalnızca bir kez raporlayabilir.
-    if ContentReport.objects.filter(
-        reporter=request.user,
-        complaint=complaint,
-    ).exists():
+    # Aynı kullanıcı aynı şikayeti
+    # yalnızca bir kez raporlayabilir.
+    if (
+        ContentReport.objects
+        .filter(
+            reporter=request.user,
+            complaint=complaint,
+        )
+        .exists()
+    ):
         messages.info(
             request,
-            "Bu şikayeti daha önce raporladınız.",
+            (
+                "Bu şikayeti daha "
+                "önce raporladınız."
+            ),
         )
 
         return redirect(
@@ -598,8 +895,11 @@ def complaint_report(request, pk):
     if not form.is_valid():
         messages.error(
             request,
-            "Rapor gönderilemedi. "
-            "Lütfen geçerli bir neden seçin.",
+            (
+                "Rapor gönderilemedi. "
+                "Lütfen geçerli bir "
+                "neden seçin."
+            ),
         )
 
         return redirect(
@@ -611,15 +911,23 @@ def complaint_report(request, pk):
         commit=False
     )
 
-    report.reporter = request.user
+    report.reporter = (
+        request.user
+    )
+
     report.target_type = (
-        ContentReport.TargetType.COMPLAINT
+        ContentReport
+        .TargetType
+        .COMPLAINT
     )
 
     report.complaint = complaint
     report.comment = None
+
     report.status = (
-        ContentReport.Status.PENDING
+        ContentReport
+        .Status
+        .PENDING
     )
 
     try:
@@ -627,7 +935,7 @@ def complaint_report(request, pk):
             report.save()
 
             from notifications.services import (
-                notify_admins_content_report
+                notify_admins_content_report,
             )
 
             notify_admins_content_report(
@@ -636,11 +944,14 @@ def complaint_report(request, pk):
 
     except (
         ValidationError,
-        IntegrityError
+        IntegrityError,
     ):
         messages.info(
             request,
-            "Bu şikayeti daha önce raporladınız.",
+            (
+                "Bu şikayeti daha "
+                "önce raporladınız."
+            ),
         )
 
         return redirect(
@@ -650,8 +961,11 @@ def complaint_report(request, pk):
 
     messages.success(
         request,
-        "Raporunuz alındı. "
-        "İçerik yönetim ekibi tarafından incelenecek.",
+        (
+            "Raporunuz alındı. "
+            "İçerik yönetim ekibi "
+            "tarafından incelenecek."
+        ),
     )
 
     return redirect(
@@ -660,26 +974,37 @@ def complaint_report(request, pk):
     )
 
 
-@role_required(User.UserType.USER)
+@role_required(
+    User.UserType.USER
+)
 @require_POST
 def comment_report(
     request,
     pk,
-    comment_pk
+    comment_pk,
 ):
-    blocked = _suspended_response(request)
+    blocked = (
+        _suspended_response(
+            request
+        )
+    )
+
     if blocked:
         return blocked
 
-    reporting_policy = check_general_reporting_allowed(
-        user=request.user,
-        request=request,
+    reporting_policy = (
+        check_general_reporting_allowed(
+            user=request.user,
+            request=request,
+        )
     )
+
     if not reporting_policy.allowed:
         messages.error(
             request,
             reporting_policy.message,
         )
+
         return redirect(
             "complaints:public_detail",
             pk=pk,
@@ -703,7 +1028,10 @@ def comment_report(
     ):
         messages.warning(
             request,
-            "Kendi yorumunuzu raporlayamazsınız.",
+            (
+                "Kendi yorumunuzu "
+                "raporlayamazsınız."
+            ),
         )
 
         return redirect(
@@ -711,13 +1039,20 @@ def comment_report(
             pk=complaint.pk,
         )
 
-    if ContentReport.objects.filter(
-        reporter=request.user,
-        comment=comment,
-    ).exists():
+    if (
+        ContentReport.objects
+        .filter(
+            reporter=request.user,
+            comment=comment,
+        )
+        .exists()
+    ):
         messages.info(
             request,
-            "Bu yorumu daha önce raporladınız.",
+            (
+                "Bu yorumu daha önce "
+                "raporladınız."
+            ),
         )
 
         return redirect(
@@ -732,8 +1067,11 @@ def comment_report(
     if not form.is_valid():
         messages.error(
             request,
-            "Rapor gönderilemedi. "
-            "Lütfen geçerli bir neden seçin.",
+            (
+                "Rapor gönderilemedi. "
+                "Lütfen geçerli bir "
+                "neden seçin."
+            ),
         )
 
         return redirect(
@@ -745,15 +1083,23 @@ def comment_report(
         commit=False
     )
 
-    report.reporter = request.user
+    report.reporter = (
+        request.user
+    )
+
     report.target_type = (
-        ContentReport.TargetType.COMMENT
+        ContentReport
+        .TargetType
+        .COMMENT
     )
 
     report.complaint = None
     report.comment = comment
+
     report.status = (
-        ContentReport.Status.PENDING
+        ContentReport
+        .Status
+        .PENDING
     )
 
     try:
@@ -761,7 +1107,7 @@ def comment_report(
             report.save()
 
             from notifications.services import (
-                notify_admins_content_report
+                notify_admins_content_report,
             )
 
             notify_admins_content_report(
@@ -770,11 +1116,14 @@ def comment_report(
 
     except (
         ValidationError,
-        IntegrityError
+        IntegrityError,
     ):
         messages.info(
             request,
-            "Bu yorumu daha önce raporladınız.",
+            (
+                "Bu yorumu daha önce "
+                "raporladınız."
+            ),
         )
 
         return redirect(
@@ -784,8 +1133,11 @@ def comment_report(
 
     messages.success(
         request,
-        "Raporunuz alındı. "
-        "Yorum yönetim ekibi tarafından incelenecek.",
+        (
+            "Raporunuz alındı. "
+            "Yorum yönetim ekibi "
+            "tarafından incelenecek."
+        ),
     )
 
     return redirect(
@@ -794,28 +1146,43 @@ def comment_report(
     )
 
 
-
-@role_required(User.UserType.USER)
+@role_required(
+    User.UserType.USER
+)
 @require_POST
-def user_report(request, user_pk):
-    blocked = _suspended_response(request)
+def user_report(
+    request,
+    user_pk,
+):
+    blocked = (
+        _suspended_response(
+            request
+        )
+    )
+
     if blocked:
         return blocked
 
-    reporting_policy = check_user_report_allowed(
-        user=request.user,
-        request=request,
+    reporting_policy = (
+        check_user_report_allowed(
+            user=request.user,
+            request=request,
+        )
     )
+
     if not reporting_policy.allowed:
         messages.error(
             request,
             reporting_policy.message,
         )
+
         return redirect(
             "accounts:public_profile",
             username=(
                 User.objects
-                .filter(pk=user_pk)
+                .filter(
+                    pk=user_pk
+                )
                 .values_list(
                     "username",
                     flat=True,
@@ -833,84 +1200,150 @@ def user_report(request, user_pk):
             "is_active",
         ),
         pk=user_pk,
-        user_type=User.UserType.USER,
+        user_type=(
+            User.UserType.USER
+        ),
         is_active=True,
     )
 
-    if reported_user.pk == request.user.pk:
+    if (
+        reported_user.pk
+        == request.user.pk
+    ):
         messages.warning(
             request,
-            "Kendi hesabınızı raporlayamazsınız.",
-        )
-        return redirect(
-            "accounts:public_profile",
-            username=reported_user.username,
+            (
+                "Kendi hesabınızı "
+                "raporlayamazsınız."
+            ),
         )
 
-    if UserReport.objects.filter(
-        reporter=request.user,
-        reported_user=reported_user,
-    ).exists():
+        return redirect(
+            "accounts:public_profile",
+            username=(
+                reported_user.username
+            ),
+        )
+
+    if (
+        UserReport.objects
+        .filter(
+            reporter=request.user,
+            reported_user=(
+                reported_user
+            ),
+        )
+        .exists()
+    ):
         messages.info(
             request,
-            "Bu kullanıcıyı daha önce raporladınız.",
-        )
-        return redirect(
-            "accounts:public_profile",
-            username=reported_user.username,
+            (
+                "Bu kullanıcıyı daha "
+                "önce raporladınız."
+            ),
         )
 
-    form = UserReportForm(request.POST)
+        return redirect(
+            "accounts:public_profile",
+            username=(
+                reported_user.username
+            ),
+        )
+
+    form = UserReportForm(
+        request.POST
+    )
 
     if not form.is_valid():
         messages.error(
             request,
-            "Rapor gönderilemedi. Lütfen geçerli bir neden seçin.",
-        )
-        return redirect(
-            "accounts:public_profile",
-            username=reported_user.username,
+            (
+                "Rapor gönderilemedi. "
+                "Lütfen geçerli bir "
+                "neden seçin."
+            ),
         )
 
-    report = form.save(commit=False)
-    report.reporter = request.user
-    report.reported_user = reported_user
-    report.status = UserReport.Status.PENDING
+        return redirect(
+            "accounts:public_profile",
+            username=(
+                reported_user.username
+            ),
+        )
+
+    report = form.save(
+        commit=False
+    )
+
+    report.reporter = (
+        request.user
+    )
+
+    report.reported_user = (
+        reported_user
+    )
+
+    report.status = (
+        UserReport.Status.PENDING
+    )
 
     try:
         with transaction.atomic():
             report.save()
 
-            from notifications.services import notify_admins_user_report
+            from notifications.services import (
+                notify_admins_user_report,
+            )
 
-            notify_admins_user_report(report)
+            notify_admins_user_report(
+                report
+            )
 
-    except (ValidationError, IntegrityError):
+    except (
+        ValidationError,
+        IntegrityError,
+    ):
         messages.info(
             request,
-            "Bu kullanıcıyı daha önce raporladınız.",
+            (
+                "Bu kullanıcıyı daha "
+                "önce raporladınız."
+            ),
         )
+
         return redirect(
             "accounts:public_profile",
-            username=reported_user.username,
+            username=(
+                reported_user.username
+            ),
         )
 
     messages.success(
         request,
-        "Kullanıcı raporunuz alındı ve yönetim ekibine iletildi.",
+        (
+            "Kullanıcı raporunuz "
+            "alındı ve yönetim "
+            "ekibine iletildi."
+        ),
     )
 
     return redirect(
         "accounts:public_profile",
-        username=reported_user.username,
+        username=(
+            reported_user.username
+        ),
     )
 
 
-@role_required(User.UserType.USER)
+@role_required(
+    User.UserType.USER
+)
 @require_safe
-def complaint_list(request):
+def complaint_list(
+    request
+):
     from companies.models import (
-        CompanyResponse
+        CompanyResponse,
     )
 
     complaints = (
@@ -919,63 +1352,118 @@ def complaint_list(request):
             user=request.user
         )
         .select_related(
-            "company"
+            "company",
+            "company__category",
         )
         .annotate(
             has_response=Exists(
-                CompanyResponse.objects.filter(
-                    complaint_id=OuterRef("pk"),
-                    company_id=OuterRef(
-                        "company_id"
+                CompanyResponse.objects
+                .filter(
+                    complaint_id=(
+                        OuterRef("pk")
                     ),
-                    is_active=True
+                    company_id=(
+                        OuterRef(
+                            "company_id"
+                        )
+                    ),
+                    is_active=True,
                 )
             )
         )
         .order_by(
             "-created_at",
-            "-pk"
+            "-pk",
         )
     )
 
-    search = request.GET.get(
-        "q",
-        ""
-    ).strip()[:100]
-
-    active_filter = request.GET.get(
-        "status",
-        "all"
+    search = (
+        request.GET.get(
+            "q",
+            "",
+        )
+        .strip()[:100]
     )
 
+    active_filter = (
+        request.GET.get(
+            "status",
+            "all",
+        )
+        .strip()[:20]
+    )
+
+    active_category = (
+        request.GET.get(
+            "category",
+            "",
+        )
+        .strip()[:32]
+    )
+
+    valid_categories = {
+        value
+        for value, _
+        in Complaint.Category.choices
+    }
+
+    if (
+        active_category
+        not in valid_categories
+    ):
+        active_category = ""
+
     if search:
-        complaints = complaints.filter(
-            Q(
-                title__icontains=search
+        complaints = (
+            complaints.filter(
+                Q(
+                    title__icontains=search
+                )
+                | Q(
+                    company__name__icontains=search
+                )
             )
-            | Q(
-                company__name__icontains=search
+        )
+
+    if active_category:
+        complaints = (
+            complaints.filter(
+                category=active_category
             )
         )
 
     if active_filter == "pending":
-        complaints = complaints.filter(
-            status=Complaint.Status.PENDING
+        complaints = (
+            complaints.filter(
+                status=(
+                    Complaint.Status.PENDING
+                )
+            )
         )
 
     elif active_filter == "published":
-        complaints = complaints.filter(
-            status=Complaint.Status.PUBLISHED
+        complaints = (
+            complaints.filter(
+                status=(
+                    Complaint.Status.PUBLISHED
+                )
+            )
         )
 
     elif active_filter == "answered":
-        complaints = complaints.filter(
-            has_response=True
+        complaints = (
+            complaints.filter(
+                has_response=True
+            )
         )
 
     elif active_filter == "resolved":
-        complaints = complaints.filter(
-            status=Complaint.Status.RESOLVED
+        complaints = (
+            complaints.filter(
+                status=(
+                    Complaint.Status.RESOLVED
+                )
+            )
         )
 
     elif active_filter != "all":
@@ -984,93 +1472,132 @@ def complaint_list(request):
     page = paginate(
         request,
         complaints,
-        "user_complaints"
+        "user_complaints",
     )
 
     return render(
         request,
         "complaints/complaint_list.html",
         {
-            "complaints": page,
-            "page_obj": page,
-            "active_filter": active_filter,
-            "search": search,
+            "complaints":
+                page,
+
+            "page_obj":
+                page,
+
+            "active_filter":
+                active_filter,
+
+            "active_category":
+                active_category,
+
+            "category_options":
+                Complaint.Category.choices,
+
+            "search":
+                search,
 
             "filter_options": (
                 (
                     "all",
-                    "Tümü"
+                    "Tümü",
                 ),
                 (
                     "pending",
-                    "İncelemede"
+                    "İncelemede",
                 ),
                 (
                     "published",
-                    "Yayında"
+                    "Yayında",
                 ),
                 (
                     "answered",
-                    "Şirket Cevapladı"
+                    "Şirket Cevapladı",
                 ),
                 (
                     "resolved",
-                    "Çözüldü"
+                    "Çözüldü",
                 ),
             ),
         },
     )
 
 
-@role_required(User.UserType.USER)
+@role_required(
+    User.UserType.USER
+)
 @require_safe
-def complaint_detail(request, pk):
+def complaint_detail(
+    request,
+    pk,
+):
     complaint = get_object_or_404(
-        Complaint.objects.select_related(
-            "company"
+        Complaint.objects
+        .select_related(
+            "company",
+            "company__category",
         ),
         pk=pk,
-        user=request.user
+        user=request.user,
     )
 
     from companies.panel_selectors import (
-        company_responses
+        company_responses,
     )
 
     return render(
         request,
         "complaints/complaint_detail.html",
         {
-            "complaint": complaint,
+            "complaint":
+                complaint,
 
             "timeline_events":
-                complaint.timeline_events.all(),
+                complaint
+                .timeline_events
+                .all(),
 
             "company_response_page":
                 paginate(
                     request,
                     company_responses(
                         complaint.company
-                    ).filter(
+                    )
+                    .filter(
                         complaint=complaint
                     ),
                     "company_responses",
-                    page_param="response_page"
+                    page_param=(
+                        "response_page"
+                    ),
                 ),
         },
     )
 
 
-@role_required(User.UserType.USER)
-def complaint_edit(request, pk):
-    blocked = _suspended_response(request)
+@role_required(
+    User.UserType.USER
+)
+def complaint_edit(
+    request,
+    pk,
+):
+    blocked = (
+        _suspended_response(
+            request
+        )
+    )
+
     if blocked:
         return blocked
 
     complaint = get_object_or_404(
-        Complaint,
+        Complaint.objects
+        .select_related(
+            "company"
+        ),
         pk=pk,
-        user=request.user
+        user=request.user,
     )
 
     if (
@@ -1082,38 +1609,43 @@ def complaint_edit(request, pk):
             request,
             "complaints/complaint_edit.html",
             {
-                "complaint": complaint,
-                "edit_blocked": True,
+                "complaint":
+                    complaint,
+
+                "edit_blocked":
+                    True,
             },
-            status=403
+            status=403,
         )
 
     if request.method == "POST":
         form = ComplaintEditForm(
             request.POST,
-            instance=complaint
+            instance=complaint,
         )
 
         if form.is_valid():
             from .services import (
-                edit_complaint
+                edit_complaint,
             )
 
             edit_complaint(
                 complaint=complaint,
                 form=form,
-                actor=request.user
+                actor=request.user,
             )
 
             messages.success(
                 request,
-                "Şikayetiniz güncellendi "
-                "ve incelemeye gönderildi."
+                (
+                    "Şikayetiniz güncellendi "
+                    "ve incelemeye gönderildi."
+                ),
             )
 
             return redirect(
                 "complaints:detail",
-                pk=complaint.pk
+                pk=complaint.pk,
             )
 
     else:
@@ -1125,55 +1657,72 @@ def complaint_edit(request, pk):
         request,
         "complaints/complaint_edit.html",
         {
-            "complaint": complaint,
-            "form": form
-        }
+            "complaint":
+                complaint,
+
+            "form":
+                form,
+        },
     )
 
 
-@role_required(User.UserType.USER)
+@role_required(
+    User.UserType.USER
+)
 @require_POST
 def complaint_withdraw(
     request,
-    pk
+    pk,
 ):
-    blocked = _suspended_response(request)
+    blocked = (
+        _suspended_response(
+            request
+        )
+    )
+
     if blocked:
         return blocked
 
     complaint = get_object_or_404(
         Complaint,
         pk=pk,
-        user=request.user
+        user=request.user,
     )
 
     from .services import (
-        withdraw_complaint
+        withdraw_complaint,
     )
 
     withdraw_complaint(
         complaint=complaint,
-        actor=request.user
+        actor=request.user,
     )
 
     messages.success(
         request,
-        "Şikayetiniz geri çekildi."
+        "Şikayetiniz geri çekildi.",
     )
 
     return redirect(
         "complaints:detail",
-        pk=complaint.pk
+        pk=complaint.pk,
     )
 
 
-@role_required(User.UserType.USER)
+@role_required(
+    User.UserType.USER
+)
 @require_POST
 def complaint_resolve(
     request,
-    pk
+    pk,
 ):
-    blocked = _suspended_response(request)
+    blocked = (
+        _suspended_response(
+            request
+        )
+    )
+
     if blocked:
         return blocked
 
@@ -1182,50 +1731,70 @@ def complaint_resolve(
             "pk"
         ),
         pk=pk,
-        user=request.user
+        user=request.user,
     )
 
     try:
         resolve_complaint(
             complaint_id=pk,
             actor=request.user,
-            owner_id=request.user.pk
+            owner_id=request.user.pk,
         )
 
     except ComplaintStateConflict:
         messages.warning(
             request,
-            "Yalnızca yayındaki bir şikayet "
-            "çözüldü olarak işaretlenebilir."
+            (
+                "Yalnızca yayındaki bir "
+                "şikayet çözüldü olarak "
+                "işaretlenebilir."
+            ),
         )
 
     else:
         messages.success(
             request,
-            "Sorunun çözüldüğünü onayladınız."
+            (
+                "Sorunun çözüldüğünü "
+                "onayladınız."
+            ),
         )
 
     return redirect(
         "complaints:detail",
-        pk=pk
+        pk=pk,
     )
 
-@role_required(User.UserType.USER)
+
+@role_required(
+    User.UserType.USER
+)
 @transaction.atomic
-def complaint_create(request):
-    blocked = _suspended_response(request)
+def complaint_create(
+    request
+):
+    blocked = (
+        _suspended_response(
+            request
+        )
+    )
+
     if blocked:
         return blocked
 
-    complaint_policy = check_complaint_creation_allowed(
-        user=request.user,
-        request=request,
+    complaint_policy = (
+        check_complaint_creation_allowed(
+            user=request.user,
+            request=request,
+        )
     )
+
     if not complaint_policy.allowed:
         messages.error(
             request,
             complaint_policy.message,
         )
+
         return redirect(
             "dashboard:home"
         )
@@ -1236,10 +1805,10 @@ def complaint_create(request):
         )
 
         if form.is_valid():
-            # ------------------------------------------------
+            # ----------------------------------------------
             # Aynı kullanıcının eş zamanlı gönderimlerini
             # serialize ediyoruz.
-            # ------------------------------------------------
+            # ----------------------------------------------
 
             locked_user = (
                 User.objects
@@ -1249,34 +1818,45 @@ def complaint_create(request):
                 )
             )
 
-            # ------------------------------------------------
+            # ----------------------------------------------
             # ANTI-ABUSE KONTROLÜ
-            # ------------------------------------------------
+            # ----------------------------------------------
 
             anti_abuse_result = (
                 check_complaint_submission(
                     request=request,
                     user=locked_user,
-                    company=form.cleaned_data[
-                        "company"
-                    ],
-                    title=form.cleaned_data[
-                        "title"
-                    ],
-                    description=form.cleaned_data[
-                        "description"
-                    ],
+
+                    company=(
+                        form.cleaned_data[
+                            "company"
+                        ]
+                    ),
+
+                    title=(
+                        form.cleaned_data[
+                            "title"
+                        ]
+                    ),
+
+                    description=(
+                        form.cleaned_data[
+                            "description"
+                        ]
+                    ),
                 )
             )
 
-            if not anti_abuse_result.allowed:
+            if not (
+                anti_abuse_result.allowed
+            ):
                 messages.error(
                     request,
-                    anti_abuse_result.message
+                    anti_abuse_result.message,
                 )
 
-                # Form yeniden gösterildiği için yeni zaman
-                # başlangıcı oluşturuyoruz.
+                # Form tekrar gösterileceği için
+                # yeni zaman başlangıcı oluşturulur.
                 mark_complaint_form_opened(
                     request
                 )
@@ -1285,20 +1865,23 @@ def complaint_create(request):
                     request,
                     "complaints/complaint_create.html",
                     {
-                        "form": form
+                        "form":
+                            form,
                     },
                     status=429,
                 )
 
-            # ------------------------------------------------
+            # ----------------------------------------------
             # ŞİKAYET OLUŞTUR
-            # ------------------------------------------------
+            # ----------------------------------------------
 
             complaint = form.save(
                 commit=False
             )
 
-            complaint.user = locked_user
+            complaint.user = (
+                locked_user
+            )
 
             complaint.status = (
                 Complaint.Status.PENDING
@@ -1306,15 +1889,19 @@ def complaint_create(request):
 
             complaint.save()
 
-            # Başarılı gönderimden sonra form timer temizlenir.
+            # Başarılı gönderimden sonra
+            # form timer temizlenir.
             reset_complaint_form_timer(
                 request
             )
 
             messages.success(
                 request,
-                "Şikayetiniz incelemeye alındı. "
-                "Yayınlanmadan önce değerlendirilecektir.",
+                (
+                    "Şikayetiniz incelemeye alındı. "
+                    "Yayınlanmadan önce "
+                    "değerlendirilecektir."
+                ),
             )
 
             return redirect(
@@ -1322,9 +1909,9 @@ def complaint_create(request):
             )
 
     else:
-        # ----------------------------------------------------
+        # ----------------------------------------------
         # FORM GET İLE AÇILDI
-        # ----------------------------------------------------
+        # ----------------------------------------------
 
         mark_complaint_form_opened(
             request
@@ -1332,14 +1919,17 @@ def complaint_create(request):
 
         initial_company = None
 
-        company_id = request.GET.get(
-            "company",
-            ""
+        company_id = (
+            request.GET.get(
+                "company",
+                "",
+            )
+            .strip()[:20]
         )
 
         if company_id.isdigit():
             from companies.selectors import (
-                public_companies
+                public_companies,
             )
 
             initial_company = (
@@ -1352,7 +1942,8 @@ def complaint_create(request):
 
         form = ComplaintCreateForm(
             initial={
-                "company": initial_company
+                "company":
+                    initial_company,
             }
             if initial_company
             else None
@@ -1362,6 +1953,7 @@ def complaint_create(request):
         request,
         "complaints/complaint_create.html",
         {
-            "form": form
-        }
+            "form":
+                form,
+        },
     )
