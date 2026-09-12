@@ -1,0 +1,18 @@
+DertDerman
+{{ category_label }}
+
+{{ notification.title }}
+
+Merhaba{% if recipient.first_name %} {{ recipient.first_name }}{% endif %},
+
+{{ notification.message }}
+
+{{ cta_label }}:
+{{ target_url }}
+
+Bu e-posta; hesabınız, şikayetiniz veya gönderdiğiniz bir raporla ilgili önemli bir durum değişikliği oluştuğu için gönderildi.
+
+DertDerman
+{{ support_email }}
+{{ support_phone }}
+{{ support_hours }}

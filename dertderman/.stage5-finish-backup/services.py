@@ -23,7 +23,7 @@ def send(
     if not recipient.is_active or recipient.user_type != scope:
         return None
 
-    notification, created = Notification.objects.get_or_create(
+    notification, _ = Notification.objects.get_or_create(
         recipient_user=recipient,
         recipient_role=scope,
         event_key=event_key,
@@ -39,15 +39,6 @@ def send(
             "abuse_attempt": abuse_attempt,
         },
     )
-
-    if created:
-        # AŞAMA 5:
-        # Site içi bildirim business event'in kalıcı kaydıdır.
-        # E-posta yalnız politika uygunsa ve transaction commit edildikten
-        # sonra best-effort olarak gönderilir.
-        from .transactional_email import schedule_notification_email
-
-        schedule_notification_email(notification)
 
     return notification
 

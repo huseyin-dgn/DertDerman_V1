@@ -136,10 +136,6 @@ CSRF_FAILURE_VIEW = "core.error_views.csrf_failure"
 # belong here; these values only configure the provider-neutral email service.
 EMAIL_PROVIDER = (os.getenv("EMAIL_PROVIDER", "resend") or "resend").strip().lower()
 EMAIL_SENDING_ENABLED = _env_bool("EMAIL_SENDING_ENABLED", default=False)
-TRANSACTIONAL_EMAILS_ENABLED = _env_bool(
-    "TRANSACTIONAL_EMAILS_ENABLED",
-    default=True,
-)
 RESEND_API_KEY = os.getenv("RESEND_API_KEY", "").strip()
 
 DEFAULT_FROM_EMAIL = os.getenv(

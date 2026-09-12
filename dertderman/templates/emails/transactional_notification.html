@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="supported-color-schemes" content="light">
+  <title>{{ notification.title }} | DertDerman</title>
+</head>
+<body style="margin:0;padding:0;background:#f2f6fa;font-family:Arial,Helvetica,sans-serif;color:#17344e;">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">
+    {{ notification.title }} {{ notification.message }}
+  </div>
+
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#f2f6fa;">
+    <tr>
+      <td align="center" style="padding:32px 14px;">
+        <table role="presentation" width="620" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:620px;background:#ffffff;border:1px solid #dfe8f0;border-radius:20px;overflow:hidden;box-shadow:0 18px 50px rgba(32,68,98,.08);">
+          <tr>
+            <td style="padding:30px 34px;background:#102f4d;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td>
+                    <div style="font-size:22px;line-height:1;font-weight:800;letter-spacing:-.5px;color:#ffffff;">DertDerman</div>
+                    <div style="margin-top:6px;font-size:10px;letter-spacing:1.5px;color:#9fc6df;">HESAP BİLDİRİMİ</div>
+                  </td>
+                  <td align="right">
+                    <span style="display:inline-block;padding:7px 10px;border:1px solid rgba(255,255,255,.16);border-radius:999px;background:rgba(255,255,255,.07);font-size:9px;font-weight:700;color:#cbe0ec;">{{ category_label }}</span>
+                  </td>
+                </tr>
+              </table>
+
+              <div style="margin-top:34px;width:54px;height:54px;border-radius:16px;background:{% if accent == 'warning' %}#62412d{% elif accent == 'success' %}#245548{% else %}#173f63{% endif %};border:1px solid rgba(255,255,255,.12);text-align:center;line-height:54px;font-size:22px;color:#d7edf5;">{% if accent == 'warning' %}!{% elif accent == 'success' %}✓{% else %}◆{% endif %}</div>
+
+              <h1 style="margin:20px 0 9px;font-size:29px;line-height:1.2;letter-spacing:-.9px;color:#ffffff;">
+                {{ notification.title }}
+              </h1>
+              <p style="margin:0;font-size:12px;line-height:1.75;color:#c4d7e4;">
+                DertDerman hesabınızdaki önemli bir işlemle ilgili sizi bilgilendiriyoruz.
+              </p>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding:34px 34px 12px;">
+              <p style="margin:0 0 18px;font-size:15px;line-height:1.7;color:#17344e;">
+                Merhaba{% if recipient.first_name %} <strong>{{ recipient.first_name }}</strong>{% endif %},
+              </p>
+
+              <p style="margin:0 0 26px;font-size:13px;line-height:1.85;color:#5f7588;">
+                {{ notification.message }}
+              </p>
+
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td style="border-radius:10px;background:#1d5fa7;">
+                    <a href="{{ target_url }}" style="display:inline-block;padding:15px 24px;border-radius:10px;background:#1d5fa7;color:#ffffff;text-decoration:none;font-size:13px;font-weight:800;">
+                      {{ cta_label }}&nbsp;&nbsp;→
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top:28px;background:#f6f9fc;border:1px solid #e1eaf2;border-radius:13px;">
+                <tr>
+                  <td style="padding:17px 18px;">
+                    <div style="font-size:11px;font-weight:800;color:#2a526f;margin-bottom:7px;">Neden bu e-postayı aldınız?</div>
+                    <div style="font-size:11px;line-height:1.75;color:#667c8e;">
+                      Bu e-posta; hesabınız, şikayetiniz veya gönderdiğiniz bir raporla ilgili önemli bir durum değişikliği oluştuğu için gönderildi. Beğeni, tepki ve sıradan sosyal etkileşimler e-posta olarak gönderilmez.
+                    </div>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:25px 0 8px;font-size:11px;line-height:1.7;color:#6f8293;">
+                Buton çalışmıyorsa aşağıdaki adresi tarayıcınıza kopyalayabilirsiniz:
+              </p>
+              <p style="margin:0;padding:12px 13px;border-radius:9px;background:#f5f7fa;word-break:break-all;font-size:10px;line-height:1.65;color:#41627d;">
+                {{ target_url }}
+              </p>
+
+              <div style="height:1px;background:#e8eef3;margin:30px 0 22px;"></div>
+
+              <p style="margin:0;font-size:10px;line-height:1.75;color:#7a8d9d;">
+                Bu ileti otomatik bir transactional hesap bildirimidir. Yanıt vermeniz gerekmez.
+              </p>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding:24px 34px 30px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-top:1px solid #e5edf3;">
+                <tr>
+                  <td style="padding-top:22px;">
+                    <div style="font-size:12px;font-weight:800;color:#17344e;">DertDerman</div>
+                    <div style="margin-top:7px;font-size:10px;line-height:1.7;color:#7a8d9d;">
+                      {{ support_email }} · {{ support_phone }}<br>
+                      {{ support_hours }}
+                    </div>
+                  </td>
+                  <td align="right" valign="bottom" style="padding-top:22px;">
+                    <div style="font-size:9px;line-height:1.6;color:#98a7b3;">Önemli hesap bildirimi<br>Transactional e-posta</div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
