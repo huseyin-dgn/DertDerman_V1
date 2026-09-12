@@ -1,0 +1,43 @@
+﻿# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Django / local runtime
+*.sqlite3
+*.sqlite3-journal
+staticfiles/
+media/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local helper / backup artifacts
+.stage*-backup/
+.stage*-backups/
+.stage*-*-backup/
+_backup_*/
+apply_stage*.py
+repair_stage*.py
+fix_stage*.py
+finish_stage*.py
+install_*.py
+debug_resend.py
+
+# Logs
+*.log
