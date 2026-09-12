@@ -10,10 +10,17 @@ public-site public-index complaints-index
 {% endblock %}
 
 {% block extra_head %}
+
 <link
     rel="stylesheet"
     href="{% static 'css/category-system.css' %}"
 >
+
+<script
+    src="{% static 'js/complaint-category-filter.js' %}"
+    defer
+></script>
+
 {% endblock %}
 
 
@@ -81,6 +88,7 @@ public-site public-index complaints-index
                 class="public-complaint-tools"
                 method="get"
                 role="search"
+                data-complaint-filter-form
             >
 
                 <label class="public-search">
@@ -106,34 +114,217 @@ public-site public-index complaints-index
                 </label>
 
 
-                <label class="category-filter">
+                <div
+                    class="complaint-category-select"
+                    data-category-select
+                >
 
-                    <span class="visually-hidden">
-                        Şikayet kategorisi
-                    </span>
+                    <input
+                        type="hidden"
+                        name="category"
+                        value="{{ active_category }}"
+                        data-category-value
+                    >
 
-                    <select name="category">
 
-                        <option value="">
-                            Tüm kategoriler
-                        </option>
+                    <button
+                        type="button"
+                        class="complaint-category-trigger"
+                        data-category-trigger
+                        aria-haspopup="listbox"
+                        aria-expanded="false"
+                        aria-controls="complaint-category-menu"
+                    >
 
-                        {% for value, label in category_options %}
+                        <span class="complaint-category-trigger-copy">
 
-                            <option
-                                value="{{ value }}"
-                                {% if active_category == value %}
-                                    selected
+                            <small>
+                                Kategori
+                            </small>
+
+                            <strong data-category-label>
+
+                                {% if active_category %}
+
+                                    {% for value, label in category_options %}
+
+                                        {% if active_category == value %}
+                                            {{ label }}
+                                        {% endif %}
+
+                                    {% endfor %}
+
+                                {% else %}
+                                    Tüm kategoriler
                                 {% endif %}
+
+                            </strong>
+
+                        </span>
+
+
+                        <span
+                            class="complaint-category-chevron"
+                            aria-hidden="true"
+                        >
+                            <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
                             >
-                                {{ label }}
-                            </option>
+                                <path
+                                    d="M6.75 9.5L12 14.75L17.25 9.5"
+                                    stroke="currentColor"
+                                    stroke-width="1.8"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                />
+                            </svg>
+                        </span>
 
-                        {% endfor %}
+                    </button>
 
-                    </select>
 
-                </label>
+                    <div
+                        class="complaint-category-menu"
+                        id="complaint-category-menu"
+                        data-category-menu
+                        hidden
+                    >
+
+                        <div class="complaint-category-menu-head">
+
+                            <div>
+
+                                <span class="complaint-category-menu-kicker">
+                                    FİLTRELE
+                                </span>
+
+                                <strong>
+                                    Şikayet kategorisi
+                                </strong>
+
+                            </div>
+
+                            <span class="complaint-category-count">
+                                {{ category_options|length }} kategori
+                            </span>
+
+                        </div>
+
+
+                        <label class="complaint-category-search">
+
+                            <span class="complaint-category-search-icon">
+                                {% include 'components/icon.html' with name='search' %}
+                            </span>
+
+                            <span class="visually-hidden">
+                                Kategori ara
+                            </span>
+
+                            <input
+                                type="search"
+                                placeholder="Kategori ara..."
+                                autocomplete="off"
+                                data-category-search
+                            >
+
+                        </label>
+
+
+                        <div
+                            class="complaint-category-options"
+                            role="listbox"
+                            aria-label="Şikayet kategorileri"
+                            data-category-options
+                        >
+
+                            <button
+                                type="button"
+                                class="complaint-category-option{% if not active_category %} is-selected{% endif %}"
+                                data-category-option
+                                data-value=""
+                                data-label="Tüm kategoriler"
+                                role="option"
+                                aria-selected="{% if not active_category %}true{% else %}false{% endif %}"
+                            >
+
+                                <span class="complaint-category-option-mark">
+                                    <span></span>
+                                </span>
+
+                                <span class="complaint-category-option-copy">
+
+                                    <strong>
+                                        Tüm kategoriler
+                                    </strong>
+
+                                    <small>
+                                        Bütün şikayetleri göster
+                                    </small>
+
+                                </span>
+
+                                <span
+                                    class="complaint-category-option-check"
+                                    aria-hidden="true"
+                                >
+                                    ✓
+                                </span>
+
+                            </button>
+
+
+                            {% for value, label in category_options %}
+
+                                <button
+                                    type="button"
+                                    class="complaint-category-option{% if active_category == value %} is-selected{% endif %}"
+                                    data-category-option
+                                    data-value="{{ value }}"
+                                    data-label="{{ label }}"
+                                    role="option"
+                                    aria-selected="{% if active_category == value %}true{% else %}false{% endif %}"
+                                >
+
+                                    <span class="complaint-category-option-mark">
+                                        <span></span>
+                                    </span>
+
+                                    <span class="complaint-category-option-copy">
+
+                                        <strong>
+                                            {{ label }}
+                                        </strong>
+
+                                    </span>
+
+                                    <span
+                                        class="complaint-category-option-check"
+                                        aria-hidden="true"
+                                    >
+                                        ✓
+                                    </span>
+
+                                </button>
+
+                            {% endfor %}
+
+                        </div>
+
+
+                        <p
+                            class="complaint-category-no-result"
+                            data-category-empty
+                            hidden
+                        >
+                            Bu aramayla eşleşen kategori bulunamadı.
+                        </p>
+
+                    </div>
+
+                </div>
 
 
                 {% if active_filter != 'all' %}

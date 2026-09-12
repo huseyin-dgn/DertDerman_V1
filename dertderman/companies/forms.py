@@ -23,10 +23,14 @@ class CompanyRegistrationForm(UserCreationForm):
     company_name = forms.CharField(label="Şirket adı", max_length=255)
     category = forms.ModelChoiceField(
         label="Şirket kategorisi",
-        queryset=(
-            CompanyCategory.objects.none()
+        queryset=CompanyCategory.objects.none(),
+        empty_label=None,
+        required=True,
+        widget=forms.RadioSelect(
+            attrs={
+                "class": "company-category-radio",
+            }
         ),
-        empty_label="Kategori seçin",
     )
     first_name = forms.CharField(label="Yetkili adı", max_length=150)
     last_name = forms.CharField(label="Yetkili soyadı", max_length=150)
