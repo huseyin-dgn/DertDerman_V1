@@ -243,3 +243,84 @@ class Notification(models.Model):
             self.notification_type,
             'bell'
         )
+
+class EmailDelivery(models.Model):
+    """
+    Kalıcı e-posta teslimat kaydı.
+
+    Raw alıcı adresi, mesaj gövdesi, token veya provider hata payload'ı
+    saklanmaz. Idempotency key aynı business event'in fiziksel olarak
+    tekrar gönderilmesini engeller.
+    """
+
+    class Status(models.TextChoices):
+        PENDING = "PENDING", "Bekliyor"
+        SENT = "SENT", "Gönderildi"
+        FAILED = "FAILED", "Başarısız"
+        SKIPPED = "SKIPPED", "Atlandı"
+
+    notification = models.ForeignKey(
+        Notification,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="email_deliveries",
+    )
+
+    provider = models.CharField(max_length=32)
+
+    idempotency_key = models.CharField(
+        max_length=128,
+        unique=True,
+    )
+
+    recipient_hash = models.CharField(
+        max_length=64,
+        db_index=True,
+    )
+
+    status = models.CharField(
+        max_length=16,
+        choices=Status.choices,
+        default=Status.PENDING,
+    )
+
+    provider_message_id = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+        db_index=True,
+    )
+
+    attempt_count = models.PositiveIntegerField(default=0)
+
+    last_error_type = models.CharField(
+        max_length=128,
+        blank=True,
+        default="",
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    sent_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    class Meta:
+        ordering = (
+            "-created_at",
+            "-pk",
+        )
+
+        indexes = [
+            models.Index(
+                fields=[
+                    "status",
+                    "-created_at",
+                ],
+                name="email_delivery_status",
+            )
+        ]
+

@@ -1,7 +1,7 @@
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-from django.test import SimpleTestCase, override_settings
+from django.test import SimpleTestCase, TestCase, override_settings
 
 from notifications.email_providers.resend import (
     ResendConfigurationError,
@@ -16,7 +16,7 @@ from notifications.email_service import (
 )
 
 
-class EmailServiceTests(SimpleTestCase):
+class EmailServiceTests(TestCase):
     def test_idempotency_key_is_stable_per_event_and_recipient(self):
         first = build_provider_idempotency_key(
             event_key="complaint:10:published",

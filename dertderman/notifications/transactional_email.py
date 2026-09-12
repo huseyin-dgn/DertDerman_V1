@@ -137,6 +137,7 @@ def deliver_notification_email(notification: Notification):
         html_body=html_body,
         text_body=text_body,
         event_key=email_event_key,
+        notification=notification,
     )
 
 
