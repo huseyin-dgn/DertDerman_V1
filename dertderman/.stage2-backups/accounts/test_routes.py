@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.test import Client, TestCase, override_settings
+from django.test import Client, TestCase
 
 from companies.models import Company, CompanyMembership
 from complaints.models import Complaint
@@ -18,7 +18,6 @@ class RouteAccessTests(TestCase):
             role: User.objects.create_user(
                 username=f"route-{role}", email=f"route-{role}@example.com",
                 password=cls.password, user_type=role,
-                is_verified=(role == User.UserType.USER),
             ) for role in [*User.UserType.values, "UNKNOWN"]
         }
         cls.company = Company.objects.create(name="Owned route company", is_verified=True)
@@ -211,25 +210,19 @@ class RouteAccessTests(TestCase):
         self.company.save()
         self.assertEqual(Client().get(f"/sikayetler/{self.published.pk}/").status_code, 404)
 
-    @override_settings(EMAIL_SENDING_ENABLED=False)
     def test_register_login_logout_smoke_and_role_logins(self):
         client = Client()
         self.assertRedirects(client.post("/hesap/kayit/", {
             "username": "route-smoke-user", "email": "route-smoke@example.com",
             "password1": self.password, "password2": self.password,
             "selected_avatar": "avatar-1",
-        }), "/hesap/eposta-dogrulama-bekleniyor/")
-        self.assertNotIn("_auth_user_id", client.session)
+        }), "/panel/")
+        self.assertEqual(client.get("/panel/").status_code, 200)
+        self.assertRedirects(client.post("/hesap/cikis/"), "/")
         self.assertRedirects(client.get("/panel/"), "/hesap/giris/?next=/panel/")
-
-        account = User.objects.get(username="route-smoke-user")
-        account.is_verified = True
-        account.save(update_fields=["is_verified"])
-
         self.assertRedirects(client.post("/hesap/giris/", {
             "username": "route-smoke-user", "password": self.password,
         }), "/panel/")
-        self.assertEqual(client.get("/panel/").status_code, 200)
         self.assertEqual(client.get("/sikayetlerim/").status_code, 200)
         self.assertRedirects(client.post("/hesap/cikis/"), "/")
         self.assertRedirects(client.get("/sikayetlerim/"), "/hesap/giris/?next=/sikayetlerim/")

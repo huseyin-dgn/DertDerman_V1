@@ -1,0 +1,6 @@
+{% block email_content %}{% endblock %}
+
+DertDerman
+{{ support_email }}
+{{ support_phone }}
+{{ support_hours }}

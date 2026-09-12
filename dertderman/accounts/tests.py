@@ -23,12 +23,13 @@ class AuthenticationSecurityTests(TestCase):
         data.update(overrides)
         return data
 
-    def create_user(self, username, user_type):
+    def create_user(self, username, user_type, *, is_verified=False):
         return User.objects.create_user(
             username=username,
             email=f"{username}@example.com",
             password="StrongPass2026!",
             user_type=user_type,
+            is_verified=is_verified,
         )
 
     def test_public_register_creates_user_and_hashes_password(self):
@@ -39,12 +40,16 @@ class AuthenticationSecurityTests(TestCase):
             self.register_data(password1=raw_password, password2=raw_password),
         )
 
-        self.assertRedirects(response, reverse("dashboard:home"))
+        self.assertRedirects(
+            response,
+            reverse("accounts:email_verification_pending"),
+        )
         user = User.objects.get(username="new-user")
         self.assertEqual(user.user_type, User.UserType.USER)
         self.assertNotEqual(user.password, raw_password)
         self.assertTrue(user.check_password(raw_password))
-        self.assertEqual(int(self.client.session["_auth_user_id"]), user.pk)
+        self.assertFalse(user.is_verified)
+        self.assertNotIn("_auth_user_id", self.client.session)
 
     def test_public_register_prevents_privilege_escalation(self):
         response = self.client.post(
@@ -61,7 +66,10 @@ class AuthenticationSecurityTests(TestCase):
             ),
         )
 
-        self.assertRedirects(response, reverse("dashboard:home"))
+        self.assertRedirects(
+            response,
+            reverse("accounts:email_verification_pending"),
+        )
         user = User.objects.get(username="attacker")
         self.assertEqual(user.user_type, User.UserType.USER)
         self.assertFalse(user.is_staff)
@@ -69,7 +77,7 @@ class AuthenticationSecurityTests(TestCase):
         self.assertFalse(user.is_verified)
         self.assertEqual(user.groups.count(), 0)
         self.assertEqual(user.user_permissions.count(), 0)
-        self.assertEqual(int(self.client.session["_auth_user_id"]), user.pk)
+        self.assertNotIn("_auth_user_id", self.client.session)
 
     def test_anonymous_users_are_redirected_from_protected_views(self):
         protected_urls = [
@@ -139,7 +147,11 @@ class AuthenticationSecurityTests(TestCase):
 
         for index, (user_type, expected_url) in enumerate(role_expectations):
             username = f"login-{index}"
-            self.create_user(username, user_type)
+            self.create_user(
+                username,
+                user_type,
+                is_verified=(user_type == User.UserType.USER),
+            )
             response = self.client.post(
                 f"{reverse('accounts:login')}?next=https://evil.example",
                 {
@@ -156,7 +168,11 @@ class AuthenticationSecurityTests(TestCase):
             self.client.logout()
 
     def test_valid_login_authenticates_user_and_redirects_to_panel(self):
-        user = self.create_user("valid-login", User.UserType.USER)
+        user = self.create_user(
+            "valid-login",
+            User.UserType.USER,
+            is_verified=True,
+        )
 
         response = self.client.post(
             reverse("accounts:login"),
@@ -260,18 +276,32 @@ class AuthenticationSecurityTests(TestCase):
                 password2=raw_password,
             ),
         )
+
         user = User.objects.get(username="smoke-user")
 
-        self.assertRedirects(register_response, reverse("dashboard:home"))
-        self.assertEqual(int(self.client.session["_auth_user_id"]), user.pk)
-
-        logout_response = self.client.post(reverse("accounts:logout"))
-        self.assertRedirects(logout_response, reverse("core:home"))
+        self.assertRedirects(
+            register_response,
+            reverse("accounts:email_verification_pending"),
+        )
+        self.assertFalse(user.is_verified)
         self.assertNotIn("_auth_user_id", self.client.session)
 
-        protected_response = self.client.get(reverse("dashboard:home"))
-        self.assertEqual(protected_response.status_code, 302)
-        self.assertIn(reverse("accounts:login"), protected_response["Location"])
+        # Doğrulanmamış kullanıcı doğru şifreyle bile giriş yapamaz.
+        login_response = self.client.post(
+            reverse("accounts:login"),
+            {
+                "username": "smoke-user",
+                "password": raw_password,
+            },
+        )
+
+        self.assertEqual(login_response.status_code, 200)
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+        # Email verification akışının kendisi ayrı testlerde sınanıyor.
+        # Bu smoke testte doğrulama tamamlanmış durumu simüle edilir.
+        user.is_verified = True
+        user.save(update_fields=["is_verified"])
 
         login_response = self.client.post(
             reverse("accounts:login"),
@@ -283,6 +313,14 @@ class AuthenticationSecurityTests(TestCase):
 
         self.assertRedirects(login_response, reverse("dashboard:home"))
         self.assertEqual(int(self.client.session["_auth_user_id"]), user.pk)
+
+        logout_response = self.client.post(reverse("accounts:logout"))
+        self.assertRedirects(logout_response, reverse("core:home"))
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+        protected_response = self.client.get(reverse("dashboard:home"))
+        self.assertEqual(protected_response.status_code, 302)
+        self.assertIn(reverse("accounts:login"), protected_response["Location"])
 
     def test_profile_requires_login_and_authenticated_user_can_view_profile(self):
         anonymous_response = self.client.get(reverse("accounts:profile"))

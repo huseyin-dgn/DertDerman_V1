@@ -1,5 +1,3 @@
-import logging
-
 from django.contrib import messages
 from django.contrib.auth import login, logout
 from django.contrib.auth.views import (
@@ -17,20 +15,14 @@ from django.shortcuts import (
 from django.urls import reverse, reverse_lazy
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
-from django.views.decorators.http import require_POST, require_http_methods
+from django.views.decorators.http import require_POST
 from django.views.generic.edit import FormView
 
 from core.decorators import role_required
-from notifications.email_service import EmailServiceError
 
 from .badges import (
     primary_badge,
     resolve_user_badges,
-)
-from .email_verification import (
-    resolve_email_verification_token,
-    send_verification_email,
-    verify_email_verification_token,
 )
 from .forms import (
     ProfileUpdateForm,
@@ -39,9 +31,6 @@ from .forms import (
 )
 from .models import User
 from .redirects import safe_role_next
-
-
-logger = logging.getLogger(__name__)
 
 
 def role_redirect_url(user):
@@ -90,88 +79,16 @@ class RegisterView(FormView):
         self,
         form,
     ):
-        # RegisterForm persists is_verified=False. The user is deliberately
-        # NOT logged in here; verification must complete first.
         user = form.save()
 
-        try:
-            result = send_verification_email(user)
-        except EmailServiceError as exc:
-            logger.error(
-                "Verification email delivery failed: user_id=%s exception_type=%s",
-                user.pk,
-                exc.__class__.__name__,
-            )
-            messages.warning(
-                self.request,
-                (
-                    "Hesabınız oluşturuldu ancak doğrulama e-postası şu anda "
-                    "gönderilemedi. Lütfen destek ekibiyle iletişime geçin."
-                ),
-            )
-        else:
-            if result.status == "sent":
-                messages.success(
-                    self.request,
-                    "Doğrulama bağlantısını e-posta adresinize gönderdik.",
-                )
-            else:
-                messages.warning(
-                    self.request,
-                    (
-                        "Hesabınız oluşturuldu ancak e-posta gönderimi şu anda "
-                        "devre dışı. Doğrulama tamamlanmadan giriş yapamazsınız."
-                    ),
-                )
+        login(
+            self.request,
+            user,
+        )
 
         return redirect(
-            "accounts:email_verification_pending"
+            "dashboard:home"
         )
-
-
-@never_cache
-def email_verification_pending(request):
-    if request.user.is_authenticated:
-        return redirect(role_redirect_url(request.user))
-
-    return render(
-        request,
-        "accounts/email_verification_pending.html",
-    )
-
-
-@never_cache
-@require_http_methods(["GET", "POST"])
-def email_verification_confirm(request, token):
-    if request.method == "GET":
-        token_valid = (
-            resolve_email_verification_token(token)
-            is not None
-        )
-
-        return render(
-            request,
-            "accounts/email_verification_confirm.html",
-            {"token_valid": token_valid},
-            status=200 if token_valid else 400,
-        )
-
-    user = verify_email_verification_token(token)
-
-    if user is None:
-        return render(
-            request,
-            "accounts/email_verification_confirm.html",
-            {"token_valid": False},
-            status=400,
-        )
-
-    messages.success(
-        request,
-        "E-posta adresiniz doğrulandı. Artık giriş yapabilirsiniz.",
-    )
-
-    return redirect("accounts:login")
 
 
 @method_decorator(

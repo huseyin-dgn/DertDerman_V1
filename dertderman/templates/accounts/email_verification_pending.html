@@ -1,0 +1,30 @@
+{% extends 'layouts/auth_base.html' %}
+{% block title %}E-posta Doğrulama | DertDerman{% endblock %}
+{% block auth_variant %}ax-user-login{% endblock %}
+{% block content %}
+<main class="ax-layout" id="main-content">
+  <aside class="ax-story" aria-labelledby="verification-story-title">
+    <div class="ax-story-inner">
+      <p class="ax-eyebrow">HESAP GÜVENLİĞİ</p>
+      <h2 id="verification-story-title">Son bir adım kaldı.</h2>
+      <p class="ax-story-lead">Hesabınızı kullanmadan önce e-posta adresinizi doğrulamanız gerekiyor.</p>
+      <div class="ax-kept-visual">{% include 'components/auth_visual.html' %}</div>
+    </div>
+  </aside>
+  <div class="ax-form-area">
+    <section class="ax-card" aria-labelledby="auth-title">
+      {% include 'auth/messages.html' %}
+      <header class="ax-heading">
+        <span class="ax-role">E-posta doğrulama</span>
+        <h1 id="auth-title">Gelen kutunuzu kontrol edin</h1>
+        <p>Size gönderilen doğrulama bağlantısını açın. Bağlantıdaki sayfada ayrıca “E-postamı Doğrula” düğmesine basmadan hesabınız doğrulanmaz.</p>
+      </header>
+      <div class="ax-alternative">
+        <span>Doğrulamayı tamamladınız mı?</span>
+        <a href="{% url 'accounts:login' %}">Giriş Yap {% include 'components/icon.html' %}</a>
+      </div>
+      <p class="ax-crosslink">E-posta ulaşmadıysa şimdilik <a href="mailto:destek@dertderman.com">destek@dertderman.com</a> üzerinden destek alabilirsiniz.</p>
+    </section>
+  </div>
+</main>
+{% endblock %}

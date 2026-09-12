@@ -12,6 +12,7 @@
       {% include 'auth/field.html' with field=form.password label='Şifre' %}
       <button class="ax-submit" type="submit" data-submit-label="Giriş yapılıyor…"><span>Giriş Yap</span>{% include 'components/icon.html' %}</button>
     </form>
+    <p class="ax-crosslink"><a href="{% url 'accounts:password_reset' %}">Şifremi unuttum</a></p>
     <div class="ax-alternative"><span>Henüz hesabınız yok mu?</span><a href="{% url 'accounts:register' %}">Kayıt Ol {% include 'components/icon.html' %}</a></div>
     <p class="ax-crosslink">Şirket hesabınız mı var? <a href="{% url 'company_auth:login' %}">Şirket Girişi</a></p>
   </section></div>

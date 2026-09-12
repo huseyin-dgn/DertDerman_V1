@@ -15,11 +15,6 @@ PERMANENTLY_CLOSED_LOGIN_ERROR = (
     "Kararla ilgili destek için DertDerman ile iletişime geçebilirsiniz."
 )
 
-UNVERIFIED_LOGIN_ERROR = (
-    "Giriş yapmadan önce e-posta adresinizi doğrulamanız gerekiyor. "
-    "Kayıt sırasında gönderilen doğrulama bağlantısını kullanın."
-)
-
 
 class UserAuthenticationForm(AuthenticationForm):
     error_messages = {"invalid_login": USER_LOGIN_ERROR, "inactive": USER_LOGIN_ERROR}
@@ -62,18 +57,8 @@ class UserAuthenticationForm(AuthenticationForm):
         return super().clean()
     def confirm_login_allowed(self, user):
         super().confirm_login_allowed(user)
-
         if user.user_type != User.UserType.USER:
             raise ValidationError(USER_LOGIN_ERROR, code="invalid_login")
-
-        # This check runs only after Django has authenticated the supplied
-        # credentials, so account verification state is not exposed to a
-        # caller who does not know the password.
-        if not user.is_verified:
-            raise ValidationError(
-                UNVERIFIED_LOGIN_ERROR,
-                code="email_unverified",
-            )
 
 
 class RegisterForm(UserCreationForm):

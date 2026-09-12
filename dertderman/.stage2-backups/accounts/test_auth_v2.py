@@ -1,11 +1,11 @@
-from django.test import Client, TestCase, override_settings
+from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils import timezone
 
 from accounts.forms import USER_LOGIN_ERROR, UserAuthenticationForm
 from accounts.models import User
 from companies.forms import COMPANY_LOGIN_ERROR
-from companies.models import Company, CompanyCategory, CompanyMembership
+from companies.models import Company, CompanyMembership
 from adminx.auth_views import LOGIN_ERROR
 
 
@@ -15,10 +15,9 @@ class AuthExperienceV2Tests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.users = {role: User.objects.create_user(username=f'auth-v2-{role.lower()}',
-            email=f'auth-v2-{role.lower()}@example.com', password=cls.password, user_type=role, is_verified=(role == 'USER'))
+            email=f'auth-v2-{role.lower()}@example.com', password=cls.password, user_type=role)
             for role in ['USER', 'COMPANY', 'ADMIN']}
-        cls.company_category = CompanyCategory.objects.create(name='Auth V2 Category')
-        cls.company = Company.objects.create(name='Auth V2 Company', is_verified=True, category=cls.company_category)
+        cls.company = Company.objects.create(name='Auth V2 Company', is_verified=True)
         cls.membership = CompanyMembership.objects.create(company=cls.company, user=cls.users['COMPANY'], role='OWNER')
 
     def test_all_nine_credential_role_combinations(self):
@@ -77,7 +76,6 @@ class AuthExperienceV2Tests(TestCase):
         self.assertFalse(form.is_valid())
         self.assertEqual(form.non_field_errors(), [USER_LOGIN_ERROR])
 
-    @override_settings(EMAIL_SENDING_ENABLED=False)
     def test_user_registration_ignores_all_privileged_fields_and_creates_no_company(self):
         companies, memberships = Company.objects.count(), CompanyMembership.objects.count()
         for role in ['ADMIN', 'COMPANY']:
@@ -88,8 +86,7 @@ class AuthExperienceV2Tests(TestCase):
                 'selected_avatar': 'avatar-1',
                 'user_type': role, 'is_staff': 'true', 'is_superuser': 'true',
                 'is_verified': 'true', 'approval_status': 'APPROVED', 'company_name': 'Injected company'})
-            self.assertRedirects(response, reverse('accounts:email_verification_pending'))
-            self.assertNotIn('_auth_user_id', client.session)
+            self.assertRedirects(response, reverse('dashboard:home'))
             account = User.objects.get(username=f'register-{role}')
             self.assertEqual(account.user_type, 'USER')
             self.assertFalse(account.is_staff or account.is_superuser or account.is_verified)
@@ -99,7 +96,7 @@ class AuthExperienceV2Tests(TestCase):
 
     def test_company_registration_preserves_architecture_and_confirmation(self):
         response = self.client.post(reverse('company_auth:register'), {
-            'company_name': 'New Auth Company', 'category': self.company_category.pk, 'first_name': 'Deniz', 'last_name': 'Yılmaz',
+            'company_name': 'New Auth Company', 'first_name': 'Deniz', 'last_name': 'Yılmaz',
             'email': 'new-auth-company@example.com', 'phone': '5551234567',
             'password1': self.password, 'password2': self.password,
             'username': 'injected-username', 'user_type': 'ADMIN', 'role': 'MANAGER',

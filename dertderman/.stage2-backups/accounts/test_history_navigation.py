@@ -18,7 +18,7 @@ class IntendedLoginRedirectTests(TestCase):
     def setUpTestData(cls):
         cls.user = User.objects.create_user(
             username="history-user", email="history-user@example.com",
-            password=PASSWORD, user_type=User.UserType.USER, is_verified=True,
+            password=PASSWORD, user_type=User.UserType.USER,
         )
         cls.company_user = User.objects.create_user(
             username="history-company", email="history-company@example.com",
@@ -85,7 +85,6 @@ class HistorySessionPolicyTests(TestCase):
             role: User.objects.create_user(
                 username=f"history-{role.lower()}", email=f"history-{role.lower()}@example.com",
                 password=PASSWORD, user_type=role,
-                is_verified=(role == User.UserType.USER),
             )
             for role in User.UserType.values
         }

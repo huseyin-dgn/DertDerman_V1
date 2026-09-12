@@ -17,8 +17,8 @@ class CompanyDomainTests(TestCase):
             email=f"{username}@example.com",
             password="StrongPass2026!",
             user_type=user_type,
+            is_verified=True,
         )
-
     def create_company(self, name="Acme"):
         category = CompanyCategory.objects.create(name=f"{name} Category")
         return Company.objects.create(

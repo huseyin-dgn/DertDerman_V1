@@ -1,0 +1,11 @@
+{% extends 'emails/base.txt' %}
+{% block email_content %}Merhaba{% if user.first_name %} {{ user.first_name }}{% endif %},
+
+DertDerman hesabınızı kullanmaya başlamadan önce e-posta adresinizi doğrulamanız gerekiyor.
+
+Doğrulama sayfası:
+{{ verification_url }}
+
+Güvenlik nedeniyle bağlantıyı açmak tek başına hesabınızı doğrulamaz. Açılan sayfada "E-postamı Doğrula" düğmesine basmanız gerekir.
+
+Bu hesabı siz oluşturmadıysanız bu e-postayı dikkate almayabilirsiniz.{% endblock %}

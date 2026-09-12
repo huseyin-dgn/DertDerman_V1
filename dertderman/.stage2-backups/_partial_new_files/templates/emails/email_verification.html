@@ -1,0 +1,10 @@
+{% extends 'emails/base.html' %}
+{% block email_content %}
+<p style="margin-top:0;">Merhaba{% if user.first_name %} {{ user.first_name }}{% endif %},</p>
+<p>DertDerman hesabınızı kullanmaya başlamadan önce e-posta adresinizi doğrulamanız gerekiyor.</p>
+<p style="margin:28px 0;">
+  <a href="{{ verification_url }}" style="display:inline-block;background:#1d5fa7;color:#ffffff;text-decoration:none;font-weight:700;padding:13px 22px;border-radius:8px;">E-posta Doğrulama Sayfasını Aç</a>
+</p>
+<p>Güvenlik nedeniyle bağlantıyı açmak tek başına hesabınızı doğrulamaz. Açılan sayfada <strong>E-postamı Doğrula</strong> düğmesine basmanız gerekir.</p>
+<p>Bu hesabı siz oluşturmadıysanız bu e-postayı dikkate almayabilirsiniz.</p>
+{% endblock %}

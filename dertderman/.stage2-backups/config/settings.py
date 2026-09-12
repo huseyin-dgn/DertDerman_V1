@@ -162,9 +162,3 @@ SITE_BASE_URL = os.getenv(
     "SITE_BASE_URL",
     "http://127.0.0.1:8000",
 ).strip().rstrip("/")
-
-
-# Verification links are valid for 24 hours by default.
-EMAIL_VERIFICATION_TIMEOUT = int(
-    os.getenv("EMAIL_VERIFICATION_TIMEOUT", "86400")
-)

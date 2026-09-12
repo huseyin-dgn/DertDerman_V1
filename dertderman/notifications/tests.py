@@ -5,9 +5,16 @@ from django.test import Client, TestCase
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
-
+from complaints.anti_abuse import FORM_SESSION_KEY
 from accounts.models import User
-from companies.models import Company, CompanyMembership, CompanyNotification, CompanyNotificationRead, CompanyResponse
+from companies.models import (
+    Company,
+    CompanyCategory,
+    CompanyMembership,
+    CompanyNotification,
+    CompanyNotificationRead,
+    CompanyResponse,
+)
 from companies.panel_events import record_complaint_notification
 from companies.panel_selectors import company_notifications
 from companies.panel_services import create_company_entry
@@ -27,6 +34,9 @@ class NotificationCenterTests(TestCase):
         cls.admin2 = User.objects.create_user(username='other-admin', email='other-admin@example.com', user_type='ADMIN')
         cls.agent = User.objects.create_user(username='inbox-company', email='inbox-company@example.com', user_type='COMPANY')
         cls.colleague = User.objects.create_user(username='colleague', email='colleague@example.com', user_type='COMPANY')
+        cls.company_category = CompanyCategory.objects.create(
+            name="Test Kategorisi"
+        )
         cls.company = Company.objects.create(name='Inbox Company', is_verified=True)
         cls.foreign_company = Company.objects.create(name='Foreign Company', is_verified=True)
         cls.member = CompanyMembership.objects.create(user=cls.agent, company=cls.company, role='OWNER')
@@ -45,15 +55,103 @@ class NotificationCenterTests(TestCase):
             session.save()
 
     def test_create_workflow_and_rapid_repeated_post(self):
-        self.login(self.user)
-        data = {'company': self.company.pk, 'title': 'Yeni şikayet başlığı', 'description': 'Yeterli uzunlukta gerçek şikayet açıklaması.'}
-        for _ in range(2):
-            self.assertEqual(self.client.post(reverse('complaints:create'), data).status_code, 302)
-        complaint = Complaint.objects.get(title=data['title'])
-        self.assertEqual(Notification.objects.filter(complaint=complaint, notification_type='RECEIVED').count(), 1)
-        self.assertEqual(Notification.objects.filter(complaint=complaint, notification_type='MODERATION').count(), 2)
-        self.assertEqual(complaint.company_notifications.filter(kind='NEW').count(), 1)
+        self.user.is_verified = True
+        self.user.save(
+            update_fields=["is_verified"]
+        )
+        Complaint.objects.filter(
+                pk=self.complaint.pk
+            ).update(
+                created_at=(
+                    timezone.now()
+                    - timedelta(minutes=31)
+                )
+            )
 
+        self.login(self.user)
+
+        route = reverse(
+            "complaints:create"
+        )
+
+        data = {
+            "company": self.company.pk,
+            "category": Complaint.Category.OTHER,
+            "title": "Yeni şikayet başlığı",
+            "description": (
+                "Yeterli uzunlukta gerçek "
+                "şikayet açıklaması."
+            ),
+        }
+
+        # Gerçek kullanıcı akışını taklit et:
+        # önce form açılır.
+        self.client.get(route)
+
+        session = self.client.session
+        session[FORM_SESSION_KEY] = (
+            timezone.now()
+            - timedelta(seconds=2)
+        ).timestamp()
+        session.save()
+
+        first_response = self.client.post(
+            route,
+            data,
+        )
+
+        self.assertEqual(
+            first_response.status_code,
+            302,
+        )
+
+        # Kullanıcı ikinci kez formu açıyor.
+        self.client.get(route)
+
+        session = self.client.session
+        session[FORM_SESSION_KEY] = (
+            timezone.now()
+            - timedelta(seconds=2)
+        ).timestamp()
+        session.save()
+
+        # Aynı şikayeti tekrar göndermeye çalışıyor.
+        second_response = self.client.post(
+            route,
+            data,
+        )
+
+        self.assertEqual(
+            second_response.status_code,
+            429,
+        )
+
+        complaint = Complaint.objects.get(
+            title=data["title"]
+        )
+
+        self.assertEqual(
+            Notification.objects.filter(
+                complaint=complaint,
+                notification_type="RECEIVED",
+            ).count(),
+            1,
+        )
+
+        self.assertEqual(
+            Notification.objects.filter(
+                complaint=complaint,
+                notification_type="MODERATION",
+            ).count(),
+            2,
+        )
+
+        self.assertEqual(
+            complaint.company_notifications.filter(
+                kind="NEW"
+            ).count(),
+            1,
+        )
     def test_publish_real_workflow_notifies_owner_company_and_retry_is_noop(self):
         self.login(self.admin)
         route = reverse('adminx:complaint_publish', args=[self.complaint.pk])
@@ -109,7 +207,7 @@ class NotificationCenterTests(TestCase):
         response = self.client.post(reverse('company_auth:register'), {
             'company_name': 'Notification Application', 'first_name': 'Deniz', 'last_name': 'Yılmaz',
             'email': 'notification-application@example.com', 'phone': '5551234567',
-            'password1': 'RiverMountain2026!safe', 'password2': 'RiverMountain2026!safe'})
+            'password1': 'RiverMountain2026!safe', 'password2': 'RiverMountain2026!safe' , 'category': self.company_category.pk,})
         self.assertEqual(response.status_code, 302)
         company = Company.objects.get(name='Notification Application')
         self.assertEqual(Notification.objects.filter(company=company, notification_type='APPLICATION').count(), 2)
