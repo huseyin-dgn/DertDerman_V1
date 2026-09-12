@@ -459,3 +459,109 @@
   .home-public .stat-item:last-child { border-bottom: 0; }
   .hero-atmosphere span:first-child,.hero-atmosphere span:last-child { display: none; }
 }
+
+/* Contact page: direct institutional contact details. */
+.contact-page .contact-direct {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--public-rule);
+}
+
+.contact-page .contact-direct-kicker {
+  margin: 0 0 14px;
+  color: var(--dd-primary);
+  font-size: .6875rem;
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.contact-page .contact-direct-list {
+  display: grid;
+  gap: 12px;
+}
+
+.contact-page .contact-direct-item {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 13px;
+  align-items: start;
+  padding: 15px;
+  border: 1px solid #d7e4ee;
+  border-radius: 14px;
+  background: linear-gradient(145deg, #fbfdff, #f3f8fc);
+}
+
+.contact-page .contact-direct-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 12px;
+  background: #e9f4fc;
+  color: var(--dd-primary);
+}
+
+.contact-page .contact-direct-icon svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.contact-page .contact-direct-content {
+  min-width: 0;
+}
+
+.contact-page .contact-direct-content h3 {
+  margin: 1px 0 7px;
+  color: var(--dd-navy);
+  font-size: .875rem;
+  letter-spacing: 0;
+}
+
+.contact-page .contact-direct-content a {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  margin: 3px 0;
+  color: var(--dd-primary);
+  font-size: .8125rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+  text-decoration: none;
+}
+
+.contact-page .contact-direct-content a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.contact-page .contact-direct-content a:focus-visible {
+  outline: 2px solid var(--dd-primary);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
+.contact-page .contact-direct-hours {
+  display: block;
+  margin-top: 6px;
+  color: var(--dd-muted);
+  font-size: .75rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 600px) {
+  .contact-page .contact-direct-item {
+    padding: 13px;
+  }
+
+  .contact-page .contact-direct-icon {
+    width: 38px;
+    height: 38px;
+  }
+}
+

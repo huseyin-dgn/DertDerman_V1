@@ -11,16 +11,16 @@
       <h2 id="interaction-title">Bu deneyim size de tanıdık geliyor mu?</h2>
     </div>
 
-    <div class="interaction-summary interaction-summary--clean" aria-label="Şikayet istatistikleri">
-      <span class="interaction-stat">
+    <div class="interaction-summary" aria-label="Şikayet istatistikleri">
+      <span>
         {% include 'components/icon.html' with name='eye' %}
         <b>{{ complaint.view_count|default:0 }}</b>
-        <small>görüntülenme</small>
+        görüntülenme
       </span>
 
-      <span class="interaction-stat">
+      <span>
         <b>{{ complaint.comment_count|default:0 }}</b>
-        <small>yorum</small>
+        yorum
       </span>
     </div>
   </header>

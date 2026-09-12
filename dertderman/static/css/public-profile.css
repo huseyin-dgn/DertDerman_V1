@@ -1,0 +1,826 @@
+.public-profile-page {
+    background:
+        radial-gradient(
+            circle at 8% 10%,
+            #e5f4ff 0,
+            transparent 26rem
+        ),
+        radial-gradient(
+            circle at 92% 56%,
+            #eeeaff 0,
+            transparent 30rem
+        ),
+        #f5f9fd;
+}
+
+
+.public-profile-shell {
+    width: min(
+        1080px,
+        calc(100% - 40px)
+    );
+
+    margin-inline: auto;
+
+    padding:
+        42px
+        0
+        72px;
+}
+
+
+.public-profile-card {
+    overflow: hidden;
+
+    border:
+        1px solid
+        #dbe6ef;
+
+    border-radius: 24px;
+
+    background:
+        rgb(
+            255 255 255 / 96%
+        );
+
+    box-shadow:
+        0
+        20px
+        60px
+        rgb(
+            24 64 102 / 10%
+        );
+}
+
+
+.public-profile-hero {
+    display: flex;
+
+    align-items: center;
+
+    justify-content:
+        space-between;
+
+    gap: 28px;
+
+    padding:
+        34px
+        38px;
+
+    border-bottom:
+        1px solid
+        #e4edf4;
+
+    background:
+        linear-gradient(
+            125deg,
+            #edf8ff,
+            #f3f0ff
+        );
+}
+
+
+.public-profile-identity {
+    display: flex;
+
+    align-items: center;
+
+    gap: 20px;
+
+    min-width: 0;
+}
+
+
+.public-profile-copy {
+    min-width: 0;
+}
+
+
+.public-profile-kicker {
+    margin:
+        0
+        0
+        5px;
+
+    color: #4f7898;
+
+    font-size: .64rem;
+
+    font-weight: 800;
+
+    letter-spacing: .13em;
+}
+
+
+.public-profile-copy h1 {
+    margin: 0;
+
+    color:
+        var(--dd-navy);
+
+    font-size:
+        clamp(
+            1.8rem,
+            4vw,
+            2.6rem
+        );
+
+    letter-spacing: -.04em;
+
+    overflow-wrap: anywhere;
+}
+
+
+.public-profile-name {
+    margin:
+        5px
+        0
+        0;
+
+    color: #496982;
+
+    font-size: .84rem;
+
+    font-weight: 700;
+}
+
+
+.public-profile-member-since {
+    margin:
+        7px
+        0
+        0;
+
+    color: #70869a;
+
+    font-size: .78rem;
+}
+
+
+.public-profile-primary-badge {
+    margin-top: 10px;
+}
+
+
+.public-profile-hero-actions {
+    flex:
+        0
+        0
+        auto;
+}
+
+
+.public-profile-report-trigger {
+    min-height: 40px;
+
+    padding:
+        9px
+        13px;
+
+    border-color: #e7c6c8;
+
+    color: #9b3036;
+
+    box-shadow: none;
+
+    font-size: .75rem;
+}
+
+
+.public-profile-report-trigger:hover {
+    border-color: #d99a9e;
+
+    background: #fff8f8;
+
+    box-shadow: none;
+}
+
+
+.public-profile-report-state {
+    display: inline-flex;
+
+    align-items: center;
+
+    min-height: 38px;
+
+    padding:
+        8px
+        12px;
+
+    border:
+        1px solid
+        #dbe5ed;
+
+    border-radius: 10px;
+
+    background: #f7fafc;
+
+    color: #6c8193;
+
+    font-size: .72rem;
+
+    font-weight: 750;
+}
+
+
+.public-profile-body {
+    padding:
+        30px
+        38px
+        38px;
+}
+
+
+.public-profile-stats {
+    display: grid;
+
+    grid-template-columns:
+        repeat(
+            4,
+            minmax(0, 1fr)
+        );
+
+    gap: 13px;
+}
+
+
+.public-profile-stat {
+    padding: 18px;
+
+    border:
+        1px solid
+        #dce7f0;
+
+    border-radius: 15px;
+
+    background: #f7fbfe;
+}
+
+
+.public-profile-stat strong {
+    display: block;
+
+    color: #245f91;
+
+    font-size: 1.65rem;
+
+    line-height: 1;
+
+    font-variant-numeric:
+        tabular-nums;
+}
+
+
+.public-profile-stat span {
+    display: block;
+
+    margin-top: 8px;
+
+    color: #6a8194;
+
+    font-size: .7rem;
+
+    font-weight: 700;
+
+    line-height: 1.4;
+}
+
+
+.public-profile-stat--success {
+    background: #f3fbf7;
+}
+
+
+.public-profile-stat--success strong {
+    color: #2d775c;
+}
+
+
+.public-profile-stat--comment {
+    background: #f7f5ff;
+}
+
+
+.public-profile-stat--comment strong {
+    color: #6758a7;
+}
+
+
+.public-profile-stat--reaction {
+    background: #fff9f0;
+}
+
+
+.public-profile-stat--reaction strong {
+    color: #96661e;
+}
+
+
+.public-profile-section {
+    margin-top: 30px;
+
+    padding-top: 28px;
+
+    border-top:
+        1px solid
+        #e5edf4;
+}
+
+
+.public-profile-section-heading {
+    display: flex;
+
+    align-items: end;
+
+    justify-content:
+        space-between;
+
+    gap: 20px;
+
+    margin-bottom: 20px;
+}
+
+
+.public-profile-section-heading h2 {
+    margin:
+        5px
+        0
+        0;
+
+    color:
+        var(--dd-navy);
+
+    font-size: 1.45rem;
+}
+
+
+.public-profile-section-heading p:last-child {
+    margin:
+        6px
+        0
+        0;
+
+    max-width: 62ch;
+
+    color: #71869a;
+
+    font-size: .76rem;
+
+    line-height: 1.55;
+}
+
+
+.public-profile-total {
+    flex:
+        0
+        0
+        auto;
+
+    color: #71869a;
+
+    font-size: .72rem;
+
+    font-weight: 700;
+}
+
+
+.public-profile-complaint-list {
+    display: grid;
+
+    grid-template-columns:
+        repeat(
+            2,
+            minmax(0, 1fr)
+        );
+
+    gap: 14px;
+}
+
+
+.public-profile-complaint {
+    display: flex;
+
+    min-width: 0;
+
+    flex-direction:
+        column;
+
+    padding: 20px;
+
+    border:
+        1px solid
+        #dce7f0;
+
+    border-radius: 17px;
+
+    background: #fff;
+
+    box-shadow:
+        0
+        7px
+        20px
+        rgb(
+            30 70 108 / 5%
+        );
+}
+
+
+.public-profile-complaint-company {
+    display: grid;
+
+    grid-template-columns:
+        auto
+        minmax(0, 1fr)
+        auto;
+
+    align-items: center;
+
+    gap: 10px;
+}
+
+
+.public-profile-company-logo {
+    display: grid;
+
+    width: 38px;
+
+    height: 38px;
+
+    place-items: center;
+
+    overflow: hidden;
+
+    border:
+        1px solid
+        #dbe6ef;
+
+    border-radius: 11px;
+
+    background: #f4f8fb;
+
+    color: #2a6fa8;
+
+    font-weight: 800;
+}
+
+
+.public-profile-company-logo img {
+    width: 100%;
+
+    height: 100%;
+
+    object-fit: contain;
+
+    background: #fff;
+}
+
+
+.public-profile-complaint-company > div {
+    min-width: 0;
+}
+
+
+.public-profile-complaint-company strong,
+.public-profile-complaint-company time {
+    display: block;
+}
+
+
+.public-profile-complaint-company strong {
+    overflow: hidden;
+
+    color: #29475f;
+
+    font-size: .75rem;
+
+    text-overflow:
+        ellipsis;
+
+    white-space: nowrap;
+}
+
+
+.public-profile-complaint-company time {
+    margin-top: 3px;
+
+    color: #8496a5;
+
+    font-size: .61rem;
+}
+
+
+.public-profile-complaint h3 {
+    margin:
+        17px
+        0
+        8px;
+
+    font-size: 1rem;
+
+    line-height: 1.4;
+}
+
+
+.public-profile-complaint h3 a {
+    color:
+        var(--dd-navy);
+}
+
+
+.public-profile-complaint > p {
+    flex: 1;
+
+    margin: 0;
+
+    color: #647b8f;
+
+    font-size: .74rem;
+
+    line-height: 1.65;
+
+    overflow-wrap: anywhere;
+}
+
+
+.public-profile-complaint footer {
+    display: flex;
+
+    align-items: center;
+
+    justify-content:
+        space-between;
+
+    gap: 14px;
+
+    margin-top: 17px;
+
+    padding-top: 14px;
+
+    border-top:
+        1px solid
+        #e8eef3;
+}
+
+
+.public-profile-complaint-metrics {
+    display: flex;
+
+    flex-wrap: wrap;
+
+    gap: 8px;
+
+    color: #74899b;
+
+    font-size: .62rem;
+
+    font-weight: 700;
+}
+
+
+.public-profile-complaint-metrics span {
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 4px;
+}
+
+
+.public-profile-complaint-metrics .icon {
+    width: 13px;
+
+    height: 13px;
+}
+
+
+.public-profile-complaint-link {
+    flex:
+        0
+        0
+        auto;
+
+    color: #246ba4;
+
+    font-size: .67rem;
+
+    font-weight: 800;
+
+    white-space: nowrap;
+}
+
+
+.public-profile-empty {
+    padding:
+        44px
+        24px;
+
+    border:
+        1px dashed
+        #cbdce9;
+
+    border-radius: 17px;
+
+    background: #f8fbfd;
+
+    text-align: center;
+}
+
+
+.public-profile-empty > span {
+    display: grid;
+
+    width: 46px;
+
+    height: 46px;
+
+    margin:
+        0
+        auto
+        12px;
+
+    place-items: center;
+
+    border-radius: 14px;
+
+    background: #eaf4fb;
+
+    color: #4e7ca0;
+
+    font-size: 1.3rem;
+}
+
+
+.public-profile-empty h3 {
+    margin: 0;
+
+    color:
+        var(--dd-navy);
+
+    font-size: 1rem;
+}
+
+
+.public-profile-empty p {
+    margin:
+        7px
+        auto
+        0;
+
+    max-width: 46ch;
+
+    color: #75899b;
+
+    font-size: .74rem;
+}
+
+
+.public-profile-complaints
+.dd-pagination {
+    margin-top: 22px;
+}
+
+
+@media (max-width: 850px) {
+
+    .public-profile-stats {
+        grid-template-columns:
+            repeat(
+                2,
+                minmax(0, 1fr)
+            );
+    }
+
+
+    .public-profile-complaint-list {
+        grid-template-columns:
+            1fr;
+    }
+
+}
+
+
+@media (max-width: 650px) {
+
+    .public-profile-shell {
+        width:
+            min(
+                100% - 24px,
+                1080px
+            );
+
+        padding:
+            22px
+            0
+            44px;
+    }
+
+
+    .public-profile-card {
+        border-radius: 18px;
+    }
+
+
+    .public-profile-hero {
+        align-items:
+            flex-start;
+
+        padding:
+            24px
+            20px;
+    }
+
+
+    .public-profile-identity {
+        align-items:
+            flex-start;
+
+        gap: 14px;
+    }
+
+
+    .public-profile-hero
+    .profile-avatar {
+        width: 64px;
+
+        height: 64px;
+
+        flex-basis: 64px;
+
+        border-radius: 19px;
+
+        font-size: 1.35rem;
+    }
+
+
+    .public-profile-hero-actions {
+        margin-left: auto;
+    }
+
+
+    .public-profile-body {
+        padding:
+            22px
+            20px
+            28px;
+    }
+
+
+    .public-profile-section-heading {
+        align-items:
+            flex-start;
+
+        flex-direction:
+            column;
+
+        gap: 7px;
+    }
+
+
+    .public-profile-complaint footer {
+        align-items:
+            flex-start;
+
+        flex-direction:
+            column;
+    }
+
+}
+
+
+@media (max-width: 430px) {
+
+    .public-profile-stats {
+        grid-template-columns:
+            1fr
+            1fr;
+
+        gap: 9px;
+    }
+
+
+    .public-profile-stat {
+        padding: 14px;
+    }
+
+
+    .public-profile-stat strong {
+        font-size: 1.4rem;
+    }
+
+
+    .public-profile-complaint-company {
+        grid-template-columns:
+            auto
+            minmax(0, 1fr);
+    }
+
+
+    .public-profile-complaint-company
+    .status-badge {
+        grid-column: 2;
+
+        justify-self:
+            start;
+    }
+
+}

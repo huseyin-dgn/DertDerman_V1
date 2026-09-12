@@ -1,8 +1,48 @@
 <article class="reader-article" data-reader-article aria-labelledby="reader-title">
-  <header class="reader-article-heading"><p class="discovery-eyebrow">DERTDERMAN / BLOG &amp; REHBER</p><h1 id="reader-title" tabindex="-1">{{ post.title }}</h1><p class="reader-lead">{{ post.excerpt }}</p>
-    <div class="reader-meta"><span>{% include 'companies/panel/icon.html' with name='calendar' %}<time datetime="{{ post.published_at|date:'c' }}">{{ post.published_at|date:'d F Y' }}</time></span><span>DertDerman Blog</span></div>
+  <header class="reader-article-heading">
+    <p class="discovery-eyebrow">DERTDERMAN / BLOG &amp; REHBER</p>
+    <h1 id="reader-title" tabindex="-1">{{ post.title }}</h1>
+    <p class="reader-lead">{{ post.excerpt }}</p>
+
+    <div class="reader-meta">
+      <span>
+        {% include 'companies/panel/icon.html' with name='calendar' %}
+        <time datetime="{{ post.published_at|date:'c' }}">
+          {{ post.published_at|date:'d F Y' }}
+        </time>
+      </span>
+
+      <span>DertDerman Blog</span>
+
+      <span class="reader-view-count">
+        {% include 'components/icon.html' with name='eye' %}
+        <b>{{ post.view_count|default:0 }}</b>
+        görüntülenme
+      </span>
+    </div>
   </header>
-  {% if post.cover_image %}<figure class="reader-cover"><img src="{{ post.cover_image.url }}" alt="{{ post.title }}" width="1200" height="675" decoding="async"></figure>{% endif %}
-  <div class="reader-prose">{{ post.content|linebreaks }}</div>
-  <footer class="reader-article-footer"><span>Bilgiyle bir adım ileri.</span><a href="{% url 'blog:list' %}" data-reader-return>Tüm Yazılara Dön {% include 'components/icon.html' %}</a></footer>
+
+  {% if post.cover_image %}
+    <figure class="reader-cover">
+      <img
+        src="{{ post.cover_image.url }}"
+        alt="{{ post.title }}"
+        width="1200"
+        height="675"
+        decoding="async"
+      >
+    </figure>
+  {% endif %}
+
+  <div class="reader-prose">
+    {{ post.content|linebreaks }}
+  </div>
+
+  <footer class="reader-article-footer">
+    <span>Bilgiyle bir adım ileri.</span>
+    <a href="{% url 'blog:list' %}" data-reader-return>
+      Tüm Yazılara Dön
+      {% include 'components/icon.html' %}
+    </a>
+  </footer>
 </article>

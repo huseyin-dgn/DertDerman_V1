@@ -21,3 +21,5 @@ templates/adminx/security_event_detail.html
 templates/core/about.html
 templates/adminx/company_report_list.html
 templates/adminx/user_list.html
+templates/core/contact.html
+templates/accounts/public_profile.html

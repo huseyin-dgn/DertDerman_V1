@@ -42,7 +42,7 @@ class PublicComplaintSocialTests(TestCase):
         self.client.post(url)
         self.assertEqual(ComplaintLike.objects.filter(complaint=self.complaint).count(), 1)
         self.assertEqual(Notification.objects.filter(notification_type="LIKE").count(), 1)
-        self.assertContains(self.client.get(self.detail()), "TOPLULUK DESTEĞİ")
+        self.assertContains(self.client.get(self.detail()), "Beğenildi")
 
     def test_reaction_is_single_updates_and_notifies_once(self):
         self.client.force_login(self.visitor)
@@ -55,9 +55,7 @@ class PublicComplaintSocialTests(TestCase):
         self.assertEqual(ComplaintReaction.objects.count(), 1)
         self.assertEqual(Notification.objects.filter(notification_type="REACTION").count(), 1)
         self.client.post(url, {"reaction_type": ComplaintReaction.Type.SAD})
-        reaction.refresh_from_db()
-        self.assertEqual(reaction.reaction_type, ComplaintReaction.Type.SAD)
-        self.assertEqual(ComplaintReaction.objects.count(), 1)
+        self.assertFalse(ComplaintReaction.objects.exists())
         self.client.post(url, {"reaction_type": ComplaintReaction.Type.SURPRISED})
         self.assertEqual(ComplaintReaction.objects.count(), 1)
         self.assertEqual(Notification.objects.filter(notification_type="REACTION").count(), 1)

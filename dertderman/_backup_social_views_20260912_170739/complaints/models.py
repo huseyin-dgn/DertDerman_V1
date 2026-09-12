@@ -46,11 +46,6 @@ class Complaint(models.Model):
         auto_now=True,
     )
 
-    view_count = models.PositiveBigIntegerField(
-        default=0,
-        editable=False,
-    )
-
     withdrawn_at = models.DateTimeField(
         null=True,
         blank=True,

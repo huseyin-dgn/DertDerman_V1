@@ -26,7 +26,6 @@ class Post(models.Model):
     status = models.CharField(max_length=12, choices=Status.choices, default=Status.DRAFT)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    view_count = models.PositiveBigIntegerField(default=0, editable=False)
     published_at = models.DateTimeField(null=True, blank=True, editable=False)
 
     class Meta:

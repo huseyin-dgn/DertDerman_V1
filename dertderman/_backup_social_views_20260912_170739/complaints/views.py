@@ -13,7 +13,6 @@ from .anti_abuse import (
 )
 from accounts.models import User
 from core.decorators import role_required
-from core.view_tracking import record_unique_session_view
 
 from .forms import (
     ComplaintCommentForm,
@@ -276,12 +275,6 @@ def public_complaint_detail(request, pk):
         pk=pk
     )
 
-    complaint.view_count = record_unique_session_view(
-        request,
-        instance=complaint,
-        namespace="complaint",
-    )
-
     return render(
         request,
         "complaints/public_detail.html",
@@ -384,7 +377,7 @@ def complaint_react(request, pk):
             current
             and current.reaction_type == reaction_type
         ):
-            # Aynı emojiye tekrar basmak tepkiyi kaldırmaz.
+            current.delete()
             created = False
 
         elif current:
