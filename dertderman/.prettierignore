@@ -34,3 +34,4 @@ templates/core/categories.html
 templates/components/category_icon.html
 templates/home.html
 templates/blog/post_list.html
+templates/accounts/password_reset_request.html

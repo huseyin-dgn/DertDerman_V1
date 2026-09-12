@@ -22,6 +22,7 @@
     <link rel="stylesheet" href="{% static 'css/auth.css' %}" />
     <link rel="stylesheet" href="{% static 'css/category-system.css' %}" />
     <link rel="stylesheet" href="{% static 'css/identity-v1.css' %}" />
+    {% block extra_css %}{% endblock %}
     <script src="{% static 'js/auth.js' %}" defer></script>
   </head>
   <body class="ax-page {% block auth_variant %}{% endblock %}">
