@@ -976,16 +976,6 @@ class UserViolation(models.Model):
         )
 
 class ReportRestriction(models.Model):
-    """
-    Kötü niyetli/asilsiz raporlama davranışından doğan geçici kısıtları
-    kayıt altında tutar.
-
-    PROBATION:
-        Kullanıcı raporu limiti son 24 saatte 1'e düşer.
-
-    FULL_BLOCK:
-        Kullanıcı şikayet oluşturamaz ve hiçbir raporlama işlemi yapamaz.
-    """
 
     class Kind(models.TextChoices):
         PROBATION = (

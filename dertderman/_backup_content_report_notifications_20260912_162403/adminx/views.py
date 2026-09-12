@@ -904,6 +904,21 @@ def report_status(request, pk):
                 request=request,
             )
 
+            from notifications.services import send
+            from notifications.models import Notification
+
+            send(
+                recipient=reporter,
+                scope="USER",
+                kind="REPORT_ABUSE",
+                event_key=f"content-report:{report.pk}:abusive",
+                title="Raporunuz kötüye kullanım olarak değerlendirildi.",
+                message=(
+                    "Gönderdiğiniz raporun kötü niyetli veya asılsız "
+                    "olduğu tespit edildi. Bu işlem hesabınıza "
+                    "doğrulanmış ihlal olarak işlendi."
+                ),
+            )
 
     complaint_removed = False
 
@@ -992,16 +1007,6 @@ def report_status(request, pk):
         },
         request=request,
     )
-
-    # Raporu gönderen kullanıcıya terminal karar bildirimi gönder.
-    if new_status in {
-        ContentReport.Status.RESOLVED,
-        ContentReport.Status.REJECTED,
-        ContentReport.Status.ABUSIVE,
-    }:
-        from notifications.services import notify_content_report_decision
-
-        notify_content_report_decision(report)
 
     # ---------------------------------------------------------
     # ADMIN MESAJI

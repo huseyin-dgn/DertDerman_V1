@@ -156,30 +156,10 @@ class Notification(models.Model):
             )
 
         if self.content_report_id:
-            if self.recipient_role == self.Scope.ADMIN:
-                return reverse(
-                    'adminx:report_detail',
-                    args=[self.content_report_id]
-                )
-
-            report = self.content_report
-            complaint = report.complaint
-
-            if complaint is None and report.comment_id:
-                complaint = report.comment.complaint
-
-            if (
-                complaint is not None
-                and complaint.status in ("PUBLISHED", "RESOLVED")
-                and complaint.withdrawn_at is None
-                and complaint.company.is_active
-            ):
-                return reverse(
-                    'complaints:public_detail',
-                    args=[complaint.pk]
-                )
-
-            return reverse('notifications:list')
+            return reverse(
+                'adminx:report_detail',
+                args=[self.content_report_id]
+            )
 
         if self.company_report_id:
             if self.recipient_role == self.Scope.ADMIN:

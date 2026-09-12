@@ -10,13 +10,4 @@ def inbox(user, scope):
         result = result.filter(Q(complaint__isnull=True) | Q(complaint__user=user))
     else:
         result = result.order_by('-created_at', '-pk')
-    return result.select_related(
-        'company',
-        'complaint',
-        'content_report',
-        'content_report__complaint',
-        'content_report__complaint__company',
-        'content_report__comment',
-        'content_report__comment__complaint',
-        'content_report__comment__complaint__company',
-    )
+    return result.select_related('company', 'complaint')

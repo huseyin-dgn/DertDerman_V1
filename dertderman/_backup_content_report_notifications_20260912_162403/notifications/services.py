@@ -245,55 +245,6 @@ def notify_admins_user_report(report):
 
 
 
-
-def notify_content_report_decision(report):
-    """İçerik raporu sonuçlandığında raporu gönderen kullanıcıya bilgi verir."""
-
-    if report.status == "RESOLVED":
-        return send(
-            recipient=report.reporter,
-            scope="USER",
-            kind=Notification.Type.CONTENT_REPORT,
-            event_key=f"content-report:{report.pk}:resolved:reporter",
-            title="İçerik raporunuz sonuçlandırıldı.",
-            message=(
-                "Gönderdiğiniz içerik raporunda topluluk kurallarına "
-                "aykırılık tespit edildi ve gerekli işlem uygulandı."
-            ),
-            content_report=report,
-        )
-
-    if report.status == "REJECTED":
-        return send(
-            recipient=report.reporter,
-            scope="USER",
-            kind=Notification.Type.CONTENT_REPORT,
-            event_key=f"content-report:{report.pk}:rejected:reporter",
-            title="İçerik raporunuz sonuçlandırıldı.",
-            message=(
-                "Yönetim incelemesinde raporlanan içerikte doğrulanmış "
-                "bir topluluk kuralı ihlali bulunmadı."
-            ),
-            content_report=report,
-        )
-
-    if report.status == "ABUSIVE":
-        return send(
-            recipient=report.reporter,
-            scope="USER",
-            kind=Notification.Type.CONTENT_REPORT,
-            event_key=f"content-report:{report.pk}:abusive:reporter",
-            title="Raporunuz kötüye kullanım olarak değerlendirildi.",
-            message=(
-                "Gönderdiğiniz içerik raporunun kötü niyetli veya asılsız "
-                "olduğu tespit edildi. Bu işlem hesabınıza doğrulanmış "
-                "kötüye kullanım ihlali olarak işlendi."
-            ),
-            content_report=report,
-        )
-
-    return None
-
 def notify_admins_company_report(report):
     send_admins(
         kind=Notification.Type.COMPANY_REPORT,
