@@ -1,0 +1,32 @@
+{% extends 'layouts/user_base.html' %}
+{% load static %}
+{% block title %}E-posta Değişikliğini Onayla | DertDerman{% endblock %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'css/email-change.css' %}">{% endblock %}
+{% block content %}
+<main class="content-section ec-page" id="main-content">
+  {% include 'components/workspace_nav.html' %}
+  <div class="section-inner ec-single">
+    <section class="ec-card ec-status-card">
+      {% if token_valid %}
+        <div class="ec-status-mark">✓</div>
+        <span class="ec-step">03 · Son onay</span>
+        <h1>E-posta değişikliğini onayla</h1>
+        <p>Hesabının e-posta adresi aşağıdaki yeni adresle değiştirilecek:</p>
+        <div class="ec-address">{{ new_email }}</div>
+        <p class="ec-muted">Bu sayfayı açmak tek başına değişiklik yapmaz. İşlemi tamamlamak için aşağıdaki butona basman gerekir.</p>
+        <form method="post" class="ec-form">
+          {% csrf_token %}
+          <button class="ec-submit" type="submit"><span>E-posta adresimi değiştir</span><span>→</span></button>
+        </form>
+        <a class="ec-back" href="{% url 'accounts:profile' %}">İptal et ve profile dön</a>
+      {% else %}
+        <div class="ec-status-mark ec-status-error">!</div>
+        <span class="ec-step">Bağlantı geçersiz</span>
+        <h1>Bu doğrulama bağlantısı kullanılamıyor</h1>
+        <p>Bağlantının süresi dolmuş, daha önce kullanılmış veya hesap bilgileri bu sırada değişmiş olabilir.</p>
+        <a class="ec-submit ec-link-button" href="{% url 'accounts:email_change' %}"><span>Yeni bağlantı iste</span><span>→</span></a>
+      {% endif %}
+    </section>
+  </div>
+</main>
+{% endblock %}

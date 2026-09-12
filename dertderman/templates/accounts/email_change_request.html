@@ -1,0 +1,59 @@
+{% extends 'layouts/user_base.html' %}
+{% load static %}
+{% block title %}E-posta Değiştir | DertDerman{% endblock %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'css/email-change.css' %}">{% endblock %}
+{% block content %}
+<main class="content-section ec-page" id="main-content">
+  {% include 'components/workspace_nav.html' %}
+  <div class="section-inner ec-shell">
+    <section class="ec-story" aria-labelledby="email-change-title">
+      <p class="ec-kicker">HESAP GÜVENLİĞİ</p>
+      <h1 id="email-change-title">E-posta adresini güvenli biçimde değiştir.</h1>
+      <p class="ec-lead">Mevcut adresin, yeni adres doğrulanana kadar hesabında kalır. Değişiklik yalnızca yeni e-posta adresine gönderilen onay bağlantısıyla tamamlanır.</p>
+      <div class="ec-flow" aria-label="E-posta değiştirme adımları">
+        <div><span>01</span><strong>Mevcut şifreni doğrula</strong><small>Oturum açık olsa bile hesap sahibini tekrar doğrularız.</small></div>
+        <div><span>02</span><strong>Yeni adresi onayla</strong><small>Doğrulama bağlantısı yalnızca yeni e-posta adresine gider.</small></div>
+        <div><span>03</span><strong>Değişikliği tamamla</strong><small>Onay verilene kadar eski adresin geçerliliğini korur.</small></div>
+      </div>
+    </section>
+
+    <section class="ec-panel">
+      <div class="ec-card">
+        <span class="ec-step">01 · Yeni adres talebi</span>
+        <h2>E-posta adresini değiştir</h2>
+        <p class="ec-copy">Şu an hesabında kayıtlı adres: <strong>{{ request.user.email }}</strong></p>
+
+        <form method="post" class="ec-form" novalidate>
+          {% csrf_token %}
+          {% if form.non_field_errors %}
+            <div class="ec-errors">{{ form.non_field_errors }}</div>
+          {% endif %}
+
+          <div class="ec-field">
+            <label for="{{ form.current_password.id_for_label }}">{{ form.current_password.label }}</label>
+            {{ form.current_password }}
+            {% if form.current_password.errors %}<div class="ec-errors">{{ form.current_password.errors }}</div>{% endif %}
+          </div>
+
+          <div class="ec-field">
+            <label for="{{ form.new_email.id_for_label }}">{{ form.new_email.label }}</label>
+            {{ form.new_email }}
+            {% if form.new_email.errors %}<div class="ec-errors">{{ form.new_email.errors }}</div>{% endif %}
+          </div>
+
+          <button class="ec-submit" type="submit">
+            <span>Doğrulama bağlantısını gönder</span>
+            <span aria-hidden="true">→</span>
+          </button>
+        </form>
+
+        <div class="ec-note">
+          <strong>Önemli:</strong> Bu form eski e-posta adresini hemen değiştirmez. Yeni adres maildeki bağlantı üzerinden ayrıca onaylanmalıdır.
+        </div>
+
+        <a class="ec-back" href="{% url 'accounts:profile' %}">← Profilime dön</a>
+      </div>
+    </section>
+  </div>
+</main>
+{% endblock %}

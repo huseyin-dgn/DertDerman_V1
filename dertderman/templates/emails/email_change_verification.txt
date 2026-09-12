@@ -1,0 +1,24 @@
+DertDerman
+
+E-posta değişikliğini onaylayın
+
+Merhaba{% if user.first_name %} {{ user.first_name }}{% endif %},
+
+DertDerman hesabınızda kullanılmak üzere bu e-posta adresi seçildi:
+
+{{ new_email }}
+
+Değişikliği tamamlamak için aşağıdaki bağlantıyı açın ve ekrandaki onay butonuna basın:
+
+{{ confirmation_url }}
+
+Bu bağlantı süreli ve tek kullanımlıdır.
+Bağlantıyı açmak tek başına e-posta adresinizi değiştirmez.
+Onay tamamlanana kadar mevcut e-posta adresiniz değişmez.
+
+Bu talebi siz oluşturmadıysanız hiçbir işlem yapmayın.
+
+DertDerman
+{{ support_email }}
+{{ support_phone }}
+{{ support_hours }}

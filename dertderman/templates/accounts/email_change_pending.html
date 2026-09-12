@@ -1,0 +1,22 @@
+{% extends 'layouts/user_base.html' %}
+{% load static %}
+{% block title %}Yeni E-postanızı Kontrol Edin | DertDerman{% endblock %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'css/email-change.css' %}">{% endblock %}
+{% block content %}
+<main class="content-section ec-page" id="main-content">
+  {% include 'components/workspace_nav.html' %}
+  <div class="section-inner ec-single">
+    <section class="ec-card ec-status-card">
+      <div class="ec-status-mark">→</div>
+      <span class="ec-step">02 · E-posta doğrulama</span>
+      <h1>Yeni e-posta adresini kontrol et</h1>
+      <p>Doğrulama bağlantısını yeni e-posta adresine gönderdik. Bağlantıyı açıp onay vermeden hesabındaki mevcut e-posta adresi değişmez.</p>
+      <div class="ec-note"><strong>Mail görünmüyor mu?</strong> Spam / Gereksiz klasörlerini kontrol et. Adresi yanlış girdiysen yeni bir talep oluşturabilirsin.</div>
+      <div class="ec-actions">
+        <a class="ec-submit ec-link-button" href="{% url 'accounts:email_change' %}"><span>Yeni talep oluştur</span><span>→</span></a>
+        <a class="ec-back" href="{% url 'accounts:profile' %}">Profilime dön</a>
+      </div>
+    </section>
+  </div>
+</main>
+{% endblock %}

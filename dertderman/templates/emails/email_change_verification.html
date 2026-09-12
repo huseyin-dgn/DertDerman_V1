@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="supported-color-schemes" content="light">
+  <title>E-posta değişikliğini onaylayın | DertDerman</title>
+</head>
+<body style="margin:0;padding:0;background:#f2f6fa;font-family:Arial,Helvetica,sans-serif;color:#17344e;">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">
+    DertDerman hesabınız için yeni e-posta adresinizi onaylayın.
+  </div>
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#f2f6fa;">
+    <tr>
+      <td align="center" style="padding:32px 14px;">
+        <table role="presentation" width="620" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:620px;background:#fff;border:1px solid #dfe8f0;border-radius:20px;overflow:hidden;">
+          <tr>
+            <td style="padding:30px 34px;background:#102f4d;">
+              <div style="font-size:22px;font-weight:800;color:#fff;">DertDerman</div>
+              <div style="margin-top:6px;font-size:10px;letter-spacing:1.5px;color:#9fc6df;">HESAP GÜVENLİĞİ</div>
+              <h1 style="margin:34px 0 10px;font-size:30px;line-height:1.18;letter-spacing:-1px;color:#fff;">Yeni e-posta adresinizi onaylayın.</h1>
+              <p style="margin:0;font-size:13px;line-height:1.8;color:#c4d7e4;">Hesabınızın e-posta adresini değiştirmek için son bir doğrulama gerekiyor.</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:34px;">
+              <p style="margin:0 0 18px;font-size:14px;line-height:1.7;color:#17344e;">
+                Merhaba{% if user.first_name %} <strong>{{ user.first_name }}</strong>{% endif %},
+              </p>
+              <p style="margin:0 0 22px;font-size:13px;line-height:1.85;color:#5f7588;">
+                DertDerman hesabınızda kullanılmak üzere bu e-posta adresi seçildi. Değişikliğin tamamlanması için aşağıdaki bağlantıyı açın ve ekrandaki onay butonuna basın.
+              </p>
+              <div style="margin:0 0 24px;padding:13px 15px;border:1px solid #dde8f0;border-radius:10px;background:#f7fafc;color:#2c5b7d;font-size:12px;font-weight:700;word-break:break-word;">
+                {{ new_email }}
+              </div>
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td style="border-radius:10px;background:#1d5fa7;">
+                    <a href="{{ confirmation_url }}" style="display:inline-block;padding:15px 24px;border-radius:10px;background:#1d5fa7;color:#fff;text-decoration:none;font-size:13px;font-weight:800;">
+                      E-posta Değişikliğini Onayla&nbsp;&nbsp;→
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top:28px;background:#f6f9fc;border:1px solid #e1eaf2;border-radius:13px;">
+                <tr>
+                  <td style="padding:17px 18px;font-size:11px;line-height:1.75;color:#667c8e;">
+                    <strong style="display:block;margin-bottom:7px;color:#2a526f;">Güvenlik bilgisi</strong>
+                    • Bu bağlantı süreli ve tek kullanımlıdır.<br>
+                    • Bağlantıyı açmak tek başına adresi değiştirmez; ekranda ayrıca onay gerekir.<br>
+                    • Bu işlem tamamlanana kadar mevcut e-posta adresiniz değişmez.
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:26px 0 8px;font-size:11px;line-height:1.7;color:#6f8293;">Buton çalışmıyorsa aşağıdaki adresi tarayıcınıza kopyalayın:</p>
+              <p style="margin:0;padding:12px 13px;border-radius:9px;background:#f5f7fa;word-break:break-all;font-size:10px;line-height:1.65;color:#41627d;">{{ confirmation_url }}</p>
+              <div style="height:1px;background:#e8eef3;margin:30px 0 24px;"></div>
+              <p style="margin:0;font-size:12px;line-height:1.8;color:#697e90;">
+                <strong style="color:#35546c;">Bu talebi siz oluşturmadıysanız hiçbir işlem yapmayın.</strong><br>
+                Bağlantı kullanılmadığı sürece hesabınızdaki e-posta adresi değişmez.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 34px 30px;">
+              <div style="padding-top:22px;border-top:1px solid #e5edf3;font-size:10px;line-height:1.75;color:#7a8d9d;">
+                <strong style="display:block;margin-bottom:5px;font-size:12px;color:#17344e;">DertDerman</strong>
+                {{ support_email }} · {{ support_phone }}<br>
+                {{ support_hours }}
+              </div>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

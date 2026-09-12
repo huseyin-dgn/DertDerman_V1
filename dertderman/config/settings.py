@@ -168,3 +168,8 @@ SITE_BASE_URL = os.getenv(
 EMAIL_VERIFICATION_TIMEOUT = int(
     os.getenv("EMAIL_VERIFICATION_TIMEOUT", "86400")
 )
+
+# Authenticated email-change links are intentionally shorter-lived.
+EMAIL_CHANGE_TIMEOUT = int(
+    os.getenv("EMAIL_CHANGE_TIMEOUT", "3600")
+)

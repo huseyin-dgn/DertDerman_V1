@@ -60,6 +60,7 @@ class UserAuthenticationForm(AuthenticationForm):
                 )
 
         return super().clean()
+
     def confirm_login_allowed(self, user):
         super().confirm_login_allowed(user)
 
@@ -80,6 +81,7 @@ class RegisterForm(UserCreationForm):
     selected_avatar = forms.ChoiceField(
         label="Avatar", choices=USER_AVATAR_CHOICES, required=True, widget=forms.RadioSelect,
     )
+
     class Meta:
         model = User
         fields = (
@@ -122,6 +124,7 @@ class RegisterForm(UserCreationForm):
             )
 
         return normalized
+
     def save(self, commit=True):
         user = super().save(commit=False)
         user.user_type = User.UserType.USER
@@ -138,12 +141,14 @@ class ProfileUpdateForm(ModelForm):
         label="Hazır avatar", choices=USER_AVATAR_CHOICES, required=False,
         widget=forms.RadioSelect,
     )
+
     class Meta:
         model = User
+        # E-posta burada özellikle yoktur. E-posta değişikliği ayrı,
+        # şifre doğrulamalı ve yeni adres onaylı güvenli akıştan yapılır.
         fields = (
             "first_name",
             "last_name",
-            "email",
             "phone",
             "selected_avatar",
         )

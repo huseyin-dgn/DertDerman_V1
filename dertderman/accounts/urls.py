@@ -1,5 +1,11 @@
 from django.urls import path
 
+from .email_change_views import (
+    EmailChangeCompleteView,
+    EmailChangePendingView,
+    EmailChangeRequestView,
+    email_change_confirm,
+)
 from .password_reset_views import (
     PasswordResetDoneView,
     PasswordResetRequestView,
@@ -56,6 +62,26 @@ urlpatterns = [
         "sifre-sifirlama/tamamlandi/",
         SecurePasswordResetCompleteView.as_view(),
         name="password_reset_complete",
+    ),
+    path(
+        "eposta-degistir/",
+        EmailChangeRequestView.as_view(),
+        name="email_change",
+    ),
+    path(
+        "eposta-degistirme/bekleniyor/",
+        EmailChangePendingView.as_view(),
+        name="email_change_pending",
+    ),
+    path(
+        "eposta-degistir/onayla/<str:token>/",
+        email_change_confirm,
+        name="email_change_confirm",
+    ),
+    path(
+        "eposta-degistirme/tamamlandi/",
+        EmailChangeCompleteView.as_view(),
+        name="email_change_complete",
     ),
     path("cikis/", SecureLogoutView.as_view(), name="logout"),
     path(

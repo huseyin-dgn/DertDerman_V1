@@ -1,0 +1,19 @@
+{% extends 'layouts/user_base.html' %}
+{% load static %}
+{% block title %}E-posta Güncellendi | DertDerman{% endblock %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'css/email-change.css' %}">{% endblock %}
+{% block content %}
+<main class="content-section ec-page" id="main-content">
+  {% include 'components/workspace_nav.html' %}
+  <div class="section-inner ec-single">
+    <section class="ec-card ec-status-card">
+      <div class="ec-status-mark">✓</div>
+      <span class="ec-step">04 · Tamamlandı</span>
+      <h1>E-posta adresin değiştirildi</h1>
+      <p>Yeni e-posta adresin doğrulandı ve hesabına kaydedildi.</p>
+      <div class="ec-address">{{ request.user.email }}</div>
+      <a class="ec-submit ec-link-button" href="{% url 'accounts:profile' %}"><span>Profilime dön</span><span>→</span></a>
+    </section>
+  </div>
+</main>
+{% endblock %}
