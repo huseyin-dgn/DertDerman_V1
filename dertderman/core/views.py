@@ -6,7 +6,7 @@ from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods, require_safe
 from django.views.decorators.cache import never_cache
-
+from companies.models import CompanyCategory
 from complaints.models import Complaint
 from complaints.selectors import public_complaints
 from blog.selectors import published_posts
@@ -137,4 +137,24 @@ def faq(request):
     return render(
         request,
         "core/legal/faq.html",
+    )
+
+@require_safe
+def categories(request):
+    company_categories = (
+        CompanyCategory.objects
+        .filter(is_active=True)
+        .only("name", "slug")
+        .order_by("name")
+    )
+
+    complaint_categories = Complaint.Category.choices
+
+    return render(
+        request,
+        "core/categories.html",
+        {
+            "company_categories": company_categories,
+            "complaint_categories": complaint_categories,
+        },
     )

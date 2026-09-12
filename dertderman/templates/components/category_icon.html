@@ -1,0 +1,174 @@
+<svg
+    class="category-svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    aria-hidden="true"
+>
+
+    {% if label == "Bankacılık ve Finans" %}
+
+        <path d="M3 10h18M5 10v8m4-8v8m6-8v8m4-8v8M3 19h18M12 4 3 8h18Z"/>
+
+    {% elif label == "Telekomünikasyon" %}
+
+        <path d="M8 18a6 6 0 0 1 8-8"/>
+        <path d="M5 15a10 10 0 0 1 10-10"/>
+        <circle cx="16.5" cy="18" r="1.5"/>
+
+    {% elif label == "E-Ticaret" %}
+
+        <path d="M3 5h2l2 10h10l2-7H6"/>
+        <circle cx="9" cy="19" r="1.5"/>
+        <circle cx="17" cy="19" r="1.5"/>
+
+    {% elif label == "Market ve Perakende" %}
+
+        <path d="M4 9h16l-1 11H5Z"/>
+        <path d="m8 9 4-5 4 5"/>
+        <path d="M8 13v3m4-3v3m4-3v3"/>
+
+    {% elif label == "Kargo ve Lojistik" %}
+
+        <path d="M3 6h11v11H3Z"/>
+        <path d="M14 10h4l3 3v4h-7Z"/>
+        <circle cx="7" cy="18" r="2"/>
+        <circle cx="17" cy="18" r="2"/>
+
+    {% elif label == "Ulaşım" %}
+
+        <path d="M5 16h14l-1.5-7h-11Z"/>
+        <path d="M8 9 9 5h6l1 4"/>
+        <circle cx="8" cy="18" r="1.5"/>
+        <circle cx="16" cy="18" r="1.5"/>
+
+    {% elif label == "Otomotiv" %}
+
+        <path d="M4 15 6 9h12l2 6"/>
+        <path d="M3 15h18v4H3Z"/>
+        <circle cx="7" cy="19" r="1"/>
+        <circle cx="17" cy="19" r="1"/>
+
+    {% elif label == "Elektronik ve Teknoloji" %}
+
+        <rect x="4" y="5" width="16" height="11" rx="2"/>
+        <path d="M9 20h6m-3-4v4"/>
+
+    {% elif label == "İnternet Servis Sağlayıcıları" %}
+
+        <path d="M4 9a12 12 0 0 1 16 0"/>
+        <path d="M7 13a8 8 0 0 1 10 0"/>
+        <path d="M10 17a4 4 0 0 1 4 0"/>
+        <circle cx="12" cy="20" r="1"/>
+
+    {% elif label == "Sigorta" %}
+
+        <path d="M12 3 20 6v5c0 5-3.4 8.3-8 10-4.6-1.7-8-5-8-10V6Z"/>
+        <path d="m9 12 2 2 4-5"/>
+
+    {% elif label == "Eğitim" %}
+
+        <path d="m3 9 9-5 9 5-9 5Z"/>
+        <path d="M7 12v5c3 2 7 2 10 0v-5"/>
+
+    {% elif label == "Sağlık" %}
+
+        <path d="M12 21s-7-4.3-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.7-7 10-7 10Z"/>
+        <path d="M9 13h6m-3-3v6"/>
+
+    {% elif label == "Turizm ve Seyahat" %}
+
+        <circle cx="12" cy="12" r="9"/>
+        <path d="M3 12h18M12 3c3 3 4 6 4 9s-1 6-4 9c-3-3-4-6-4-9s1-6 4-9Z"/>
+
+    {% elif label == "Yeme İçme" %}
+
+        <path d="M7 3v8m-3-8v5a3 3 0 0 0 6 0V3"/>
+        <path d="M7 11v10M16 3v18m0-18c3 2 4 5 4 8h-4"/>
+
+    {% elif label == "Giyim ve Moda" %}
+
+        <path d="m8 5 4-2 4 2 4 4-3 2v10H7V11L4 9Z"/>
+        <path d="M9 5c.5 2 1.5 3 3 3s2.5-1 3-3"/>
+
+    {% elif label == "Ev ve Yaşam" %}
+
+        <path d="m3 11 9-8 9 8"/>
+        <path d="M5 10v10h14V10"/>
+        <path d="M9 20v-6h6v6"/>
+
+    {% elif label == "Enerji" %}
+
+        <path d="m13 2-7 11h6l-1 9 7-12h-6Z"/>
+
+    {% elif label == "Kamu Hizmetleri" %}
+
+        <path d="M3 9h18L12 3Z"/>
+        <path d="M5 9v9m4-9v9m6-9v9m4-9v9M3 20h18"/>
+
+    {% elif label == "Dijital Hizmetler" %}
+
+        <rect x="4" y="4" width="16" height="16" rx="4"/>
+        <path d="M8 9h8M8 12h5M8 15h7"/>
+
+    {% elif label == "Ürün / Hizmet Kalitesi" %}
+
+        <path d="m12 3 2.5 5 5.5.8-4 3.9.9 5.5L12 16l-4.9 2.2.9-5.5-4-3.9L9.5 8Z"/>
+
+    {% elif label == "Teslimat / Kargo" %}
+
+        <path d="M4 7 12 3l8 4v10l-8 4-8-4Z"/>
+        <path d="m4 7 8 4 8-4M12 11v10"/>
+
+    {% elif label == "İade / Ücret" %}
+
+        <path d="M7 7h9a5 5 0 1 1 0 10H8"/>
+        <path d="m7 3-4 4 4 4"/>
+        <path d="M12 10v5m2-4.5c-.6-.5-1.2-.7-2-.7-1.1 0-2 .5-2 1.3 0 2.1 4 .8 4 2.9 0 .8-.9 1.3-2 1.3-.8 0-1.6-.3-2.2-.8"/>
+
+    {% elif label == "Ödeme / Faturalandırma" %}
+
+        <rect x="3" y="5" width="18" height="14" rx="2"/>
+        <path d="M3 10h18M7 15h4"/>
+
+    {% elif label == "Müşteri Hizmetleri" %}
+
+        <path d="M4 13v-2a8 8 0 0 1 16 0v2"/>
+        <path d="M4 13h3v5H4Zm13 0h3v5h-3Z"/>
+        <path d="M17 18c0 2-2 3-5 3"/>
+
+    {% elif label == "Hesap / Üyelik" %}
+
+        <circle cx="12" cy="8" r="4"/>
+        <path d="M5 21a7 7 0 0 1 14 0"/>
+
+    {% elif label == "Teknik Sorun" %}
+
+        <path d="m14 6 4-3 3 3-3 4"/>
+        <path d="M13 7 6 14l-3 6 6-3 7-7"/>
+        <path d="m5 16 3 3"/>
+
+    {% elif label == "Kampanya / Fiyat" %}
+
+        <path d="M3 12 12 3h7v7l-9 9Z"/>
+        <circle cx="16" cy="7" r="1"/>
+        <path d="m8 14 6-6"/>
+
+    {% elif label == "Garanti / Servis" %}
+
+        <path d="M12 3 19 6v5c0 4-2.5 7-7 10-4.5-3-7-6-7-10V6Z"/>
+        <path d="m9 12 2 2 4-5"/>
+
+    {% elif label == "Gizlilik / Güvenlik" %}
+
+        <rect x="5" y="10" width="14" height="10" rx="2"/>
+        <path d="M8 10V7a4 4 0 0 1 8 0v3"/>
+        <circle cx="12" cy="15" r="1"/>
+
+    {% else %}
+
+        <circle cx="12" cy="12" r="9"/>
+        <path d="M12 8v4m0 4h.01"/>
+
+    {% endif %}
+
+</svg>

@@ -8,10 +8,51 @@
 
         <div class="nav-links" id="site-links">
             <div class="nav-main">
-                <a href="{% url 'core:home' %}" {% if request.resolver_match.namespace == 'core' %}aria-current="page"{% endif %}>Ana Sayfa</a>
-                <a href="{% url 'complaints:public_list' %}" {% if request.resolver_match.namespace == 'complaints' and request.resolver_match.url_name == 'public_list' %}aria-current="page"{% endif %}>Şikayetler</a>
-                <a href="{% url 'companies_public:company_list' %}" {% if request.resolver_match.namespace == 'companies_public' %}aria-current="page"{% endif %}>Şirketler</a>
-                <a href="{% url 'blog:list' %}" {% if request.resolver_match.namespace == 'blog' %}aria-current="page"{% endif %}>Blog</a>
+<a
+    href="{% url 'core:home' %}"
+    {% if request.resolver_match.namespace == 'core' and request.resolver_match.url_name == 'home' %}
+        aria-current="page"
+    {% endif %}
+>
+    Ana Sayfa
+</a>
+
+<a
+    href="{% url 'complaints:public_list' %}"
+    {% if request.resolver_match.namespace == 'complaints' and request.resolver_match.url_name == 'public_list' %}
+        aria-current="page"
+    {% endif %}
+>
+    Şikayetler
+</a>
+
+<a
+    href="{% url 'companies_public:company_list' %}"
+    {% if request.resolver_match.namespace == 'companies_public' %}
+        aria-current="page"
+    {% endif %}
+>
+    Şirketler
+</a>
+
+<a
+    href="{% url 'core:categories' %}"
+    {% if request.resolver_match.namespace == 'core' and request.resolver_match.url_name == 'categories' %}
+        aria-current="page"
+    {% endif %}
+>
+    Kategoriler
+</a>
+
+<a
+    href="{% url 'blog:list' %}"
+    {% if request.resolver_match.namespace == 'blog' %}
+        aria-current="page"
+    {% endif %}
+>
+    Blog
+</a>
+
             </div>
 
             <div class="nav-actions">

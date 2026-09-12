@@ -11,7 +11,8 @@ from .views import (
     intro_reset,
     privacy_policy,
     terms_of_use,
-    faq
+    faq,
+    categories
 )
 
 app_name = "core"
@@ -27,6 +28,12 @@ urlpatterns = [
     "kvkk-aydinlatma-metni/",
     disclosure_notice,
     name="disclosure_notice",
+    
+),
+path(
+    "kategoriler/",
+    categories,
+    name="categories",
 ),
 path(
     "cerez-politikasi/",

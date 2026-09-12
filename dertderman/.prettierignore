@@ -30,3 +30,7 @@ templates/companies/company_list.html
 templates/companies/company_detail.html
 templates/complaints/complaint_edit.html
 templates/companies/company_register.html
+templates/core/categories.html
+templates/components/category_icon.html
+templates/home.html
+templates/blog/post_list.html

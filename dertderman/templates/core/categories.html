@@ -1,0 +1,429 @@
+{% extends "layouts/public_base.html" %}
+{% load static %}
+
+{% block title %}
+Kategoriler | DertDerman
+{% endblock %}
+
+{% block meta_description %}
+DertDerman şirket kategorilerini ve şikayet konularını keşfedin.
+{% endblock %}
+
+{% block body_class %}
+public-site categories-page
+{% endblock %}
+
+{% block extra_head %}
+<link
+    rel="stylesheet"
+    href="{% static 'css/categories.css' %}"
+>
+{% endblock %}
+
+{% block content %}
+
+<main id="main-content">
+
+    <section class="categories-hero">
+
+        <div
+            class="categories-hero-atmosphere"
+            aria-hidden="true"
+        >
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+
+        <div class="section-inner categories-hero-inner">
+
+            <div class="categories-hero-copy">
+
+                <p class="categories-eyebrow">
+                    DERTDERMAN KEŞİF
+                </p>
+
+                <h1>
+                    Aradığın alanı seç,
+                    <span>
+                        doğrudan konuya ulaş.
+                    </span>
+                </h1>
+
+                <p class="categories-hero-description">
+                    Şirketleri sektörlerine, şikayetleri konularına
+                    göre keşfedin. İlgilendiğiniz alandaki şirketlere
+                    ve kullanıcı deneyimlerine kolayca ulaşın.
+                </p>
+
+                <div class="categories-hero-actions">
+
+                    <a
+                        href="#sirket-kategorileri"
+                        class="categories-primary-action"
+                    >
+                        Şirketleri Keşfet
+
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            aria-hidden="true"
+                        >
+                            <path d="M5 12h14"/>
+                            <path d="m14 7 5 5-5 5"/>
+                        </svg>
+                    </a>
+
+                    <a
+                        href="#sikayet-konulari"
+                        class="categories-secondary-action"
+                    >
+                        Şikayet Konuları
+                    </a>
+
+                </div>
+
+            </div>
+
+            <aside
+                class="categories-hero-visual"
+                aria-label="Kategori keşif seçenekleri"
+            >
+
+                <div class="categories-visual-top">
+
+                    <div>
+
+
+
+                        <h2>
+                            Nereden başlamak
+                            istiyorsun?
+                        </h2>
+
+                    </div>
+
+
+
+                </div>
+
+                <div class="categories-discovery-cards">
+
+                    <a
+                        href="#sirket-kategorileri"
+                        class="categories-discovery-card"
+                    >
+
+                        <span class="categories-discovery-icon">
+
+                            <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                aria-hidden="true"
+                            >
+                                <path d="M4 21V7l8-4 8 4v14"/>
+                                <path d="M8 10h2m4 0h2"/>
+                                <path d="M8 14h2m4 0h2"/>
+                                <path d="M9 21v-3h6v3"/>
+                            </svg>
+
+                        </span>
+
+                        <span class="categories-discovery-copy">
+
+                            <small>
+                                ŞİRKETLER
+                            </small>
+
+                            <strong>
+                                Şirket kategorileri
+                            </strong>
+
+                            <span>
+                                {{ company_categories|length }}
+                                farklı sektörü keşfet
+                            </span>
+
+                        </span>
+
+                        <span
+                            class="categories-discovery-arrow"
+                            aria-hidden="true"
+                        >
+                            →
+                        </span>
+
+                    </a>
+
+                    <a
+                        href="#sikayet-konulari"
+                        class="categories-discovery-card"
+                    >
+
+                        <span class="categories-discovery-icon">
+
+                            <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                aria-hidden="true"
+                            >
+                                <path d="M5 4h14v13H9l-4 4Z"/>
+                                <path d="M9 8h6"/>
+                                <path d="M9 12h4"/>
+                            </svg>
+
+                        </span>
+
+                        <span class="categories-discovery-copy">
+
+                            <small>
+                                DENEYİMLER
+                            </small>
+
+                            <strong>
+                                Şikayet konuları
+                            </strong>
+
+                            <span>
+                                {{ complaint_categories|length }}
+                                farklı konuyu incele
+                            </span>
+
+                        </span>
+
+                        <span
+                            class="categories-discovery-arrow"
+                            aria-hidden="true"
+                        >
+                            →
+                        </span>
+
+                    </a>
+
+                </div>
+
+                <div class="categories-visual-footer">
+
+                    <span
+                        class="categories-status-dot"
+                        aria-hidden="true"
+                    ></span>
+
+                    <span>
+                        Doğru kategoriye, doğru deneyime.
+                    </span>
+
+                </div>
+
+            </aside>
+
+        </div>
+
+    </section>
+
+    <section class="categories-content">
+
+        <div class="section-inner">
+
+            <section
+                id="sirket-kategorileri"
+                class="category-group"
+                aria-labelledby="company-categories-title"
+            >
+
+                <header class="category-group-header">
+
+                    <div class="category-group-title">
+
+                        <span class="category-group-icon">
+
+                            <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                aria-hidden="true"
+                            >
+                                <path d="M4 21V7l8-4 8 4v14"/>
+                                <path d="M8 10h2m4 0h2M8 14h2m4 0h2M9 21v-3h6v3"/>
+                            </svg>
+
+                        </span>
+
+                        <div>
+
+                            <p>
+                                ŞİRKET REHBERİ
+                            </p>
+
+                            <h2 id="company-categories-title">
+                                Şirket kategorileri
+                            </h2>
+
+                        </div>
+
+                    </div>
+
+                    <h3 class="category-group-description">
+                        Sektör seçerek o alandaki şirketleri
+                        ve yayınlanan kullanıcı deneyimlerini görüntüleyin.
+                </h3>
+
+                </header>
+
+                <div class="category-grid category-grid--companies">
+
+                    {% for category in company_categories %}
+
+                        <a
+                            class="category-card"
+                            href="{% url 'companies_public:company_list' %}?category={{ category.slug|urlencode }}"
+                        >
+
+                            <span class="category-card-icon">
+                                {% include "components/category_icon.html" with label=category.name %}
+                            </span>
+
+                            <span class="category-card-body">
+
+                                <small>
+                                    ŞİRKET KATEGORİSİ
+                                </small>
+
+                                <strong>
+                                    {{ category.name }}
+                                </strong>
+
+                            </span>
+
+                            <span
+                                class="category-card-action"
+                                aria-hidden="true"
+                            >
+                                <svg
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                >
+                                    <path d="M5 12h14"/>
+                                    <path d="m14 7 5 5-5 5"/>
+                                </svg>
+                            </span>
+
+                        </a>
+
+                    {% empty %}
+
+                        <p class="category-empty">
+                            Aktif şirket kategorisi bulunmuyor.
+                        </p>
+
+                    {% endfor %}
+
+                </div>
+
+            </section>
+
+            <div
+                class="category-divider"
+                aria-hidden="true"
+            >
+                <span></span>
+                <div>DD</div>
+                <span></span>
+            </div>
+
+            <section
+                id="sikayet-konulari"
+                class="category-group category-group--complaints"
+                aria-labelledby="complaint-categories-title"
+            >
+
+                <header class="category-group-header">
+
+                    <div class="category-group-title">
+
+                        <span class="category-group-icon">
+
+                            <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                aria-hidden="true"
+                            >
+                                <path d="M5 4h14v13H9l-4 4Z"/>
+                                <path d="M9 8h6M9 12h4"/>
+                            </svg>
+
+                        </span>
+
+                        <div>
+
+                            <p>
+                                DENEYİMLER
+                            </p>
+
+                            <h2 id="complaint-categories-title">
+                                Şikayet konuları
+                            </h2>
+
+                        </div>
+
+                    </div>
+
+                    <h3 class="category-group-description">
+                        Yaşadığınız soruna en yakın konuyu seçerek
+                        benzer kullanıcı deneyimlerine ulaşın.
+                    </h3>
+
+                </header>
+
+                <div class="category-grid category-grid--complaints">
+
+                    {% for value, label in complaint_categories %}
+
+                        <a
+                            class="category-card category-card--complaint"
+                            href="{% url 'complaints:public_list' %}?category={{ value|urlencode }}"
+                        >
+
+                            <span class="category-card-icon">
+                                {% include "components/category_icon.html" with label=label %}
+                            </span>
+
+                            <span class="category-card-body">
+
+                                <small>
+                                    ŞİKAYET KONUSU
+                                </small>
+
+                                <strong>
+                                    {{ label }}
+                                </strong>
+
+                            </span>
+
+                            <span
+                                class="category-card-action"
+                                aria-hidden="true"
+                            >
+                                <svg
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                >
+                                    <path d="M5 12h14"/>
+                                    <path d="m14 7 5 5-5 5"/>
+                                </svg>
+                            </span>
+
+                        </a>
+
+                    {% endfor %}
+
+                </div>
+
+            </section>
+
+        </div>
+
+    </section>
+
+</main>
+
+{% endblock %}

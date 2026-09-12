@@ -187,6 +187,11 @@
                         </a>
                     {% endif %}
 
+                    <a href="{% url 'core:categories' %}">
+    Kategoriler
+</a>
+
+
                     {% if not request.user.is_authenticated %}
 
                         <a href="{% url 'accounts:register' %}">
