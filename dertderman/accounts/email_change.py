@@ -46,7 +46,7 @@ def _state_digest(user: User) -> str:
 
 def _token_max_age() -> int:
     try:
-        value = int(getattr(settings, "EMAIL_CHANGE_TIMEOUT", 3600))
+        value = int(getattr(settings, "EMAIL_CHANGE_TIMEOUT", 600))
     except (TypeError, ValueError) as exc:
         raise EmailChangeConfigurationError(
             "EMAIL_CHANGE_TIMEOUT must be an integer number of seconds."

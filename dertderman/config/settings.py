@@ -169,14 +169,20 @@ SITE_BASE_URL = os.getenv(
 ).strip().rstrip("/")
 
 
-# Verification links are valid for 24 hours by default.
-EMAIL_VERIFICATION_TIMEOUT = int(
-    os.getenv("EMAIL_VERIFICATION_TIMEOUT", "86400")
+# Password-reset links are valid for 5 minutes by default.
+PASSWORD_RESET_TIMEOUT = int(
+    os.getenv("PASSWORD_RESET_TIMEOUT", "300")
 )
 
-# Authenticated email-change links are intentionally shorter-lived.
+
+# Verification links are valid for 30 minutes by default.
+EMAIL_VERIFICATION_TIMEOUT = int(
+    os.getenv("EMAIL_VERIFICATION_TIMEOUT", "1800")
+)
+
+# Authenticated email-change links are valid for 10 minutes by default.
 EMAIL_CHANGE_TIMEOUT = int(
-    os.getenv("EMAIL_CHANGE_TIMEOUT", "3600")
+    os.getenv("EMAIL_CHANGE_TIMEOUT", "600")
 )
 
 

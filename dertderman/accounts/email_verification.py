@@ -52,7 +52,7 @@ def make_email_verification_token(user: User) -> str:
 
 def _token_max_age() -> int:
     try:
-        value = int(getattr(settings, "EMAIL_VERIFICATION_TIMEOUT", 86400))
+        value = int(getattr(settings, "EMAIL_VERIFICATION_TIMEOUT", 1800))
     except (TypeError, ValueError) as exc:
         raise EmailVerificationConfigurationError(
             "EMAIL_VERIFICATION_TIMEOUT must be an integer number of seconds."
