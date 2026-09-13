@@ -10,6 +10,7 @@ from django.views.decorators.http import require_http_methods
 from django.views.generic import FormView, TemplateView
 
 from core.decorators import role_required
+from core.rate_limit import consume_rate_limit
 from notifications.email_service import EmailServiceError
 
 from .email_change import (
@@ -22,6 +23,12 @@ from .models import User
 
 
 logger = logging.getLogger(__name__)
+
+EMAIL_CHANGE_REQUEST_LIMIT = 3
+EMAIL_CHANGE_REQUEST_WINDOW_SECONDS = 60 * 60
+EMAIL_CHANGE_RATE_LIMIT_MESSAGE = (
+    "Kısa süre içinde çok fazla e-posta değişikliği istediniz. Lütfen daha sonra tekrar deneyin."
+)
 
 
 class EmailChangeRequestForm(forms.Form):
@@ -110,6 +117,19 @@ class EmailChangeRequestView(FormView):
         return kwargs
 
     def form_valid(self, form):
+        decision = consume_rate_limit(
+            scope="email-change-user",
+            identifier=self.request.user.pk,
+            limit=EMAIL_CHANGE_REQUEST_LIMIT,
+            window_seconds=EMAIL_CHANGE_REQUEST_WINDOW_SECONDS,
+        )
+        if not decision.allowed:
+            form.add_error(None, EMAIL_CHANGE_RATE_LIMIT_MESSAGE)
+            response = self.form_invalid(form)
+            response.status_code = 429
+            response["Retry-After"] = str(decision.retry_after)
+            return response
+
         try:
             result = send_email_change_verification(
                 self.request.user,

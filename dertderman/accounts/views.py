@@ -21,6 +21,12 @@ from django.views.decorators.http import require_POST, require_http_methods
 from django.views.generic.edit import FormView
 
 from core.decorators import role_required
+from core.rate_limit import (
+    clear_rate_limit,
+    client_ip,
+    consume_rate_limit,
+    rate_limit_status,
+)
 from notifications.email_service import EmailServiceError
 
 from .badges import (
@@ -42,6 +48,18 @@ from .redirects import safe_role_next
 
 
 logger = logging.getLogger(__name__)
+
+AUTH_RATE_LIMIT_MESSAGE = (
+    "Çok fazla giriş denemesi yapıldı. Lütfen kısa bir süre sonra tekrar deneyin."
+)
+REGISTER_RATE_LIMIT_MESSAGE = (
+    "Çok fazla kayıt denemesi yapıldı. Lütfen daha sonra tekrar deneyin."
+)
+LOGIN_IDENTITY_LIMIT = 5
+LOGIN_IP_LIMIT = 20
+LOGIN_WINDOW_SECONDS = 15 * 60
+REGISTER_IP_LIMIT = 10
+REGISTER_WINDOW_SECONDS = 60 * 60
 
 
 def role_redirect_url(user):
@@ -85,6 +103,24 @@ class RegisterView(FormView):
             *args,
             **kwargs,
         )
+
+    def post(self, request, *args, **kwargs):
+        decision = consume_rate_limit(
+            scope="user-register-ip",
+            identifier=client_ip(request),
+            limit=REGISTER_IP_LIMIT,
+            window_seconds=REGISTER_WINDOW_SECONDS,
+        )
+        if not decision.allowed:
+            form = self.get_form()
+            form.add_error(None, REGISTER_RATE_LIMIT_MESSAGE)
+            response = self.render_to_response(
+                self.get_context_data(form=form),
+                status=429,
+            )
+            response["Retry-After"] = str(decision.retry_after)
+            return response
+        return super().post(request, *args, **kwargs)
 
     def form_valid(
         self,
@@ -180,10 +216,57 @@ def email_verification_confirm(request, token):
 )
 class SecureLoginView(LoginView):
     template_name = "accounts/login.html"
-    authentication_form = (
-        UserAuthenticationForm
-    )
+    authentication_form = UserAuthenticationForm
     redirect_authenticated_user = True
+
+    def _rate_identifiers(self):
+        ip = client_ip(self.request)
+        username = (self.request.POST.get("username", "") or "").strip().casefold()
+        return ip, f"{ip}\0{username}"
+
+    def post(self, request, *args, **kwargs):
+        ip, identity = self._rate_identifiers()
+        identity_status = rate_limit_status(
+            scope="user-login-identity",
+            identifier=identity,
+            limit=LOGIN_IDENTITY_LIMIT,
+            window_seconds=LOGIN_WINDOW_SECONDS,
+        )
+        ip_status = rate_limit_status(
+            scope="user-login-ip",
+            identifier=ip,
+            limit=LOGIN_IP_LIMIT,
+            window_seconds=LOGIN_WINDOW_SECONDS,
+        )
+        if not identity_status.allowed or not ip_status.allowed:
+            form = self.get_form()
+            form.add_error(None, AUTH_RATE_LIMIT_MESSAGE)
+            response = super().form_invalid(form)
+            response.status_code = 429
+            response["Retry-After"] = str(LOGIN_WINDOW_SECONDS)
+            return response
+        return super().post(request, *args, **kwargs)
+
+    def form_invalid(self, form):
+        ip, identity = self._rate_identifiers()
+        consume_rate_limit(
+            scope="user-login-identity",
+            identifier=identity,
+            limit=LOGIN_IDENTITY_LIMIT,
+            window_seconds=LOGIN_WINDOW_SECONDS,
+        )
+        consume_rate_limit(
+            scope="user-login-ip",
+            identifier=ip,
+            limit=LOGIN_IP_LIMIT,
+            window_seconds=LOGIN_WINDOW_SECONDS,
+        )
+        return super().form_invalid(form)
+
+    def form_valid(self, form):
+        _, identity = self._rate_identifiers()
+        clear_rate_limit(scope="user-login-identity", identifier=identity)
+        return super().form_valid(form)
 
     def get_success_url(self):
         return (

@@ -11,6 +11,11 @@ from django.views.generic import (
     TemplateView,
 )
 
+from core.rate_limit import (
+    client_ip,
+    consume_rate_limit,
+)
+
 from .password_reset import (
     request_password_reset,
 )
@@ -20,6 +25,11 @@ GENERIC_RESET_MESSAGE = (
     "Eğer bu e-posta adresiyle kayıtlı bir hesap varsa "
     "şifre sıfırlama bağlantısı gönderildi."
 )
+
+
+PASSWORD_RESET_EMAIL_LIMIT = 5
+PASSWORD_RESET_IP_LIMIT = 20
+PASSWORD_RESET_WINDOW_SECONDS = 15 * 60
 
 
 class PasswordResetRequestForm(forms.Form):
@@ -47,13 +57,24 @@ class PasswordResetRequestView(FormView):
         "accounts:password_reset_done"
     )
 
-    def form_valid(
-        self,
-        form,
-    ):
-        request_password_reset(
-            form.cleaned_data["email"]
+    def form_valid(self, form):
+        email = form.cleaned_data["email"].strip().casefold()
+        ip = client_ip(self.request)
+        email_decision = consume_rate_limit(
+            scope="password-reset-email",
+            identifier=email,
+            limit=PASSWORD_RESET_EMAIL_LIMIT,
+            window_seconds=PASSWORD_RESET_WINDOW_SECONDS,
         )
+        ip_decision = consume_rate_limit(
+            scope="password-reset-ip",
+            identifier=ip,
+            limit=PASSWORD_RESET_IP_LIMIT,
+            window_seconds=PASSWORD_RESET_WINDOW_SECONDS,
+        )
+        # Enumeration direnci: limit asildiginda da public davranis ayni kalir.
+        if email_decision.allowed and ip_decision.allowed:
+            request_password_reset(email)
         return super().form_valid(form)
 
 

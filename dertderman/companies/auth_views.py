@@ -10,9 +10,27 @@ from django.views.decorators.http import require_http_methods
 
 from accounts.models import User
 from accounts.redirects import safe_role_next
+from core.rate_limit import (
+    clear_rate_limit,
+    client_ip,
+    consume_rate_limit,
+    rate_limit_status,
+)
 
 from .forms import CompanyAuthenticationForm, CompanyRegistrationForm
 from .services import active_company_memberships_for
+
+AUTH_RATE_LIMIT_MESSAGE = (
+    "Çok fazla giriş denemesi yapıldı. Lütfen kısa bir süre sonra tekrar deneyin."
+)
+REGISTER_RATE_LIMIT_MESSAGE = (
+    "Çok fazla şirket kayıt denemesi yapıldı. Lütfen daha sonra tekrar deneyin."
+)
+LOGIN_IDENTITY_LIMIT = 5
+LOGIN_IP_LIMIT = 20
+LOGIN_WINDOW_SECONDS = 15 * 60
+REGISTER_IP_LIMIT = 10
+REGISTER_WINDOW_SECONDS = 60 * 60
 
 
 @never_cache
@@ -26,6 +44,25 @@ def company_register(request):
         ):
             return redirect("companies:company_panel")
         raise PermissionDenied
+
+    if request.method == "POST":
+        decision = consume_rate_limit(
+            scope="company-register-ip",
+            identifier=client_ip(request),
+            limit=REGISTER_IP_LIMIT,
+            window_seconds=REGISTER_WINDOW_SECONDS,
+        )
+        if not decision.allowed:
+            form = CompanyRegistrationForm(request.POST)
+            form.add_error(None, REGISTER_RATE_LIMIT_MESSAGE)
+            response = render(
+                request,
+                "companies/company_register.html",
+                {"form": form},
+                status=429,
+            )
+            response["Retry-After"] = str(decision.retry_after)
+            return response
 
     form = CompanyRegistrationForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
@@ -55,6 +92,55 @@ class CompanyLoginView(LoginView):
                 return redirect("companies:company_panel")
             raise PermissionDenied
         return super().dispatch(request, *args, **kwargs)
+
+    def _rate_identifiers(self):
+        ip = client_ip(self.request)
+        email = (self.request.POST.get("email", "") or "").strip().casefold()
+        return ip, f"{ip}\0{email}"
+
+    def post(self, request, *args, **kwargs):
+        ip, identity = self._rate_identifiers()
+        identity_status = rate_limit_status(
+            scope="company-login-identity",
+            identifier=identity,
+            limit=LOGIN_IDENTITY_LIMIT,
+            window_seconds=LOGIN_WINDOW_SECONDS,
+        )
+        ip_status = rate_limit_status(
+            scope="company-login-ip",
+            identifier=ip,
+            limit=LOGIN_IP_LIMIT,
+            window_seconds=LOGIN_WINDOW_SECONDS,
+        )
+        if not identity_status.allowed or not ip_status.allowed:
+            form = self.get_form()
+            form.add_error(None, AUTH_RATE_LIMIT_MESSAGE)
+            response = super().form_invalid(form)
+            response.status_code = 429
+            response["Retry-After"] = str(LOGIN_WINDOW_SECONDS)
+            return response
+        return super().post(request, *args, **kwargs)
+
+    def form_invalid(self, form):
+        ip, identity = self._rate_identifiers()
+        consume_rate_limit(
+            scope="company-login-identity",
+            identifier=identity,
+            limit=LOGIN_IDENTITY_LIMIT,
+            window_seconds=LOGIN_WINDOW_SECONDS,
+        )
+        consume_rate_limit(
+            scope="company-login-ip",
+            identifier=ip,
+            limit=LOGIN_IP_LIMIT,
+            window_seconds=LOGIN_WINDOW_SECONDS,
+        )
+        return super().form_invalid(form)
+
+    def form_valid(self, form):
+        _, identity = self._rate_identifiers()
+        clear_rate_limit(scope="company-login-identity", identifier=identity)
+        return super().form_valid(form)
 
     def get_success_url(self):
         return safe_role_next(self.request, self.request.user.user_type) or reverse("companies:company_panel")

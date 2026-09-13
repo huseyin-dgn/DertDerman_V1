@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -176,4 +177,25 @@ EMAIL_VERIFICATION_TIMEOUT = int(
 # Authenticated email-change links are intentionally shorter-lived.
 EMAIL_CHANGE_TIMEOUT = int(
     os.getenv("EMAIL_CHANGE_TIMEOUT", "3600")
+)
+
+
+# Stage 7 security throttling.
+# Normal çalışmada rate limit varsayılan olarak açıktır.
+# Django test suite'inde ise eski/ilişkisiz testlerin aynı test IP'sini
+# paylaşması rate-limit bucket'larını birbirine taşımamalıdır.
+# Stage 7'nin kendi testleri @override_settings(RATE_LIMIT_ENABLED=True)
+# ile rate limiting'i açıkça etkinleştirir.
+RUNNING_TESTS = "test" in sys.argv
+
+RATE_LIMIT_ENABLED = _env_bool(
+    "RATE_LIMIT_ENABLED",
+    default=not RUNNING_TESTS,
+)
+
+# Only enable this in production when the origin is restricted to Cloudflare
+# or another trusted reverse proxy.
+TRUST_CLOUDFLARE_CONNECTING_IP = _env_bool(
+    "TRUST_CLOUDFLARE_CONNECTING_IP",
+    default=False,
 )
