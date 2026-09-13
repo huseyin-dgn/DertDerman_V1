@@ -142,6 +142,10 @@ TRANSACTIONAL_EMAILS_ENABLED = _env_bool(
     default=True,
 )
 RESEND_API_KEY = os.getenv("RESEND_API_KEY", "").strip()
+RESEND_WEBHOOK_SECRET = os.getenv("RESEND_WEBHOOK_SECRET", "").strip()
+RESEND_WEBHOOK_MAX_BODY_BYTES = int(
+    os.getenv("RESEND_WEBHOOK_MAX_BODY_BYTES", "131072")
+)
 
 DEFAULT_FROM_EMAIL = os.getenv(
     "DEFAULT_FROM_EMAIL",

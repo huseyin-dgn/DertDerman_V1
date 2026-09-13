@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass
 from hashlib import sha256
 
@@ -6,6 +7,9 @@ from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.db.models import F
 from django.utils import timezone
+
+
+logger = logging.getLogger(__name__)
 
 
 class EmailServiceError(RuntimeError):
@@ -225,6 +229,16 @@ def _mark_sent(delivery, provider_message_id: str) -> None:
             "updated_at",
         ]
     )
+
+    try:
+        from .webhook_service import reconcile_unmatched_resend_events
+        reconcile_unmatched_resend_events(delivery.provider_message_id)
+    except Exception as exc:
+        logger.warning(
+            "Email webhook reconciliation failed: delivery_id=%s exception_type=%s",
+            delivery.pk,
+            exc.__class__.__name__,
+        )
 
 
 def send_email(

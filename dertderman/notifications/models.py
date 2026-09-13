@@ -259,6 +259,15 @@ class EmailDelivery(models.Model):
         FAILED = "FAILED", "Başarısız"
         SKIPPED = "SKIPPED", "Atlandı"
 
+    class ProviderStatus(models.TextChoices):
+        SENT = "SENT", "Provider gönderdi"
+        DELIVERED = "DELIVERED", "Teslim edildi"
+        DELAYED = "DELAYED", "Teslimat gecikti"
+        BOUNCED = "BOUNCED", "Geri döndü"
+        COMPLAINED = "COMPLAINED", "Spam şikayeti"
+        FAILED = "FAILED", "Provider başarısız"
+        SUPPRESSED = "SUPPRESSED", "Provider tarafından bastırıldı"
+
     notification = models.ForeignKey(
         Notification,
         on_delete=models.SET_NULL,
@@ -292,6 +301,19 @@ class EmailDelivery(models.Model):
         db_index=True,
     )
 
+    provider_status = models.CharField(
+        max_length=32,
+        choices=ProviderStatus.choices,
+        blank=True,
+        default="",
+        db_index=True,
+    )
+
+    provider_status_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
     attempt_count = models.PositiveIntegerField(default=0)
 
     last_error_type = models.CharField(
@@ -321,6 +343,46 @@ class EmailDelivery(models.Model):
                     "-created_at",
                 ],
                 name="email_delivery_status",
+            )
+        ]
+
+
+class EmailWebhookEvent(models.Model):
+    """Minimal, doğrulanmış provider webhook audit kaydı."""
+
+    class ProcessingResult(models.TextChoices):
+        MATCHED = "MATCHED", "Teslimatla eşleşti"
+        UNMATCHED = "UNMATCHED", "Teslimat bulunamadı"
+        IGNORED = "IGNORED", "Takip edilmeyen event"
+
+    provider = models.CharField(max_length=32, default="resend")
+    event_id = models.CharField(max_length=255, unique=True)
+    event_type = models.CharField(max_length=64, db_index=True)
+    provider_message_id = models.CharField(
+        max_length=255, blank=True, default="", db_index=True
+    )
+    delivery = models.ForeignKey(
+        EmailDelivery,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="webhook_events",
+    )
+    processing_result = models.CharField(
+        max_length=16,
+        choices=ProcessingResult.choices,
+        default=ProcessingResult.IGNORED,
+        db_index=True,
+    )
+    event_created_at = models.DateTimeField(null=True, blank=True)
+    received_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-received_at", "-pk")
+        indexes = [
+            models.Index(
+                fields=["provider", "provider_message_id", "event_created_at"],
+                name="email_webhook_lookup",
             )
         ]
 
