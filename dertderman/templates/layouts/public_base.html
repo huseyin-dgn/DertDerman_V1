@@ -12,6 +12,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#1d5fa7">
 
+    {% block robots_meta %}{% endblock %}
+
     <title>{% block title %}DertDerman{% endblock %}</title>
 
     <meta
@@ -36,10 +38,12 @@
         content="{% block og_description %}Tüketici deneyimlerini paylaşın, şirket yanıtlarını görün ve çözüm sürecini takip edin.{% endblock %}"
     >
 
+    {% block og_url %}
     <meta
         property="og:url"
         content="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}"
     >
+    {% endblock %}
 
     <meta
         property="og:type"

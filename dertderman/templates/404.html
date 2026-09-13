@@ -1,4 +1,7 @@
 {% extends 'base.html' %}
+{% block robots_meta %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block canonical %}{% endblock %}
+{% block og_url %}{% endblock %}
 {% block title %}404 | DertDerman{% endblock %}
 {% block content %}<main class="content-section" id="main-content"><section class="error-shell">
 {% include 'components/error_visual.html' with code='404' %}
