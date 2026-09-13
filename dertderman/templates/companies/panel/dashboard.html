@@ -2,6 +2,37 @@
 {% block title %}Genel Bakış{% endblock %}
 {% block panel_content %}
 <header class="cp-page-heading"><div><p class="cp-kicker">ŞİRKET PANELİ / GENEL BAKIŞ</p><h1>Her geri bildirim,<br><span>bir çözümün başlangıcı.</span></h1><p>{{ company.name }} için gelen deneyimleri izleyin ve cevaplarınızı tek yerden yönetin.</p></div><a class="cp-button" href="{% url 'companies:complaint_list' %}">Şikayetleri incele {% include 'companies/panel/icon.html' %}</a></header>
+
+<section class="cp-plan-banner" aria-label="DertDerman Pro">
+  <div class="cp-plan-banner-copy">
+    <span class="cp-plan-banner-kicker">
+      MEVCUT PAKET · ÜCRETSİZ
+    </span>
+
+    <strong>
+      Müşterilerinize şirketiniz adına yanıt verin.
+    </strong>
+
+    <p>
+      DertDerman Pro ile şikayetlere kurumsal yanıt verme,
+      gelişmiş istatistikler, öncelikli destek ve Pro firma
+      rozeti özelliklerini kullanın.
+    </p>
+  </div>
+
+  <div class="cp-plan-banner-action">
+    <div class="cp-plan-banner-price">
+      <strong>₺49,90</strong>
+      <span>/ ay</span>
+    </div>
+
+    <a class="cp-button" href="{% url 'companies:plan' %}">
+      Pro'yu İncele
+      {% include 'companies/panel/icon.html' %}
+    </a>
+  </div>
+</section>
+
 <section class="cp-metrics" aria-label="Şirket şikayet istatistikleri">
   <article class="cp-metric cp-metric--primary"><span class="cp-metric-icon">{% include 'companies/panel/icon.html' with name='complaint' %}</span><p>Toplam Şikayet</p><strong>{{ metrics.total }}</strong><small>Şirketinize yöneltilen tüm kayıtlar</small></article>
   <article class="cp-metric"><span class="cp-metric-icon cp-tone-amber">{% include 'companies/panel/icon.html' with name='clock' %}</span><p>Cevap Bekleyen</p><strong>{{ metrics.waiting }}</strong><small>Henüz cevaplanmamış açık kayıtlar</small></article>

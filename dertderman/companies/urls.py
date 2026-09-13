@@ -19,6 +19,7 @@ urlpatterns = [
     path("bildirimler/<int:pk>/", panel_views.notification_open, name="notification_open"),
     path("bildirimler/tumunu-okundu/", panel_views.notifications_read_all, name="notifications_read_all"),
     path("bildirimler/<int:pk>/okundu/", panel_views.notification_read, name="notification_read"),
+    path("paket/", panel_views.plan, name="plan"),
     path("ayarlar/", panel_views.panel_settings, name="settings"),
     path("sirket-sec/", panel_views.switch_company, name="switch_company"),
     path("<slug:slug>/", panel_views.legacy_company_dashboard, name="company_panel_detail"),

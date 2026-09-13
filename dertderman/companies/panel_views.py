@@ -265,3 +265,21 @@ def notifications_read_all(request):
 @require_safe
 def panel_settings(request):
     return render(request, "companies/panel/settings.html", panel_context(request, "settings"))
+
+
+@company_panel_required
+@require_safe
+def plan(request):
+    # Şimdilik yalnızca sunum katmanı.
+    # Gerçek abonelik/paket bilgisi sonraki aşamada
+    # subscription modelinden okunacak.
+    return render(
+        request,
+        "companies/panel/plan.html",
+        panel_context(
+            request,
+            "plan",
+            current_plan="FREE",
+        ),
+    )
+

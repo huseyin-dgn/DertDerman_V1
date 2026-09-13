@@ -1,0 +1,290 @@
+{% extends 'companies/panel/base.html' %}
+
+{% block title %}Paketim{% endblock %}
+
+{% block panel_content %}
+
+<header class="cp-page-heading">
+
+  <div>
+
+    <p class="cp-kicker">
+      ŞİRKET PANELİ / PAKETİM
+    </p>
+
+    <h1>
+      Firmanız için
+      <span>doğru paketi seçin.</span>
+    </h1>
+
+    <p>
+      Firma hesabınızı ücretsiz kullanmaya devam edebilir
+      veya müşterilerinize kurumsal yanıt verebilmek için
+      DertDerman Pro'ya geçebilirsiniz.
+    </p>
+
+  </div>
+
+</header>
+
+
+<section class="cp-current-plan">
+
+  <div>
+
+    <span>
+      MEVCUT PAKETİNİZ
+    </span>
+
+    <strong>
+      Ücretsiz Firma Hesabı
+    </strong>
+
+    <p>
+      Firma profilinizi yönetin ve hakkınızdaki
+      şikayetleri takip edin.
+    </p>
+
+  </div>
+
+  <span class="cp-current-plan-badge">
+    Aktif
+  </span>
+
+</section>
+
+
+<div class="cp-plan-grid">
+
+
+  <!-- FREE -->
+  <article class="cp-plan-card">
+
+    <div class="cp-plan-card-head">
+
+      <div>
+
+        <span class="cp-plan-tag">
+          Ücretsiz
+        </span>
+
+        <h2>
+          Firma Hesabı
+        </h2>
+
+        <p>
+          DertDerman'daki temel kurumsal
+          çalışma alanınız.
+        </p>
+
+      </div>
+
+      <div class="cp-plan-price">
+
+        <strong>
+          ₺0
+        </strong>
+
+        <span>
+          sürekli
+        </span>
+
+      </div>
+
+    </div>
+
+
+    <ul class="cp-plan-feature-list">
+
+      <li>
+        <span>✓</span>
+        Firma profilinize tam erişim
+      </li>
+
+      <li>
+        <span>✓</span>
+        Firmanıza ait şikayetleri görüntüleme
+      </li>
+
+      <li>
+        <span>✓</span>
+        Temel firma istatistikleri
+      </li>
+
+      <li>
+        <span>✓</span>
+        Kurumsal bildirimler
+      </li>
+
+      <li class="is-locked">
+        <span>—</span>
+        Şikayetlere kurumsal yanıt verme
+      </li>
+
+      <li class="is-locked">
+        <span>—</span>
+        Gelişmiş firma istatistikleri
+      </li>
+
+      <li class="is-locked">
+        <span>—</span>
+        Pro firma rozeti
+      </li>
+
+    </ul>
+
+
+    <span class="cp-button cp-button--current">
+      Mevcut Paketiniz
+    </span>
+
+  </article>
+
+
+
+  <!-- PRO -->
+  <article
+    class="cp-plan-card cp-plan-card--pro"
+    id="pro"
+  >
+
+    <span class="cp-plan-popular">
+      Önerilen
+    </span>
+
+
+    <div class="cp-plan-card-head">
+
+      <div>
+
+        <span class="cp-plan-tag">
+          DertDerman Pro
+        </span>
+
+        <h2>
+          Diyaloğa katılın.
+        </h2>
+
+        <p>
+          Şikayetleri yalnızca görüntülemeyin;
+          markanız adına çözüm sürecine katılın.
+        </p>
+
+      </div>
+
+
+      <div class="cp-plan-price">
+
+        <strong>
+          ₺49,90
+        </strong>
+
+        <span>
+          / ay
+        </span>
+
+      </div>
+
+    </div>
+
+
+    <div class="cp-plan-yearly">
+
+      <span>
+        Yıllık ödeme
+      </span>
+
+      <strong>
+        ₺499,90 / yıl
+      </strong>
+
+      <em>
+        2 ay ücretsiz
+      </em>
+
+    </div>
+
+
+    <ul class="cp-plan-feature-list">
+
+      <li class="is-pro-feature">
+        <span>✓</span>
+        Şikayetlere kurumsal yanıt verme
+      </li>
+
+      <li>
+        <span>✓</span>
+        Firma profilinize tam erişim
+      </li>
+
+      <li>
+        <span>✓</span>
+        Şikayetleri görüntüleme ve takip
+      </li>
+
+      <li>
+        <span>✓</span>
+        Gelişmiş firma istatistikleri
+      </li>
+
+      <li>
+        <span>✓</span>
+        Öncelikli destek
+      </li>
+
+      <li>
+        <span>✓</span>
+        Pro firma rozeti
+      </li>
+
+    </ul>
+
+
+    <span
+      class="cp-button cp-button--disabled"
+      aria-disabled="true"
+    >
+      Pro'ya Yükselt
+    </span>
+
+    <small class="cp-plan-coming-soon">
+      Online satın alma adımı ödeme ekranı
+      tamamlandığında aktif olacaktır.
+    </small>
+
+  </article>
+
+</div>
+
+
+<section class="cp-card cp-plan-info">
+
+  <div>
+
+    <p class="cp-kicker">
+      PAKET HAKKINDA
+    </p>
+
+    <h2>
+      Ücretsiz hesabınız kapanmaz.
+    </h2>
+
+    <p>
+      Pro kullanmak istemediğiniz sürece ücretsiz
+      firma hesabınızı kullanmaya devam edebilirsiniz.
+      Pro, ek kurumsal özellikleri aktif eden
+      isteğe bağlı pakettir.
+    </p>
+
+  </div>
+
+  <a
+    href="{% url 'core:for_companies' %}#paketler"
+    class="cp-button cp-button--quiet"
+  >
+    Paket detaylarını gör
+  </a>
+
+</section>
+
+{% endblock %}

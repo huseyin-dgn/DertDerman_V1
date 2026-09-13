@@ -9,7 +9,10 @@ class ForCompaniesPageTests(SimpleTestCase):
             reverse("core:for_companies")
         )
 
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.status_code,
+            200,
+        )
 
         self.assertTemplateUsed(
             response,
@@ -31,12 +34,27 @@ class ForCompaniesPageTests(SimpleTestCase):
             reverse("company_auth:login"),
         )
 
-    def test_page_does_not_claim_registration_is_paid(self):
+    def test_page_explains_free_and_pro_plans(self):
         response = self.client.get(
             reverse("core:for_companies")
         )
 
         self.assertContains(
             response,
-            "Başlamak için ücret ödemeniz gerekmez.",
+            "Firma kaydı ücretsizdir. Ödeme bilgisi gerekmez.",
+        )
+
+        self.assertContains(
+            response,
+            "DertDerman Pro",
+        )
+
+        self.assertContains(
+            response,
+            "₺49,90",
+        )
+
+        self.assertContains(
+            response,
+            "Şikayetlere kurumsal yanıt verme",
         )
