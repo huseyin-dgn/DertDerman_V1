@@ -36,14 +36,28 @@
       MEVCUT PAKETİNİZ
     </span>
 
-    <strong>
-      Ücretsiz Firma Hesabı
-    </strong>
+    {% if company_is_pro %}
 
-    <p>
-      Firma profilinizi yönetin ve hakkınızdaki
-      şikayetleri takip edin.
-    </p>
+      <strong>
+        DertDerman Pro
+      </strong>
+
+      <p>
+        Kurumsal yanıt verme ve Pro özellikleriniz aktif.
+      </p>
+
+    {% else %}
+
+      <strong>
+        Standart Firma
+      </strong>
+
+      <p>
+        Firma profilinizi yönetin ve hakkınızdaki
+        şikayetleri takip edin.
+      </p>
+
+    {% endif %}
 
   </div>
 
@@ -57,7 +71,7 @@
 <div class="cp-plan-grid">
 
 
-  <!-- FREE -->
+  <!-- STANDARD -->
   <article class="cp-plan-card">
 
     <div class="cp-plan-card-head">
@@ -78,6 +92,7 @@
         </p>
 
       </div>
+
 
       <div class="cp-plan-price">
 
@@ -123,6 +138,11 @@
 
       <li class="is-locked">
         <span>—</span>
+        Ekip içi dahili notlar
+      </li>
+
+      <li class="is-locked">
+        <span>—</span>
         Gelişmiş firma istatistikleri
       </li>
 
@@ -134,9 +154,19 @@
     </ul>
 
 
-    <span class="cp-button cp-button--current">
-      Mevcut Paketiniz
-    </span>
+    {% if company_is_pro %}
+
+      <span class="cp-button cp-button--quiet cp-button--current">
+        Standart Paket
+      </span>
+
+    {% else %}
+
+      <span class="cp-button cp-button--current">
+        Mevcut Paketiniz
+      </span>
+
+    {% endif %}
 
   </article>
 
@@ -148,9 +178,11 @@
     id="pro"
   >
 
-    <span class="cp-plan-popular">
-      Önerilen
-    </span>
+    {% if not company_is_pro %}
+      <span class="cp-plan-popular">
+        Önerilen
+      </span>
+    {% endif %}
 
 
     <div class="cp-plan-card-head">
@@ -214,6 +246,11 @@
 
       <li>
         <span>✓</span>
+        Ekip içi dahili notlar
+      </li>
+
+      <li>
+        <span>✓</span>
         Firma profilinize tam erişim
       </li>
 
@@ -240,17 +277,27 @@
     </ul>
 
 
-    <span
-      class="cp-button cp-button--disabled"
-      aria-disabled="true"
-    >
-      Pro'ya Yükselt
-    </span>
+    {% if company_is_pro %}
 
-    <small class="cp-plan-coming-soon">
-      Online satın alma adımı ödeme ekranı
-      tamamlandığında aktif olacaktır.
-    </small>
+      <span class="cp-button cp-button--current">
+        Mevcut Paketiniz
+      </span>
+
+    {% else %}
+
+      <span
+        class="cp-button cp-button--disabled"
+        aria-disabled="true"
+      >
+        Pro'ya Yükselt
+      </span>
+
+      <small class="cp-plan-coming-soon">
+        Online satın alma adımı ödeme ekranı
+        tamamlandığında aktif olacaktır.
+      </small>
+
+    {% endif %}
 
   </article>
 

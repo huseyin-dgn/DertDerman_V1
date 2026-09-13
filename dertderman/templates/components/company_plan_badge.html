@@ -1,0 +1,35 @@
+{% if is_pro %}
+
+<span
+  class="company-plan-chip company-plan-chip--pro"
+  title="Bu şirket DertDerman Pro paketini kullanıyor."
+>
+
+  <span class="company-plan-chip-icon">
+    {% include 'companies/panel/icon.html' with name='star' %}
+  </span>
+
+  <strong>
+    DertDerman Pro
+  </strong>
+
+</span>
+
+{% else %}
+
+<span
+  class="company-plan-chip company-plan-chip--standard"
+  title="Bu şirket standart DertDerman firma hesabını kullanıyor."
+>
+
+  <span class="company-plan-chip-icon">
+    {% include 'companies/panel/icon.html' with name='building' %}
+  </span>
+
+  <strong>
+    Standart Firma
+  </strong>
+
+</span>
+
+{% endif %}

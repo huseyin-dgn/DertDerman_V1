@@ -3,6 +3,7 @@
 {% block panel_content %}
 <header class="cp-page-heading"><div><p class="cp-kicker">ŞİRKET PANELİ / GENEL BAKIŞ</p><h1>Her geri bildirim,<br><span>bir çözümün başlangıcı.</span></h1><p>{{ company.name }} için gelen deneyimleri izleyin ve cevaplarınızı tek yerden yönetin.</p></div><a class="cp-button" href="{% url 'companies:complaint_list' %}">Şikayetleri incele {% include 'companies/panel/icon.html' %}</a></header>
 
+{% if not company_is_pro %}
 <section class="cp-plan-banner" aria-label="DertDerman Pro">
   <div class="cp-plan-banner-copy">
     <span class="cp-plan-banner-kicker">
@@ -32,6 +33,7 @@
     </a>
   </div>
 </section>
+{% endif %}
 
 <section class="cp-metrics" aria-label="Şirket şikayet istatistikleri">
   <article class="cp-metric cp-metric--primary"><span class="cp-metric-icon">{% include 'companies/panel/icon.html' with name='complaint' %}</span><p>Toplam Şikayet</p><strong>{{ metrics.total }}</strong><small>Şirketinize yöneltilen tüm kayıtlar</small></article>

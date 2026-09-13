@@ -13,7 +13,12 @@ public-site company-profile-v2
 
 <link
     rel="stylesheet"
-    href="{% static 'css/company-public-profile.css' %}"
+    href="{% static 'css/company-public-profile.css' %}?v=2"
+>
+
+<link
+    rel="stylesheet"
+    href="{% static 'css/company-plan-badge.css' %}?v=1"
 >
 
 <link
@@ -90,6 +95,10 @@ public-site company-profile-v2
                                 </span>
 
                             {% endif %}
+
+                            {% include 'components/company_plan_badge.html' with is_pro=company_is_pro only %}
+
+
 
 
                             {% if primary_company_badge %}

@@ -1,0 +1,107 @@
+/* DertDerman company plan identity */
+
+.company-plan-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 34px;
+    padding: 6px 11px;
+    border: 1px solid #d4e1eb;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #587188;
+    font-size: 0.7rem;
+    line-height: 1;
+    white-space: nowrap;
+    box-shadow: 0 3px 10px rgb(16 42 67 / 4%);
+}
+
+.company-plan-chip strong {
+    font: inherit;
+    font-weight: 800;
+}
+
+.company-plan-chip-icon {
+    display: inline-grid;
+    width: 20px;
+    height: 20px;
+    place-items: center;
+    flex: 0 0 20px;
+    border-radius: 50%;
+}
+
+.company-plan-chip-icon .icon {
+    width: 13px;
+    height: 13px;
+}
+
+.company-plan-chip--standard {
+    border-color: #d4e0e9;
+    background:
+        linear-gradient(
+            135deg,
+            #ffffff,
+            #f4f8fb
+        );
+    color: #506a80;
+}
+
+.company-plan-chip--standard
+.company-plan-chip-icon {
+    background: #e9f0f5;
+    color: #55748d;
+}
+
+.company-plan-chip--pro {
+    border-color: #93bde0;
+    background:
+        linear-gradient(
+            135deg,
+            #e8f4ff,
+            #f8fcff
+        );
+    color: #145f9d;
+    box-shadow:
+        0 4px 14px rgb(29 95 167 / 10%);
+}
+
+.company-plan-chip--pro
+.company-plan-chip-icon {
+    background: #1d68aa;
+    color: #ffffff;
+}
+
+.company-profile-trust-row
+.company-plan-chip {
+    margin-top: 15px;
+}
+
+.directory-card-badges
+.company-plan-chip {
+    min-height: 29px;
+    padding: 4px 8px;
+    font-size: 0.61rem;
+}
+
+.directory-card-badges
+.company-plan-chip-icon {
+    width: 17px;
+    height: 17px;
+    flex-basis: 17px;
+}
+
+.directory-card-badges
+.company-plan-chip-icon .icon {
+    width: 11px;
+    height: 11px;
+}
+
+@media(max-width: 430px) {
+    .company-profile-trust-row
+    .company-plan-chip {
+        margin-top: 10px;
+        min-height: 30px;
+        padding: 5px 8px;
+        font-size: .64rem;
+    }
+}

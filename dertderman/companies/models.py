@@ -4,6 +4,7 @@ from uuid import uuid4
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.utils import timezone
 from django.utils.text import slugify
 
 
@@ -140,6 +141,71 @@ class CompanyMembership(models.Model):
 
     def __str__(self):
         return f"{self.user} - {self.company} ({self.role})"
+
+
+class CompanySubscription(models.Model):
+    """
+    Ücretli şirket paketinin uygulama içindeki hak kaydı.
+
+    Bir şirket için subscription satırı yoksa şirket Standart kabul edilir.
+    Şimdilik yalnızca PRO paketi vardır.
+
+    Ödeme sağlayıcısına ait kart/veri burada tutulmaz.
+    """
+
+    class Plan(models.TextChoices):
+        PRO = "PRO", "DertDerman Pro"
+
+    class BillingPeriod(models.TextChoices):
+        MONTHLY = "MONTHLY", "Aylık"
+        YEARLY = "YEARLY", "Yıllık"
+
+    company = models.OneToOneField(
+        Company,
+        on_delete=models.CASCADE,
+        related_name="subscription",
+    )
+
+    plan = models.CharField(
+        max_length=20,
+        choices=Plan.choices,
+        default=Plan.PRO,
+    )
+
+    billing_period = models.CharField(
+        max_length=20,
+        choices=BillingPeriod.choices,
+        default=BillingPeriod.MONTHLY,
+    )
+
+    is_active = models.BooleanField(
+        default=True,
+        db_index=True,
+    )
+
+    started_at = models.DateTimeField(
+        default=timezone.now,
+    )
+
+    current_period_end = models.DateTimeField(
+        null=True,
+        blank=True,
+        db_index=True,
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True,
+    )
+
+    class Meta:
+        ordering = ("-created_at",)
+
+    def __str__(self):
+        return f"{self.company} - {self.get_plan_display()}"
 
 
 class CompanyComplaintEntry(models.Model):

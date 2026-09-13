@@ -14,6 +14,7 @@ from .panel_selectors import company_complaints, company_notes, company_notifica
 from .panel_services import create_company_entry
 from .services import get_accessible_company_membership
 from .badges import resolve_company_badges
+from .plans import company_has_active_pro
 
 
 def panel_context(request, section, **extra):
@@ -21,6 +22,7 @@ def panel_context(request, section, **extra):
         "company": request.company, "membership": request.company_membership,
         "memberships": request.company_memberships, "panel_section": section,
         "can_manage": request.company_membership.role in PROFILE_ROLES,
+        "company_is_pro": company_has_active_pro(request.company),
         "unread_count": company_notifications(request.company, request.user).filter(is_read=False).count(),
         **extra,
     }
@@ -138,13 +140,57 @@ def _create_entry(request, pk, internal):
 @company_panel_required
 @require_POST
 def response_create(request, pk):
-    return _create_entry(request, pk, internal=False)
+    # UI kilidi tek başına güvenlik değildir.
+    # Manuel POST isteği de burada engellenir.
+    if not company_has_active_pro(request.company):
+        complaint = get_object_or_404(
+            company_complaints(request.company),
+            pk=pk,
+        )
+
+        return render(
+            request,
+            "companies/panel/complaint_detail.html",
+            _detail_context(
+                request,
+                complaint,
+            ),
+            status=403,
+        )
+
+    return _create_entry(
+        request,
+        pk,
+        internal=False,
+    )
 
 
 @company_panel_required
 @require_POST
 def note_create(request, pk):
-    return _create_entry(request, pk, internal=True)
+    # Dahili not da Pro entitlement gerektirir.
+    # Form gizlense bile manuel POST burada engellenir.
+    if not company_has_active_pro(request.company):
+        complaint = get_object_or_404(
+            company_complaints(request.company),
+            pk=pk,
+        )
+
+        return render(
+            request,
+            "companies/panel/complaint_detail.html",
+            _detail_context(
+                request,
+                complaint,
+            ),
+            status=403,
+        )
+
+    return _create_entry(
+        request,
+        pk,
+        internal=True,
+    )
 
 
 @company_panel_required
@@ -279,7 +325,11 @@ def plan(request):
         panel_context(
             request,
             "plan",
-            current_plan="FREE",
+            current_plan=(
+                "PRO"
+                if company_has_active_pro(request.company)
+                else "STANDARD"
+            ),
         ),
     )
 

@@ -2,3 +2,57 @@
 @media(max-width:1023px){.company-profile-hero-grid{grid-template-columns:1fr;gap:30px}.company-profile-summary{max-width:none}.company-metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.company-profile-columns{grid-template-columns:1fr}.company-response-panel{position:static}.company-response-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 24px}}
 @media(max-width:767px){.company-profile-hero{padding:26px 0 36px}.company-profile-back{margin-bottom:22px}.company-profile-identity{align-items:flex-start;gap:18px}.company-profile-logo{width:84px;height:84px;flex-basis:84px;border-radius:21px}.company-profile-identity h1{font-size:clamp(2rem,10vw,3.2rem)}.company-profile-summary{padding:20px}.company-profile-content{padding:34px 0 52px}.company-profile-shell{gap:34px}.company-section-heading{align-items:flex-start;flex-direction:column;gap:4px}.company-section-heading>span{display:none}.company-complaint-grid{grid-template-columns:1fr}.company-complaint-card{min-height:260px}.company-response-list{grid-template-columns:1fr}.company-response-panel{padding:20px}}
 @media(max-width:430px){.company-profile-identity{display:grid;grid-template-columns:70px minmax(0,1fr);gap:15px}.company-profile-logo{width:70px;height:70px;flex-basis:70px;border-radius:18px}.company-profile-category{margin-bottom:5px}.company-verified{margin-top:10px;padding:6px 8px;font-size:.64rem}.company-metric-grid{gap:9px}.company-metric{min-height:140px;padding:17px 14px}.company-metric strong{font-size:1.65rem}.company-metric>p{font-size:.73rem}.company-contact-list li{grid-template-columns:53px minmax(0,1fr)}.company-filter-tabs a{flex:1;padding-inline:10px}.company-complaint-card>footer{align-items:flex-start;flex-direction:column}.company-complaint-card>footer a{align-self:flex-end}.company-profile-v2 .dd-pagination{align-items:flex-start;flex-direction:column}.company-profile-v2 .dd-pagination-links{width:100%;justify-content:center}}
+/* Company plan identity */
+
+.company-profile-trust-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.company-plan-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 15px;
+  padding: 7px 11px;
+  border: 1px solid #d0dee8;
+  border-radius: 999px;
+  background: #fff;
+  color: #60778b;
+  font-size: .72rem;
+  font-weight: 750;
+}
+
+.company-plan-badge--pro {
+  border-color: #9fc7e4;
+  background: #e9f5fd;
+  color: #145f99;
+}
+
+.company-plan-badge--pro b {
+  color: #1d6fb0;
+  font-size: .75rem;
+}
+
+@media(max-width:430px) {
+  .company-plan-badge {
+    margin-top: 10px;
+    padding: 6px 8px;
+    font-size: .64rem;
+  }
+}
+/* Plan badge alignment */
+
+.company-profile-trust-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.company-profile-trust-row
+.company-verified {
+    margin-right: 0;
+}

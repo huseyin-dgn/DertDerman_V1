@@ -6,7 +6,7 @@ from django.db import (
     IntegrityError,
     transaction,
 )
-from django.db.models import Count, Q
+from django.db.models import Count, Exists, OuterRef, Q
 from django.shortcuts import (
     get_object_or_404,
     redirect,
@@ -52,6 +52,10 @@ from .panel_views import (
 from .selectors import (
     public_companies,
     public_company_performance,
+)
+from .plans import (
+    active_pro_subscriptions,
+    company_has_active_pro,
 )
 
 
@@ -108,6 +112,12 @@ def public_company_list(
     companies = (
         public_companies()
         .annotate(
+            has_active_pro=Exists(
+                active_pro_subscriptions().filter(
+                    company_id=OuterRef("pk"),
+                )
+            ),
+
             public_complaint_count=Count(
                 "complaints",
                 filter=Q(
@@ -350,6 +360,11 @@ def public_company_detail(
             "primary_company_badge":
                 primary_company_badge(
                     company_badges
+                ),
+
+            "company_is_pro":
+                company_has_active_pro(
+                    company
                 ),
 
             "company_report_form":

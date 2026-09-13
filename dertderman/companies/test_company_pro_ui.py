@@ -63,7 +63,7 @@ class CompanyProPanelUITests(TestCase):
 
         self.assertContains(
             response,
-            "Ücretsiz Firma Hesabı",
+            "Standart Firma",
         )
 
         self.assertContains(
@@ -73,12 +73,12 @@ class CompanyProPanelUITests(TestCase):
 
         self.assertContains(
             response,
-            "₺49,90",
+            "\u20ba49,90",
         )
 
         self.assertContains(
             response,
-            "₺499,90",
+            "\u20ba499,90",
         )
 
     def test_plan_page_explains_company_response_is_pro(self):
@@ -88,7 +88,7 @@ class CompanyProPanelUITests(TestCase):
 
         self.assertContains(
             response,
-            "Şikayetlere kurumsal yanıt verme",
+            "\u015eikayetlere kurumsal yan\u0131t verme",
         )
 
         self.assertContains(
@@ -108,7 +108,7 @@ class CompanyProPanelUITests(TestCase):
 
         self.assertContains(
             response,
-            "MEVCUT PAKET · ÜCRETSİZ",
+            "MEVCUT PAKET \u00b7 \u00dcCRETS\u0130Z",
         )
 
         self.assertContains(
@@ -118,5 +118,5 @@ class CompanyProPanelUITests(TestCase):
 
         self.assertContains(
             response,
-            "Pro'yu İncele",
+            "Pro'yu \u0130ncele",
         )
