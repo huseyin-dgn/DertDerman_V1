@@ -253,8 +253,8 @@
                     </a>
 
                     {% if not request.user.is_authenticated %}
-                        <a href="{% url 'companies_public:company_list' %}#kurumsal-katilim">
-                            Şirketler için DertDerman
+                        <a href="{% url 'core:for_companies' %}">
+                            Firmalar İçin DertDerman
                         </a>
                     {% endif %}
 

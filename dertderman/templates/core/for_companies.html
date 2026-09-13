@@ -1,0 +1,642 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Firmalar İçin | DertDerman{% endblock %}
+
+{% block meta_description %}
+DertDerman firma hesabınızı ücretsiz oluşturun, müşteri şikayetlerini takip edin ve DertDerman Pro ile kurumsal yanıt özelliğini kullanın.
+{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/for-companies.css' %}">
+{% endblock %}
+
+
+{% block content %}
+
+<main class="fc-page" id="main-content">
+
+
+    <!-- HERO -->
+    <section class="fc-hero">
+
+        <div class="section-inner fc-hero-grid">
+
+            <div class="fc-hero-copy">
+
+                <span class="fc-eyebrow">
+                    Firmalar İçin DertDerman
+                </span>
+
+                <h1>
+                    Müşteri deneyimini
+                    <span>tek yerden yönetin.</span>
+                </h1>
+
+                <p class="fc-hero-description">
+                    Firma hesabınızı ücretsiz oluşturun,
+                    hakkınızdaki şikayetleri takip edin ve
+                    DertDerman Pro ile müşterilerinize kurumsal olarak yanıt verin.
+                </p>
+
+                <div class="fc-hero-actions">
+
+                    <a
+                        class="fc-button fc-button-primary"
+                        href="{% url 'company_auth:register' %}"
+                    >
+                        Ücretsiz Firma Kaydı
+                        <span aria-hidden="true">→</span>
+                    </a>
+
+                    <a
+                        class="fc-button fc-button-secondary"
+                        href="{% url 'company_auth:login' %}"
+                    >
+                        Firma Girişi
+                    </a>
+
+                </div>
+
+                <p class="fc-hero-note">
+                    Firma kaydı ücretsizdir. Ödeme bilgisi gerekmez.
+                </p>
+
+            </div>
+
+
+            <div class="fc-hero-visual">
+
+                <div class="fc-dashboard-card">
+
+                    <span class="fc-dashboard-label">
+                        DertDerman Kurumsal
+                    </span>
+
+                    <h2 style="
+                        margin: 8px 0 10px;
+                        color: var(--dd-navy);
+                        font-size: 1.8rem;
+                    ">
+                        Önce görün, sonra yönetin.
+                    </h2>
+
+                    <p style="
+                        margin: 0;
+                        color: var(--dd-muted);
+                        line-height: 1.7;
+                    ">
+                        Firmanızla ilgili tüketici geri bildirimlerinden
+                        haberdar olun. Yanıt vermek istediğinizde
+                        Pro pakete geçin.
+                    </p>
+
+                    <div class="fc-mini-stats">
+
+                        <article>
+                            <span class="fc-mini-icon">✓</span>
+                            <div>
+                                <strong>Firma profilinizi yönetin</strong>
+                                <small>Ücretsiz firma hesabıyla.</small>
+                            </div>
+                        </article>
+
+                        <article>
+                            <span class="fc-mini-icon">✓</span>
+                            <div>
+                                <strong>Şikayetlerinizi görüntüleyin</strong>
+                                <small>Firmanız hakkındaki geri bildirimleri takip edin.</small>
+                            </div>
+                        </article>
+
+                        <article>
+                            <span class="fc-mini-icon">+</span>
+                            <div>
+                                <strong>Kurumsal yanıt verin</strong>
+                                <small>DertDerman Pro ile aktif edilir.</small>
+                            </div>
+                        </article>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- PAKETLER - HERO'NUN HEMEN ALTINDA -->
+    <section class="fc-section fc-pricing-early" id="paketler">
+
+        <div class="section-inner">
+
+            <div class="fc-section-heading fc-pricing-heading">
+
+                <span class="fc-eyebrow">
+                    Firma Paketleri
+                </span>
+
+                <h2>
+                    İhtiyacınıza göre başlayın.
+                </h2>
+
+                <p>
+                    Firma hesabı ücretsizdir.
+                    Şikayetlere kurumsal yanıt vermek için
+                    DertDerman Pro paketine geçebilirsiniz.
+                </p>
+
+            </div>
+
+
+            <div class="fc-company-pricing-grid">
+
+
+                <!-- FREE -->
+                <article class="fc-company-plan">
+
+                    <div class="fc-company-plan-head">
+
+                        <div>
+
+                            <span class="fc-plan-label">
+                                Firma Kayıt Ücreti
+                            </span>
+
+                            <h3>
+                                Ücretsiz Firma Hesabı
+                            </h3>
+
+                            <p>
+                                Sisteme yeni bir firma ekleyerek
+                                yönetmeye başlayın.
+                            </p>
+
+                        </div>
+
+                        <div class="fc-company-price">
+
+                            <strong>
+                                Ücretsiz
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+
+                    <ul class="fc-company-feature-list">
+
+                        <li>
+                            <span>✓</span>
+                            Firma profilinize tam erişim
+                        </li>
+
+                        <li>
+                            <span>✓</span>
+                            Firmanıza ait şikayetleri görüntüleme
+                        </li>
+
+                        <li>
+                            <span>✓</span>
+                            Temel istatistikler
+                        </li>
+
+                        <li>
+                            <span>✓</span>
+                            Kurumsal bildirimler
+                        </li>
+
+                        <li class="fc-feature-locked">
+                            <span>—</span>
+                            Şikayetlere kurumsal yanıt verme
+                        </li>
+
+                    </ul>
+
+
+                    <a
+                        class="fc-button fc-button-secondary fc-button-full"
+                        href="{% url 'company_auth:register' %}"
+                    >
+                        Hemen Katıl
+                    </a>
+
+                </article>
+
+
+
+                <!-- PRO -->
+                <article class="fc-company-plan fc-company-plan-pro">
+
+                    <span class="fc-popular-badge">
+                        En Popüler
+                    </span>
+
+
+                    <div class="fc-company-plan-head">
+
+                        <div>
+
+                            <span class="fc-plan-label">
+                                DertDerman Pro
+                            </span>
+
+                            <h3>
+                                Müşterilerinizle iletişime geçin.
+                            </h3>
+
+                            <p>
+                                Şikayetlere doğrudan yanıt vermek
+                                ve gelişmiş kurumsal özellikleri kullanmak için.
+                            </p>
+
+                        </div>
+
+
+                        <div class="fc-company-price">
+
+                            <strong>
+                                ₺49,90
+                            </strong>
+
+                            <span>
+                                / ay
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <p class="fc-yearly-price">
+                        veya <strong>₺499,90 / yıl</strong>
+                        <span>2 ay ücretsiz</span>
+                    </p>
+
+
+                    <ul class="fc-company-feature-list">
+
+                        <li>
+                            <span>✓</span>
+                            Şikayetlere kurumsal yanıt verme
+                        </li>
+
+                        <li>
+                            <span>✓</span>
+                            Firma profilinize tam erişim
+                        </li>
+
+                        <li>
+                            <span>✓</span>
+                            Şikayetleri görüntüleme ve takip
+                        </li>
+
+                        <li>
+                            <span>✓</span>
+                            Gelişmiş firma istatistikleri
+                        </li>
+
+                        <li>
+                            <span>✓</span>
+                            Öncelikli destek
+                        </li>
+
+                        <li>
+                            <span>✓</span>
+                            Pro firma rozeti
+                        </li>
+
+                    </ul>
+
+
+                    <a
+                        class="fc-button fc-button-primary fc-button-full"
+                        href="{% url 'core:contact' %}"
+                    >
+                        Pro'ya Geç
+                        <span>→</span>
+                    </a>
+
+                    <small class="fc-plan-notice">
+                        Ödeme altyapısı aktif edildiğinde bu buton
+                        doğrudan satın alma ekranına bağlanacaktır.
+                    </small>
+
+                </article>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- KISA AVANTAJLAR -->
+    <section class="fc-section fc-section-soft">
+
+        <div class="section-inner">
+
+            <div class="fc-section-heading">
+
+                <span class="fc-eyebrow">
+                    Neden DertDerman?
+                </span>
+
+                <h2>
+                    Şikayeti yalnızca görmeyin.
+                    Sürece dahil olun.
+                </h2>
+
+            </div>
+
+
+            <div class="fc-feature-grid fc-short-features">
+
+                <article class="fc-feature-card">
+
+                    <span class="fc-feature-number">01</span>
+
+                    <h3>
+                        Hakkınızdaki şikayetleri takip edin
+                    </h3>
+
+                    <p>
+                        Firmanız hakkında yayınlanan geri bildirimleri
+                        tek panel üzerinden görüntüleyin.
+                    </p>
+
+                </article>
+
+
+                <article class="fc-feature-card">
+
+                    <span class="fc-feature-number">02</span>
+
+                    <h3>
+                        Pro ile kurumsal yanıt verin
+                    </h3>
+
+                    <p>
+                        Müşterilerinize şirket hesabınız üzerinden
+                        doğrudan yanıt verin ve çözüm sürecine katılın.
+                    </p>
+
+                </article>
+
+
+                <article class="fc-feature-card">
+
+                    <span class="fc-feature-number">03</span>
+
+                    <h3>
+                        Marka görünürlüğünüzü güçlendirin
+                    </h3>
+
+                    <p>
+                        Kurumsal profiliniz, yanıtlarınız ve
+                        Pro rozetiniz ile müşterilerinize daha
+                        güçlü bir marka deneyimi sunun.
+                    </p>
+
+                </article>
+
+
+                <article class="fc-feature-card">
+
+                    <span class="fc-feature-number">04</span>
+
+                    <h3>
+                        Verileri takip edin
+                    </h3>
+
+                    <p>
+                        Firma hesabınızın temel verilerini görüntüleyin.
+                        Pro ile daha gelişmiş istatistiklere erişin.
+                    </p>
+
+                </article>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- NASIL ÇALIŞIR -->
+    <section class="fc-section">
+
+        <div class="section-inner">
+
+            <div class="fc-section-heading">
+
+                <span class="fc-eyebrow">
+                    Nasıl Çalışır?
+                </span>
+
+                <h2>
+                    Üç adımda başlayın.
+                </h2>
+
+            </div>
+
+
+            <div class="fc-steps">
+
+                <article>
+
+                    <span class="fc-step-number">1</span>
+
+                    <h3>
+                        Ücretsiz hesap oluşturun
+                    </h3>
+
+                    <p>
+                        Firma bilgilerinizi girerek
+                        kurumsal başvurunuzu oluşturun.
+                    </p>
+
+                </article>
+
+
+                <article>
+
+                    <span class="fc-step-number">2</span>
+
+                    <h3>
+                        Firmanızı yönetin
+                    </h3>
+
+                    <p>
+                        Profilinizi düzenleyin ve
+                        firmanıza ait şikayetleri takip edin.
+                    </p>
+
+                </article>
+
+
+                <article>
+
+                    <span class="fc-step-number">3</span>
+
+                    <h3>
+                        Gerektiğinde Pro'ya geçin
+                    </h3>
+
+                    <p>
+                        Şikayetlere yanıt vermek istediğinizde
+                        DertDerman Pro paketini aktif edin.
+                    </p>
+
+                </article>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- FAQ -->
+    <section class="fc-section fc-section-soft">
+
+        <div class="section-inner fc-faq-layout">
+
+            <div class="fc-section-heading fc-faq-heading">
+
+                <span class="fc-eyebrow">
+                    Sıkça Sorulan Sorular
+                </span>
+
+                <h2>
+                    Kısaca bilmeniz gerekenler.
+                </h2>
+
+            </div>
+
+
+            <div class="fc-faq">
+
+                <details>
+
+                    <summary>
+                        Firma kaydı ücretli mi?
+                    </summary>
+
+                    <p>
+                        Hayır. Firma hesabı oluşturmak ücretsizdir.
+                    </p>
+
+                </details>
+
+
+                <details>
+
+                    <summary>
+                        Ücretsiz hesapla şikayetleri görebilir miyim?
+                    </summary>
+
+                    <p>
+                        Evet. Firmanıza ait şikayetleri görüntüleyebilir
+                        ve temel firma özelliklerini kullanabilirsiniz.
+                    </p>
+
+                </details>
+
+
+                <details>
+
+                    <summary>
+                        Şikayetlere cevap vermek ücretli mi?
+                    </summary>
+
+                    <p>
+                        Evet. Kurumsal yanıt özelliği
+                        DertDerman Pro paketiyle aktif edilir.
+                    </p>
+
+                </details>
+
+
+                <details>
+
+                    <summary>
+                        Pro paketin fiyatı nedir?
+                    </summary>
+
+                    <p>
+                        DertDerman Pro aylık ₺49,90,
+                        yıllık ₺499,90 olarak planlanmıştır.
+                    </p>
+
+                </details>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- FINAL CTA -->
+    <section class="fc-final">
+
+        <div class="section-inner">
+
+            <div class="fc-final-card">
+
+                <div>
+
+                    <span class="fc-eyebrow fc-eyebrow-light">
+                        DertDerman Kurumsal
+                    </span>
+
+                    <h2>
+                        Firmanızı ücretsiz olarak DertDerman'a taşıyın.
+                    </h2>
+
+                    <p>
+                        Profilinizi yönetin, şikayetlerinizi takip edin.
+                        Yanıt vermek istediğinizde Pro'ya geçin.
+                    </p>
+
+                </div>
+
+
+                <div class="fc-final-actions">
+
+                    <a
+                        href="{% url 'company_auth:register' %}"
+                        class="fc-button fc-button-white"
+                    >
+                        Ücretsiz Firma Kaydı
+                    </a>
+
+                    <a
+                        href="#paketler"
+                        class="fc-button fc-button-outline-white"
+                    >
+                        Paketleri İncele
+                    </a>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+</main>
+
+{% endblock %}

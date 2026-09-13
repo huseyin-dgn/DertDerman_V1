@@ -158,3 +158,11 @@ def categories(request):
             "complaint_categories": complaint_categories,
         },
     )
+
+@require_safe
+def for_companies(request):
+    return render(
+        request,
+        "core/for_companies.html",
+    )
+

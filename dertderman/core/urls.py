@@ -12,6 +12,7 @@ from .views import (
     privacy_policy,
     terms_of_use,
     faq,
+    for_companies,
     categories
 )
 
@@ -21,6 +22,7 @@ urlpatterns = [
     path("intro/reset/", intro_reset, name="intro_reset"),
     path("intro/", intro, name="intro"),
     path("hakkimizda/", about, name="about"),
+    path("firmalar-icin/", for_companies, name="for_companies"),
     path("bize-ulasin/", contact, name="contact"),
     path("gizlilik-politikasi/", privacy_policy, name="privacy_policy"),
     path("", home, name="home"),
