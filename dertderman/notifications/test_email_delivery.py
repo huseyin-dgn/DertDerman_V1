@@ -40,6 +40,55 @@ class EmailDeliveryPersistenceTests(TestCase):
             {field.name for field in EmailDelivery._meta.fields},
         )
 
+    @patch("notifications.email_providers.resend.ResendProvider.send")
+    def test_skipped_delivery_is_sent_when_sending_is_later_enabled(
+        self,
+        provider_send,
+    ):
+        kwargs = {
+            "recipient_email": "user@example.com",
+            "subject": "Test",
+            "html_body": "<p>Test</p>",
+            "text_body": "Test",
+            "event_key": "stage6:skipped-then-enabled:1",
+        }
+
+        with self.settings(
+            EMAIL_SENDING_ENABLED=False,
+            EMAIL_PROVIDER="resend",
+        ):
+            first = send_email(**kwargs)
+
+        delivery = EmailDelivery.objects.get(
+            idempotency_key=first.idempotency_key
+        )
+        self.assertEqual(first.status, "skipped")
+        self.assertEqual(delivery.status, EmailDelivery.Status.SKIPPED)
+        self.assertEqual(delivery.attempt_count, 0)
+        provider_send.assert_not_called()
+
+        provider_send.return_value = "resend-message-after-skip"
+
+        with self.settings(
+            EMAIL_SENDING_ENABLED=True,
+            EMAIL_PROVIDER="resend",
+            RESEND_API_KEY="re_test_only",
+            DEFAULT_FROM_EMAIL="DertDerman <info@dertderman.com>",
+            EMAIL_REPLY_TO="destek@dertderman.com",
+        ):
+            second = send_email(**kwargs)
+
+        delivery.refresh_from_db()
+        self.assertEqual(first.idempotency_key, second.idempotency_key)
+        self.assertEqual(second.status, "sent")
+        self.assertEqual(delivery.status, EmailDelivery.Status.SENT)
+        self.assertEqual(delivery.attempt_count, 1)
+        self.assertEqual(
+            delivery.provider_message_id,
+            "resend-message-after-skip",
+        )
+        provider_send.assert_called_once()
+
     @override_settings(
         EMAIL_SENDING_ENABLED=True,
         EMAIL_PROVIDER="resend",

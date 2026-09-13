@@ -123,13 +123,9 @@ def _terminal_result(delivery) -> EmailSendResult | None:
             idempotency_key=delivery.idempotency_key,
         )
 
-    if delivery.status == EmailDelivery.Status.SKIPPED:
-        return EmailSendResult(
-            provider=delivery.provider,
-            status="skipped",
-            idempotency_key=delivery.idempotency_key,
-        )
-
+    # SKIPPED kalıcı terminal durum değildir. Gönderim o anda kapalıysa
+    # yeniden SKIPPED döner; daha sonra gönderim açılırsa aynı event tekrar
+    # transport katmanına alınabilir.
     return None
 
 
@@ -173,12 +169,16 @@ def _claim_attempt(delivery, *, created: bool, provider_name: str) -> None:
     if delivery.status == EmailDelivery.Status.PENDING:
         raise EmailDeliveryError("Email delivery is already being processed.")
 
-    if delivery.status != EmailDelivery.Status.FAILED:
+    retryable_statuses = (
+        EmailDelivery.Status.FAILED,
+        EmailDelivery.Status.SKIPPED,
+    )
+    if delivery.status not in retryable_statuses:
         raise EmailDeliveryError("Email delivery cannot be attempted again.")
 
     updated = EmailDelivery.objects.filter(
         pk=delivery.pk,
-        status=EmailDelivery.Status.FAILED,
+        status__in=retryable_statuses,
     ).update(
         provider=provider_name,
         status=EmailDelivery.Status.PENDING,
