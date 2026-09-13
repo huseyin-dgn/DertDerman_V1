@@ -7,11 +7,16 @@ from django.utils import timezone
 from django.views.decorators.http import require_http_methods, require_POST, require_safe
 
 from complaints.models import Complaint
+from .complaint_policy import (
+    company_can_interact_with_complaint,
+    company_complaint_has_public_page,
+    company_interaction_lock_reason,
+)
 from .models import CompanyMembership, CompanyNotificationRead
 from .panel_forms import CompanyProfileForm, CompanyResponseForm, ComplaintFilterForm, InternalCompanyNoteForm
 from .panel_permissions import COMPANY_SESSION_KEY, PROFILE_ROLES, company_panel_required, require_profile_role
 from .panel_selectors import company_complaints, company_notes, company_notifications, company_responses, complaint_history
-from .panel_services import create_company_entry
+from .panel_services import create_company_entry, remove_company_logo, update_company_profile
 from .services import get_accessible_company_membership
 from .badges import resolve_company_badges
 from .plans import company_has_active_pro
@@ -105,12 +110,62 @@ def complaint_list(request):
 def _detail_context(request, complaint, response_form=None, note_form=None):
     responses = company_responses(request.company).filter(complaint=complaint)
     notes = company_notes(request.company).filter(complaint=complaint)
-    return panel_context(request, "complaints", complaint=complaint,
-        response_form=response_form if response_form is not None else CompanyResponseForm(auto_id="response_%s"),
-        note_form=note_form if note_form is not None else InternalCompanyNoteForm(auto_id="note_%s"),
-        response_page=paginate(request, responses, "company_responses", page_param="response_page"),
-        note_page=paginate(request, notes, "activity", page_param="note_page"),
-        history=paginate(request, complaint_history(request.company, request.user, complaint), "activity", page_param="history_page"))
+    return panel_context(
+        request,
+        "complaints",
+        complaint=complaint,
+        company_can_interact=(
+            company_can_interact_with_complaint(
+                complaint
+            )
+        ),
+        company_public_page_available=(
+            company_complaint_has_public_page(
+                complaint
+            )
+        ),
+        company_interaction_lock_reason=(
+            company_interaction_lock_reason(
+                complaint
+            )
+        ),
+        response_form=(
+            response_form
+            if response_form is not None
+            else CompanyResponseForm(
+                auto_id="response_%s"
+            )
+        ),
+        note_form=(
+            note_form
+            if note_form is not None
+            else InternalCompanyNoteForm(
+                auto_id="note_%s"
+            )
+        ),
+        response_page=paginate(
+            request,
+            responses,
+            "company_responses",
+            page_param="response_page",
+        ),
+        note_page=paginate(
+            request,
+            notes,
+            "activity",
+            page_param="note_page",
+        ),
+        history=paginate(
+            request,
+            complaint_history(
+                request.company,
+                request.user,
+                complaint,
+            ),
+            "activity",
+            page_param="history_page",
+        ),
+    )
 
 
 @company_panel_required
@@ -140,14 +195,31 @@ def _create_entry(request, pk, internal):
 @company_panel_required
 @require_POST
 def response_create(request, pk):
-    # UI kilidi tek başına güvenlik değildir.
-    # Manuel POST isteği de burada engellenir.
-    if not company_has_active_pro(request.company):
-        complaint = get_object_or_404(
-            company_complaints(request.company),
-            pk=pk,
+    complaint = get_object_or_404(
+        company_complaints(
+            request.company
+        ),
+        pk=pk,
+    )
+
+    if not company_can_interact_with_complaint(
+        complaint
+    ):
+        return render(
+            request,
+            "companies/panel/complaint_detail.html",
+            _detail_context(
+                request,
+                complaint,
+            ),
+            status=409,
         )
 
+    # UI kilidi tek basina guvenlik degildir.
+    # Manuel POST istegi de burada engellenir.
+    if not company_has_active_pro(
+        request.company
+    ):
         return render(
             request,
             "companies/panel/complaint_detail.html",
@@ -168,14 +240,31 @@ def response_create(request, pk):
 @company_panel_required
 @require_POST
 def note_create(request, pk):
-    # Dahili not da Pro entitlement gerektirir.
-    # Form gizlense bile manuel POST burada engellenir.
-    if not company_has_active_pro(request.company):
-        complaint = get_object_or_404(
-            company_complaints(request.company),
-            pk=pk,
+    complaint = get_object_or_404(
+        company_complaints(
+            request.company
+        ),
+        pk=pk,
+    )
+
+    if not company_can_interact_with_complaint(
+        complaint
+    ):
+        return render(
+            request,
+            "companies/panel/complaint_detail.html",
+            _detail_context(
+                request,
+                complaint,
+            ),
+            status=409,
         )
 
+    # Dahili not da Pro entitlement gerektirir.
+    # Manuel POST burada da engellenir.
+    if not company_has_active_pro(
+        request.company
+    ):
         return render(
             request,
             "companies/panel/complaint_detail.html",
@@ -204,16 +293,14 @@ def responses(request):
 @require_http_methods(["GET", "HEAD", "POST"])
 def profile(request):
     if request.method == "POST":
-        require_profile_role(request.company_membership)
-        form = CompanyProfileForm(request.POST, request.FILES, instance=request.company)
-        if form.is_valid():
-            company = form.save()
-            # Preserve the former clear-checkbox POST contract for existing clients;
-            # the current UI uses the dedicated CSRF-protected removal endpoint.
-            if request.POST.get("logo-clear") == "on" and company.logo:
-                company.logo.delete(save=False)
-                company.logo = None
-                company.save(update_fields=("logo", "updated_at"))
+        company, form, saved = update_company_profile(
+            user=request.user,
+            company_id=request.company.pk,
+            data=request.POST,
+            files=request.FILES,
+        )
+        request.company = company
+        if saved:
             messages.success(request, "Şirket profiliniz güncellendi.")
             return redirect("companies:profile")
     else:
@@ -227,13 +314,18 @@ def profile(request):
 @company_panel_required
 @require_POST
 def logo_remove(request):
-    require_profile_role(request.company_membership)
-    company = request.company
-    if company.logo:
-        company.logo.delete(save=False)
-        company.logo = None
-        company.save(update_fields=("logo", "updated_at"))
-        messages.success(request, "Şirket logosu kaldırıldı.")
+    try:
+        remove_company_logo(
+            user=request.user,
+            company_id=request.company.pk,
+        )
+    except ValidationError:
+        return render(
+            request,
+            "companies/panel/access_denied.html",
+            {"not_found": False},
+            status=403,
+        )
     return redirect("companies:profile")
 
 
@@ -316,9 +408,8 @@ def panel_settings(request):
 @company_panel_required
 @require_safe
 def plan(request):
-    # Şimdilik yalnızca sunum katmanı.
-    # Gerçek abonelik/paket bilgisi sonraki aşamada
-    # subscription modelinden okunacak.
+    # Paket bilgisi CompanySubscription
+    # entitlement politikasindan okunur.
     return render(
         request,
         "companies/panel/plan.html",
@@ -332,4 +423,3 @@ def plan(request):
             ),
         ),
     )
-

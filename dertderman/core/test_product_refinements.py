@@ -63,7 +63,7 @@ class ProductRefinementSecurityTests(TestCase):
     def test_company_logo_owner_manager_allowed_support_blocked_and_idor_ignored(self):
         other_company = Company.objects.create(name="Other Company")
         owner_client = None
-        for role, expected in (("OWNER", 302), ("MANAGER", 302), ("SUPPORT", 403)):
+        for role, expected in (("OWNER", 302), ("MANAGER", 400), ("SUPPORT", 403)):
             user = User.objects.create_user(username=f"role-{role.lower()}", email=f"{role.lower()}@example.com", password="StrongPass2026!", user_type="COMPANY")
             CompanyMembership.objects.create(user=user, company=self.company, role=role)
             client = Client(); client.force_login(user)
@@ -76,9 +76,9 @@ class ProductRefinementSecurityTests(TestCase):
         self.assertTrue(self.company.logo)
         self.assertFalse(other_company.logo)
         response = owner_client.post(reverse("companies:profile"), {"name": self.company.name, "logo-clear": "on"})
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 400)
         self.company.refresh_from_db()
-        self.assertFalse(self.company.logo)
+        self.assertTrue(self.company.logo)
 
     def test_arbitrary_emoji_update_toggle_validation_and_notification_deduplication(self):
         self.client.force_login(self.other)

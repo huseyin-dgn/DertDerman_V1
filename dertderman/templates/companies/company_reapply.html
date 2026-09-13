@@ -1,0 +1,183 @@
+{% extends 'layouts/auth_base.html' %}
+
+{% block title %}
+Şirket Yeniden Başvurusu | DertDerman
+{% endblock %}
+
+{% block auth_variant %}
+ax-company-register
+{% endblock %}
+
+
+{% block content %}
+
+<main
+    class="ax-layout"
+    id="main-content"
+>
+
+    <aside
+        class="ax-story ax-business-story"
+        aria-labelledby="reapply-story-title"
+    >
+
+        <div class="ax-story-inner">
+
+            <p class="ax-eyebrow">
+                YENİDEN İNCELEME
+            </p>
+
+            <h2 id="reapply-story-title">
+                Bilgilerinizi düzeltin.
+                <br>
+                <span>
+                    Tekrar değerlendirelim.
+                </span>
+            </h2>
+
+            <p class="ax-story-lead">
+                Önceki başvurunuz reddedildiyse,
+                şirket bilgilerinizi güncelleyerek
+                yeniden inceleme talebi gönderebilirsiniz.
+            </p>
+
+            {% include 'auth/company_registration_visual.html' %}
+
+            <p class="ax-business-foot">
+                Kimlik doğrulama
+                →
+                Yeniden başvuru
+                →
+                Yönetim incelemesi
+            </p>
+
+        </div>
+
+    </aside>
+
+
+    <div class="ax-form-area">
+
+        <section
+            class="ax-card"
+            aria-labelledby="auth-title"
+        >
+
+            {% include 'auth/messages.html' %}
+
+
+            <header class="ax-heading">
+
+                <span class="ax-role">
+                    Yeniden başvuru
+                </span>
+
+                <h1 id="auth-title">
+                    Şirket Başvurunuzu
+                    <br>
+                    Yeniden Gönderin
+                </h1>
+
+                <p>
+                    Hesap sahipliğinizi mevcut şifrenizle
+                    doğrulayın ve düzeltilmiş şirket
+                    bilgilerinizi gönderin.
+                </p>
+
+            </header>
+
+
+            <form
+                method="post"
+                class="ax-form"
+                data-auth-form
+            >
+
+                {% csrf_token %}
+
+                {% include 'auth/form_errors.html' %}
+
+
+                <fieldset class="ax-fieldset">
+
+                    <legend>
+                        <span>01</span>
+                        Şirket bilgileri
+                    </legend>
+
+                    {% include 'auth/field.html' with field=form.company_name %}
+
+                    {% include 'auth/field.html' with field=form.category label='Şirket kategorisi' %}
+
+                    {% include 'auth/field.html' with field=form.website label='Web sitesi (isteğe bağlı)' %}
+
+                    {% include 'auth/field.html' with field=form.phone %}
+
+                </fieldset>
+
+
+                <fieldset class="ax-fieldset">
+
+                    <legend>
+                        <span>02</span>
+                        Hesap doğrulama
+                    </legend>
+
+                    {% include 'auth/field.html' with field=form.email label='Kayıtlı kurumsal e-posta' %}
+
+                    {% include 'auth/field.html' with field=form.password label='Mevcut şifreniz' %}
+
+                </fieldset>
+
+
+                <p class="ax-review-note">
+
+                    {% include 'companies/panel/icon.html' with name='shield' %}
+
+                    <span>
+                        Yeniden başvuru göndermek şirket
+                        panelini otomatik olarak açmaz.
+                        Başvurunuz yönetim tarafından
+                        tekrar incelenecektir.
+                    </span>
+
+                </p>
+
+
+                <button
+                    type="submit"
+                    class="ax-submit"
+                    data-submit-label="Başvurunuz gönderiliyor…"
+                >
+
+                    <span>
+                        Yeniden İncelemeye Gönder
+                    </span>
+
+                    {% include 'components/icon.html' %}
+
+                </button>
+
+            </form>
+
+
+            <div class="ax-alternative">
+
+                <span>
+                    Başvurunuz onaylandı mı?
+                </span>
+
+                <a href="{% url 'company_auth:login' %}">
+                    Şirket Girişi
+                    {% include 'components/icon.html' %}
+                </a>
+
+            </div>
+
+        </section>
+
+    </div>
+
+</main>
+
+{% endblock %}

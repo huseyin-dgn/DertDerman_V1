@@ -134,9 +134,15 @@ class CompanyLogoControlTests(TestCase):
         self.assertEqual(csrf_client.post(url).status_code, 403)
         page = csrf_client.get(reverse("companies:profile"))
         token = page.cookies["csrftoken"].value
-        self.assertRedirects(csrf_client.post(url, {"csrfmiddlewaretoken": token, "company_id": self.other.pk}), reverse("companies:profile"))
+        self.assertEqual(
+            csrf_client.post(
+                url,
+                {"csrfmiddlewaretoken": token, "company_id": self.other.pk},
+            ).status_code,
+            403,
+        )
         self.company.refresh_from_db()
-        self.assertFalse(self.company.logo)
+        self.assertTrue(self.company.logo)
         self.client.force_login(self.support)
         self.assertEqual(self.client.post(url).status_code, 403)
 

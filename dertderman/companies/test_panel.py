@@ -196,7 +196,13 @@ class CompanyPanelTests(TestCase):
                 self.assertEqual(self.client.get(self.route("members")).status_code, 200 if can_manage else 403)
                 for name in ("response_create", "note_create"):
                     self.assertEqual(self.client.post(self.route(name, self.own.pk), {"body": f"Entry by {user.username}"}).status_code, 302)
-                self.assertEqual(self.client.post(self.route("profile"), {"name": "Managed Company"}).status_code, 302 if can_manage else 403)
+                self.assertEqual(
+                    self.client.post(
+                        self.route("profile"),
+                        {"description": "Managed public description"},
+                    ).status_code,
+                    302 if can_manage else 403,
+                )
                 self.assertEqual(self.client.post(self.route("members"), {"role": "OWNER", "user": user.pk}).status_code, 405)
 
     def test_profile_whitelist_cannot_change_privileges_or_other_company(self):
@@ -204,11 +210,12 @@ class CompanyPanelTests(TestCase):
             "email": "public-contact@example.com", "website": "https://example.com", "phone": "5551234567",
             "company": self.b.pk, "id": self.b.pk, "slug": self.b.slug, "approval_status": "REJECTED",
             "is_active": "false", "is_verified": "false", "ownership": self.other_owner.pk, "role": "OWNER"})
-        self.assertRedirects(response, self.route("profile"))
+        self.assertEqual(response.status_code, 400)
         self.a.refresh_from_db()
         self.b.refresh_from_db()
         self.owner.refresh_from_db()
-        self.assertEqual(self.a.name, "Updated Alpha")
+        self.assertEqual(self.a.name, "Company Alpha")
+        self.assertEqual(self.a.email, "")
         self.assertEqual(self.b.name, "Company Beta")
         self.assertTrue(self.a.is_active and self.a.is_verified)
         self.assertEqual(self.a.approval_status, "APPROVED")

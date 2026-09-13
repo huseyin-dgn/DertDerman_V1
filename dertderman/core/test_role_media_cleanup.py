@@ -153,20 +153,14 @@ class CompanyImageControlUiTests(TestCase):
         self.company.refresh_from_db()
         self.assertTrue(self.company.logo)
         page = self.client.get(reverse("companies:profile"))
-        self.assertContains(page, "Görseli Değiştir")
-        self.assertContains(page, "Görseli Kaldır")
-        self.assertContains(page, "cp-button cp-button--danger")
+        self.assertNotContains(page, "Görseli Değiştir")
+        self.assertNotContains(page, "Görseli Kaldır")
         public = self.client.get(reverse("companies_public:company_detail", args=[self.company.slug]))
         self.assertContains(public, self.company.logo.url)
 
-        self.assertRedirects(self.client.post(reverse("companies:logo_remove")), reverse("companies:profile"))
+        self.assertEqual(self.client.post(reverse("companies:logo_remove")).status_code, 403)
         self.company.refresh_from_db()
-        self.assertFalse(self.company.logo)
-        public = self.client.get(reverse("companies_public:company_detail", args=[self.company.slug]))
-        self.assertContains(public, "images/avatars/companies/company-4.svg")
-        Company.objects.filter(pk=self.company.pk).update(selected_avatar="")
-        public = self.client.get(reverse("companies_public:company_detail", args=[self.company.slug]))
-        self.assertContains(public, "company-profile-avatar-fallback")
+        self.assertTrue(self.company.logo)
 
     def test_support_is_read_only_and_cross_company_fields_do_not_change_target(self):
         self.client.force_login(self.support)
@@ -176,10 +170,14 @@ class CompanyImageControlUiTests(TestCase):
         self.assertEqual(self.client.post(reverse("companies:logo_remove")).status_code, 403)
 
         self.client.force_login(self.owner)
-        self.client.post(reverse("companies:profile"), {
+        response = self.client.post(reverse("companies:profile"), {
             "name": "Media Control Updated", "selected_avatar": "company-5",
             "company_id": self.other.pk, "logo": logo_upload("new-logo.png"),
         })
+        self.assertEqual(response.status_code, 400)
+        self.company.refresh_from_db()
         self.other.refresh_from_db()
+        self.assertEqual(self.company.name, "Media Control")
+        self.assertEqual(self.company.selected_avatar, "company-4")
         self.assertEqual(self.other.name, "Protected Other")
         self.assertFalse(self.other.logo)

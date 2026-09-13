@@ -1,7 +1,8 @@
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
+from django.utils import timezone
 
-from .models import Company, CompanyMembership
+from .models import Company, CompanyCategory, CompanyMembership
 
 
 def active_company_memberships_for(user):
@@ -127,3 +128,116 @@ def decide_company_application(company_id, target_status):
     )
 
     return company, True
+
+
+@transaction.atomic
+def resubmit_company_application(
+    *,
+    user,
+    company_id,
+    company_name,
+    category,
+    phone,
+    website,
+):
+    """
+    Reddedilmis basvuruyu yeni bir hesap olusturmadan
+    tekrar PENDING durumuna getirir.
+
+    Kullanici sifre dogrulamasi view/form katmaninda,
+    kritik durum kontrolleri burada tekrar yapilir.
+    """
+
+    company = (
+        Company.objects
+        .select_for_update()
+        .get(
+            pk=company_id
+        )
+    )
+
+    membership = (
+        CompanyMembership.objects
+        .select_for_update()
+        .filter(
+            company=company,
+            user=user,
+            role=CompanyMembership.Role.OWNER,
+        )
+        .first()
+    )
+
+    if (
+        membership is None
+        or user.user_type != "COMPANY"
+    ):
+        raise ValidationError(
+            "Geçerli şirket yetkilisi bulunamadı."
+        )
+
+    if company.archived_at is not None:
+        raise ValidationError(
+            "Arşivlenmiş şirket yeniden başvuru yapamaz."
+        )
+
+    if (
+        company.approval_status
+        != Company.ApprovalStatus.REJECTED
+    ):
+        raise ValidationError(
+            "Yalnızca reddedilmiş başvurular "
+            "yeniden incelemeye gönderilebilir."
+        )
+
+    if not CompanyCategory.objects.filter(
+        pk=category.pk,
+        is_active=True,
+    ).exists():
+        raise ValidationError(
+            "Geçerli bir şirket kategorisi seçin."
+        )
+
+    now = timezone.now()
+
+    # QuerySet.update kullanarak bu kullanıcı işleminin
+    # admin kararı sinyali gibi yorumlanmasını engelliyoruz.
+    Company.objects.filter(
+        pk=company.pk
+    ).update(
+        name=company_name.strip(),
+        email=user.email,
+        phone=phone.strip(),
+        website=(website or "").strip(),
+        category=category,
+        approval_status=(
+            Company.ApprovalStatus.PENDING
+        ),
+        is_active=False,
+        is_verified=False,
+        updated_at=now,
+    )
+
+    # Admin tekrar onaylayana kadar panel kapalı kalır.
+    if membership.is_active:
+        membership.is_active = False
+        membership.save(
+            update_fields=[
+                "is_active"
+            ]
+        )
+
+    if (
+        getattr(user, "phone", "")
+        != phone.strip()
+    ):
+        user.phone = phone.strip()
+        user.save(
+            update_fields=[
+                "phone"
+            ]
+        )
+
+    company.refresh_from_db()
+
+    return company
+

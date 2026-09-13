@@ -746,3 +746,58 @@
         grid-template-columns: 1fr;
     }
 }
+/* ==========================================================
+   COMPLAINT LIFECYCLE LOCK
+   ========================================================== */
+
+.cp-lifecycle-lock {
+    display: grid;
+    grid-template-columns:
+        auto minmax(0, 1fr);
+    gap: 18px;
+    align-items: start;
+    padding: 24px;
+    border-color: #d3dee7;
+    background:
+        linear-gradient(
+            135deg,
+            #fbfcfd,
+            #f3f7fa
+        );
+}
+
+.cp-lifecycle-lock-icon {
+    display: grid;
+    width: 48px;
+    height: 48px;
+    place-items: center;
+    border: 1px solid #d5e1e9;
+    border-radius: 13px;
+    background: #ffffff;
+    color: #617b90;
+}
+
+.cp-lifecycle-lock-icon .icon {
+    width: 22px;
+    height: 22px;
+}
+
+.cp-lifecycle-lock h2 {
+    margin: 0 0 7px;
+    color: var(--dd-navy);
+    font-size: 17px;
+}
+
+.cp-lifecycle-lock p:not(.cp-kicker) {
+    max-width: 760px;
+    margin: 0;
+    color: var(--dd-muted);
+    font-size: 11px;
+    line-height: 1.65;
+}
+
+@media(max-width: 540px) {
+    .cp-lifecycle-lock {
+        grid-template-columns: 1fr;
+    }
+}

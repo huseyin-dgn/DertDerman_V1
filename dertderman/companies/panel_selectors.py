@@ -2,6 +2,7 @@ from django.db.models import CharField, DateTimeField, Exists, F, OuterRef, Q, S
 from django.db.models.functions import Coalesce, Greatest
 
 from complaints.models import Complaint
+from .complaint_policy import COMPANY_VISIBLE_COMPLAINT_STATUSES
 from .models import CompanyNotification, CompanyNotificationRead, CompanyResponse, InternalCompanyNote
 
 
@@ -16,7 +17,10 @@ def company_notes(company):
 def company_complaints(company):
     responses = company_responses(company).filter(complaint_id=OuterRef("pk"))
     notes = company_notes(company).filter(complaint_id=OuterRef("pk"))
-    return Complaint.objects.filter(company=company).select_related("user", "company").annotate(
+    return Complaint.objects.filter(
+        company=company,
+        status__in=COMPANY_VISIBLE_COMPLAINT_STATUSES,
+    ).select_related("user", "company").annotate(
         has_response=Exists(responses),
         first_response_at=Subquery(responses.order_by("created_at", "pk").values("created_at")[:1], output_field=DateTimeField()),
         last_response_at=Subquery(responses.values("created_at")[:1], output_field=DateTimeField()),
@@ -31,10 +35,26 @@ def company_notifications(company, user):
     if not user.is_authenticated or not user.is_active or user.user_type != 'COMPANY':
         return CompanyNotification.objects.none()
     reads = CompanyNotificationRead.objects.filter(notification_id=OuterRef("pk"), user=user)
-    return CompanyNotification.objects.filter(company=company,
-        company_id__in=active_company_memberships_for(user).values('company_id')).filter(
-        Q(complaint__isnull=True) | Q(complaint__company=company),
-    ).select_related("complaint", "company").annotate(is_read=Exists(reads))
+    return CompanyNotification.objects.filter(
+        company=company,
+        company_id__in=(
+            active_company_memberships_for(user)
+            .values("company_id")
+        ),
+    ).filter(
+        Q(complaint__isnull=True)
+        | Q(
+            complaint__company=company,
+            complaint__status__in=(
+                COMPANY_VISIBLE_COMPLAINT_STATUSES
+            ),
+        ),
+    ).select_related(
+        "complaint",
+        "company",
+    ).annotate(
+        is_read=Exists(reads)
+    )
 
 
 def complaint_history(company, user, complaint):

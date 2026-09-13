@@ -90,6 +90,9 @@ def company_edit(request, pk):
         request.POST
         if request.method == "POST"
         else None,
+        request.FILES
+        if request.method == "POST"
+        else None,
         instance=company,
     )
 

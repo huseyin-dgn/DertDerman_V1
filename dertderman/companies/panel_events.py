@@ -5,6 +5,7 @@ from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 
 from complaints.models import Complaint
+from .complaint_policy import COMPANY_VISIBLE_COMPLAINT_STATUSES
 
 from .models import Company, CompanyNotification
 
@@ -132,7 +133,13 @@ def notify_company_of_complaint(
     kind = None
 
     if created:
-        kind = CompanyNotification.Kind.NEW
+        # Moderasyon bekleyen/reddedilen icerik
+        # sirkete bildirilmez.
+        if (
+            instance.status
+            in COMPANY_VISIBLE_COMPLAINT_STATUSES
+        ):
+            kind = CompanyNotification.Kind.NEW
 
     elif previous and previous["status"] != instance.status:
         kind = {

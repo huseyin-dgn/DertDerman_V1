@@ -18,7 +18,14 @@
       {% include 'auth/field.html' with field=form.password label='Şifre' %}
       <button type="submit" class="ax-submit" data-submit-label="Şirket paneli açılıyor…"><span>Şirket Girişi</span>{% include 'components/icon.html' %}</button>
     </form>
-    <p class="ax-access-note">Kurumsal erişim, şirket başvurunuzun onaylanmasının ardından açılır.</p>
+    <p class="ax-access-note">
+      Kurumsal erişim, şirket başvurunuzun
+      onaylanmasının ardından açılır.
+      Başvurunuz reddedildiyse
+      <a href="{% url 'company_auth:reapply' %}">
+        yeniden başvuru gönderebilirsiniz.
+      </a>
+    </p>
     <div class="ax-alternative"><span>Henüz kurumsal hesabınız yok mu?</span><a href="{% url 'company_auth:register' %}">Şirket Başvurusu Yap {% include 'components/icon.html' %}</a></div>
     <p class="ax-crosslink">Bireysel kullanıcı mısınız? <a href="{% url 'accounts:login' %}">Kullanıcı Girişi</a></p>
   </section></div>

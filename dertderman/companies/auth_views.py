@@ -17,8 +17,15 @@ from core.rate_limit import (
     rate_limit_status,
 )
 
-from .forms import CompanyAuthenticationForm, CompanyRegistrationForm
-from .services import active_company_memberships_for
+from .forms import (
+    CompanyAuthenticationForm,
+    CompanyReapplicationForm,
+    CompanyRegistrationForm,
+)
+from .services import (
+    active_company_memberships_for,
+    resubmit_company_application,
+)
 
 AUTH_RATE_LIMIT_MESSAGE = (
     "Çok fazla giriş denemesi yapıldı. Lütfen kısa bir süre sonra tekrar deneyin."
@@ -31,6 +38,15 @@ LOGIN_IP_LIMIT = 20
 LOGIN_WINDOW_SECONDS = 15 * 60
 REGISTER_IP_LIMIT = 10
 REGISTER_WINDOW_SECONDS = 60 * 60
+
+REAPPLY_IDENTITY_LIMIT = 5
+REAPPLY_IP_LIMIT = 20
+REAPPLY_WINDOW_SECONDS = 15 * 60
+
+REAPPLY_RATE_LIMIT_MESSAGE = (
+    "Çok fazla yeniden başvuru denemesi yapıldı. "
+    "Lütfen kısa bir süre sonra tekrar deneyin."
+)
 
 
 @never_cache
@@ -144,3 +160,175 @@ class CompanyLoginView(LoginView):
 
     def get_success_url(self):
         return safe_role_next(self.request, self.request.user.user_type) or reverse("companies:company_panel")
+
+
+@never_cache
+@csrf_protect
+@require_http_methods(["GET", "HEAD", "POST"])
+def company_reapply(request):
+    """
+    Reddedilmis sirket basvurusunun
+    mevcut hesap bilgileriyle yeniden gonderilmesi.
+    """
+
+    if request.user.is_authenticated:
+        if (
+            request.user.user_type
+            == User.UserType.COMPANY
+            and active_company_memberships_for(
+                request.user
+            ).exists()
+        ):
+            return redirect(
+                "companies:company_panel"
+            )
+
+        raise PermissionDenied
+
+    if request.method == "POST":
+        ip = client_ip(request)
+
+        email = (
+            request.POST
+            .get(
+                "email",
+                "",
+            )
+            or ""
+        ).strip().casefold()
+
+        identity = (
+            f"{ip}\0{email}"
+        )
+
+        identity_decision = consume_rate_limit(
+            scope="company-reapply-identity",
+            identifier=identity,
+            limit=REAPPLY_IDENTITY_LIMIT,
+            window_seconds=REAPPLY_WINDOW_SECONDS,
+        )
+
+        ip_decision = consume_rate_limit(
+            scope="company-reapply-ip",
+            identifier=ip,
+            limit=REAPPLY_IP_LIMIT,
+            window_seconds=REAPPLY_WINDOW_SECONDS,
+        )
+
+        if (
+            not identity_decision.allowed
+            or not ip_decision.allowed
+        ):
+            form = CompanyReapplicationForm(
+                request.POST,
+                request=request,
+            )
+
+            form.add_error(
+                None,
+                REAPPLY_RATE_LIMIT_MESSAGE,
+            )
+
+            response = render(
+                request,
+                "companies/company_reapply.html",
+                {
+                    "form": form,
+                },
+                status=429,
+            )
+
+            response["Retry-After"] = str(
+                max(
+                    identity_decision.retry_after,
+                    ip_decision.retry_after,
+                )
+            )
+
+            return response
+
+    form = CompanyReapplicationForm(
+        request.POST or None,
+        request=request,
+    )
+
+    if (
+        request.method == "POST"
+        and form.is_valid()
+    ):
+        try:
+            resubmit_company_application(
+                user=form.user_cache,
+                company_id=(
+                    form.company_cache.pk
+                ),
+                company_name=(
+                    form.cleaned_data[
+                        "company_name"
+                    ]
+                ),
+                category=(
+                    form.cleaned_data[
+                        "category"
+                    ]
+                ),
+                phone=(
+                    form.cleaned_data[
+                        "phone"
+                    ]
+                ),
+                website=(
+                    form.cleaned_data[
+                        "website"
+                    ]
+                ),
+            )
+
+        except ValidationError:
+            form.add_error(
+                None,
+                (
+                    "Yeniden başvuru bilgileri "
+                    "doğrulanamadı."
+                ),
+            )
+
+        else:
+            ip = client_ip(request)
+
+            email = (
+                form.cleaned_data[
+                    "email"
+                ]
+                .strip()
+                .casefold()
+            )
+
+            clear_rate_limit(
+                scope="company-reapply-identity",
+                identifier=f"{ip}\0{email}",
+            )
+
+            messages.success(
+                request,
+                (
+                    "Şirket başvurunuz yeniden "
+                    "incelemeye gönderildi. "
+                    "Yönetim onayından sonra "
+                    "kurumsal erişiminiz açılacaktır."
+                ),
+                extra_tags="company-application",
+            )
+
+            return redirect(
+                "company_auth:login"
+            )
+
+    return render(
+        request,
+        "companies/company_reapply.html",
+        {
+            "form": form,
+        },
+    )
+

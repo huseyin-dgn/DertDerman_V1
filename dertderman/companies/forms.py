@@ -212,3 +212,179 @@ class CompanyForm(forms.ModelForm):
             "logo",
             "category",
         )
+
+
+class CompanyReapplicationForm(forms.Form):
+    """
+    Reddedilmis bir sirket basvurusunu
+    yeniden incelemeye gondermek icin kullanilir.
+
+    Hesap sahipligi mevcut sifre ile dogrulanir.
+    """
+
+    company_name = forms.CharField(
+        label="Şirket adı",
+        max_length=255,
+    )
+
+    category = forms.ModelChoiceField(
+        label="Şirket kategorisi",
+        queryset=CompanyCategory.objects.none(),
+        empty_label=None,
+        required=True,
+        widget=forms.RadioSelect(
+            attrs={
+                "class": "company-category-radio",
+            }
+        ),
+    )
+
+    email = forms.EmailField(
+        label="Kurumsal e-posta",
+        widget=forms.EmailInput(
+            attrs={
+                "autocomplete": "email",
+            }
+        ),
+    )
+
+    phone = forms.CharField(
+        label="Telefon",
+        max_length=20,
+    )
+
+    website = forms.URLField(
+        label="Web sitesi",
+        required=False,
+    )
+
+    password = forms.CharField(
+        label="Mevcut şifreniz",
+        strip=False,
+        widget=forms.PasswordInput(
+            attrs={
+                "autocomplete": "current-password",
+            }
+        ),
+    )
+
+    def __init__(
+        self,
+        *args,
+        request=None,
+        **kwargs,
+    ):
+        self.request = request
+        self.user_cache = None
+        self.membership_cache = None
+        self.company_cache = None
+
+        super().__init__(
+            *args,
+            **kwargs,
+        )
+
+        self.fields["category"].queryset = (
+            CompanyCategory.objects
+            .filter(
+                is_active=True
+            )
+            .only(
+                "pk",
+                "name",
+            )
+            .order_by(
+                "name"
+            )
+        )
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        email = cleaned_data.get(
+            "email"
+        )
+
+        password = cleaned_data.get(
+            "password"
+        )
+
+        if not email or not password:
+            return cleaned_data
+
+        email = (
+            User.objects
+            .normalize_email(
+                email.strip()
+            )
+            .lower()
+        )
+
+        cleaned_data["email"] = email
+
+        company_user = (
+            User.objects
+            .filter(
+                email__iexact=email,
+                user_type=User.UserType.COMPANY,
+                is_active=True,
+            )
+            .order_by("pk")
+            .first()
+        )
+
+        username = (
+            company_user.username
+            if company_user
+            else f"missing_{uuid.uuid4().hex}"
+        )
+
+        authenticated_user = authenticate(
+            self.request,
+            username=username,
+            password=password,
+        )
+
+        if (
+            authenticated_user is None
+            or authenticated_user != company_user
+        ):
+            raise ValidationError(
+                "Yeniden başvuru bilgileri doğrulanamadı.",
+                code="invalid_reapplication",
+            )
+
+        membership = (
+            CompanyMembership.objects
+            .select_related(
+                "company"
+            )
+            .filter(
+                user=company_user,
+                role=CompanyMembership.Role.OWNER,
+                company__approval_status=(
+                    Company.ApprovalStatus.REJECTED
+                ),
+                company__archived_at__isnull=True,
+            )
+            .order_by(
+                "created_at",
+                "pk",
+            )
+            .first()
+        )
+
+        if membership is None:
+            # Bilgi sizintisini engellemek icin
+            # ayni genel hata kullanilir.
+            raise ValidationError(
+                "Yeniden başvuru bilgileri doğrulanamadı.",
+                code="invalid_reapplication",
+            )
+
+        self.user_cache = company_user
+        self.membership_cache = membership
+        self.company_cache = membership.company
+
+        return cleaned_data
+

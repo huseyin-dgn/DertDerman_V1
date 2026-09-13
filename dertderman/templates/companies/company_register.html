@@ -259,6 +259,17 @@ ax-company-register
 
             <p class="ax-crosslink">
 
+                Önceki şirket başvurunuz reddedildiyse
+
+                <a href="{% url 'company_auth:reapply' %}">
+                    Yeniden Başvuru
+                </a>
+
+            </p>
+
+
+            <p class="ax-crosslink">
+
                 Bireysel hesap için
 
                 <a href="{% url 'accounts:register' %}">
