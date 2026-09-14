@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from .email_policy import notification_email_policy
 from .email_service import build_recipient_hash
+from .email_template_manifest import NOTIFICATION_V1_HTML, NOTIFICATION_V1_TEXT
 from .models import EmailOutbox, Notification
 from .outbox_service import (
     EmailPayload,
@@ -154,12 +155,8 @@ def render_notification_outbox(outbox):
     return EmailPayload(
         recipient_email=notification.recipient_user.email,
         subject=_subject(notification),
-        html_body=render_to_string(
-            "emails/transactional_notification.html", context
-        ),
-        text_body=render_to_string(
-            "emails/transactional_notification.txt", context
-        ),
+        html_body=render_to_string(NOTIFICATION_V1_HTML, context),
+        text_body=render_to_string(NOTIFICATION_V1_TEXT, context),
         from_email=getattr(settings, "DEFAULT_FROM_EMAIL", ""),
         reply_to=getattr(settings, "EMAIL_REPLY_TO", ""),
     )

@@ -18,6 +18,10 @@ from notifications.email_service import (
     build_recipient_hash,
     send_email,
 )
+from notifications.email_template_manifest import (
+    EMAIL_VERIFICATION_V1_HTML,
+    EMAIL_VERIFICATION_V1_TEXT,
+)
 from notifications.models import EmailOutbox
 from notifications.outbox_service import (
     EmailPayload,
@@ -414,8 +418,8 @@ def _render_email_verification_payload(user: User, *, issued_at=None):
     return EmailPayload(
         recipient_email=user.email,
         subject="E-posta adresinizi doğrulayın | DertDerman",
-        html_body=render_to_string("emails/email_verification.html", context),
-        text_body=render_to_string("emails/email_verification.txt", context),
+        html_body=render_to_string(EMAIL_VERIFICATION_V1_HTML, context),
+        text_body=render_to_string(EMAIL_VERIFICATION_V1_TEXT, context),
         from_email=getattr(settings, "DEFAULT_FROM_EMAIL", ""),
         reply_to=getattr(settings, "EMAIL_REPLY_TO", ""),
     )

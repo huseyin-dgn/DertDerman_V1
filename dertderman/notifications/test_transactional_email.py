@@ -438,13 +438,18 @@ class TransactionalNotificationWorkerTests(
         provider_send.assert_not_called()
 
     @patch("notifications.outbox_service._send_with_provider")
-    def test_renderer_configuration_failure_is_recoverable(self, provider_send):
+    def test_global_render_configuration_failure_happens_before_claim(
+        self,
+        provider_send,
+    ):
         _notification, outbox = self.enqueue()
         with self.settings(SITE_BASE_URL=""):
             with self.assertRaises(CommandError):
                 call_command("process_email_outbox", "--once")
         outbox.refresh_from_db()
-        self.assertEqual(outbox.status, EmailOutbox.Status.RETRY)
+        self.assertEqual(outbox.status, EmailOutbox.Status.PENDING)
+        self.assertEqual(outbox.last_error_code, "")
+        self.assertIsNone(outbox.claim_token)
         self.assertEqual(outbox.attempt_count, 0)
         self.assertFalse(EmailDelivery.objects.exists())
         provider_send.assert_not_called()

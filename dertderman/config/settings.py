@@ -6,6 +6,8 @@ from urllib.parse import urlsplit
 from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
+from .validation import validate_site_base_url
+
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -112,29 +114,14 @@ def _validate_https_origin(origin, *, setting_name):
 
 
 def _production_site_base_url():
-    value = _required_env("SITE_BASE_URL").rstrip("/")
+    _required_env("SITE_BASE_URL")
+    value = os.getenv("SITE_BASE_URL", "")
     try:
-        parsed = urlsplit(value)
-        parsed.port
-    except ValueError as exc:
+        return validate_site_base_url(value, require_https=True)
+    except ValueError:
         raise ImproperlyConfigured(
             "SITE_BASE_URL must be a valid absolute HTTPS URL."
-        ) from exc
-    if (
-        parsed.scheme != "https"
-        or not parsed.hostname
-        or parsed.username is not None
-        or parsed.password is not None
-        or parsed.query
-        or parsed.fragment
-        or parsed.path not in {"", "/"}
-        or any(character.isspace() for character in value)
-    ):
-        raise ImproperlyConfigured(
-            "SITE_BASE_URL must be a valid absolute HTTPS URL without "
-            "userinfo, query, or fragment components."
-        )
-    return value
+        ) from None
 
 
 if IS_PRODUCTION:

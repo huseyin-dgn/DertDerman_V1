@@ -15,6 +15,10 @@ from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 
 from notifications.email_service import build_recipient_hash
+from notifications.email_template_manifest import (
+    PASSWORD_RESET_V1_HTML,
+    PASSWORD_RESET_V1_TEXT,
+)
 from notifications.models import EmailOutbox
 from notifications.outbox_service import (
     EmailPayload,
@@ -199,8 +203,8 @@ def render_password_reset_outbox(outbox):
     return EmailPayload(
         recipient_email=user.email,
         subject="Şifrenizi sıfırlayın | DertDerman",
-        html_body=render_to_string("emails/password_reset.html", context),
-        text_body=render_to_string("emails/password_reset.txt", context),
+        html_body=render_to_string(PASSWORD_RESET_V1_HTML, context),
+        text_body=render_to_string(PASSWORD_RESET_V1_TEXT, context),
         from_email=getattr(settings, "DEFAULT_FROM_EMAIL", ""),
         reply_to=getattr(settings, "EMAIL_REPLY_TO", ""),
     )

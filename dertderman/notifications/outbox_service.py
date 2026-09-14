@@ -5,11 +5,19 @@ import random
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from email.utils import parseaddr
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.core.mail.message import sanitize_address
+from django.core.validators import validate_email
 from django.db import connection, transaction
 from django.db.models import Q
+from django.template import TemplateDoesNotExist, TemplateSyntaxError
+from django.template.loader import get_template
 from django.utils import timezone
+
+from config.validation import validate_site_base_url
 
 from .email_providers.resend import (
     ResendConfigurationError,
@@ -23,6 +31,7 @@ from .email_service import (
     _validate_recipient,
     build_recipient_hash,
 )
+from .email_template_manifest import required_email_template_names
 from .models import EmailDelivery, EmailOutbox
 
 
@@ -146,13 +155,57 @@ def validate_dispatch_configuration() -> None:
         raise OutboxConfigurationError("Resend is not configured.")
 
     try:
+        ResendProvider(
+            api_key=api_key,
+            timeout_seconds=getattr(settings, "RESEND_TIMEOUT_SECONDS", 30),
+        )
+    except ResendConfigurationError:
+        raise OutboxConfigurationError("Resend is not configured.") from None
+
+    try:
         _load_resend()
-    except ResendConfigurationError as exc:
-        raise OutboxConfigurationError("Resend is not available.") from exc
+    except ResendConfigurationError:
+        raise OutboxConfigurationError("Resend is not available.") from None
+
+
+def _validate_mailbox_setting(setting_name) -> None:
+    value = getattr(settings, setting_name, "")
+    if not isinstance(value, str) or not value.strip():
+        raise OutboxConfigurationError(
+            f"{setting_name} must contain one valid mailbox."
+        )
+    try:
+        sanitized = sanitize_address(value, "utf-8")
+        _display_name, addr_spec = parseaddr(sanitized)
+        validate_email(addr_spec)
+    except (TypeError, ValueError, ValidationError):
+        raise OutboxConfigurationError(
+            f"{setting_name} must contain one valid mailbox."
+        ) from None
+
+
+def validate_required_email_templates() -> None:
+    try:
+        for template_name in required_email_template_names():
+            get_template(template_name)
+    except Exception:
+        raise OutboxConfigurationError(
+            "Required email templates are unavailable."
+        ) from None
 
 
 def validate_worker_configuration() -> None:
     validate_dispatch_configuration()
+    _validate_mailbox_setting("DEFAULT_FROM_EMAIL")
+    _validate_mailbox_setting("EMAIL_REPLY_TO")
+    try:
+        validate_site_base_url(
+            getattr(settings, "SITE_BASE_URL", ""),
+            require_https=getattr(settings, "IS_PRODUCTION", False),
+        )
+    except ValueError:
+        raise OutboxConfigurationError("SITE_BASE_URL is invalid.") from None
+    validate_required_email_templates()
 
 
 def _claimable(now):
@@ -336,20 +389,44 @@ def purge_cancelled_password_reset_noops(
     return deleted
 
 
+def _render_password_reset(outbox):
+    from accounts.password_reset import render_password_reset_outbox
+
+    return render_password_reset_outbox(outbox)
+
+
+def _render_email_verification(outbox):
+    from accounts.email_verification import render_email_verification_outbox
+
+    return render_email_verification_outbox(outbox)
+
+
+def _render_notification(outbox):
+    from .transactional_email import render_notification_outbox
+
+    return render_notification_outbox(outbox)
+
+
+OUTBOX_RENDERERS = {
+    EmailOutbox.Kind.PASSWORD_RESET: _render_password_reset,
+    EmailOutbox.Kind.EMAIL_VERIFICATION: _render_email_verification,
+    EmailOutbox.Kind.NOTIFICATION: _render_notification,
+}
+
+
 def render_outbox_email(outbox):
-    if outbox.kind == EmailOutbox.Kind.PASSWORD_RESET:
-        from accounts.password_reset import render_password_reset_outbox
-
-        return render_password_reset_outbox(outbox)
-    if outbox.kind == EmailOutbox.Kind.EMAIL_VERIFICATION:
-        from accounts.email_verification import render_email_verification_outbox
-
-        return render_email_verification_outbox(outbox)
-    if outbox.kind == EmailOutbox.Kind.NOTIFICATION:
-        from .transactional_email import render_notification_outbox
-
-        return render_notification_outbox(outbox)
-    raise OutboxRendererUnavailable("No outbox renderer is installed for this kind.")
+    try:
+        renderer = OUTBOX_RENDERERS[outbox.kind]
+    except KeyError:
+        raise OutboxRendererUnavailable(
+            "No outbox renderer is installed for this kind."
+        ) from None
+    try:
+        return renderer(outbox)
+    except (TemplateDoesNotExist, TemplateSyntaxError):
+        raise OutboxConfigurationError(
+            "Required email templates are unavailable."
+        ) from None
 
 
 def _business_cancellation_code(outbox, now):
