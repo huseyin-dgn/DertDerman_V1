@@ -32,6 +32,7 @@ from accounts.views import PENDING_EMAIL_VERIFICATION_USER_ID_SESSION_KEY
 from notifications.email_providers.resend import ResendDeliveryError
 from notifications.models import EmailDelivery, EmailOutbox
 from notifications.outbox_service import (
+    OUTBOX_UNSUPPORTED_TEMPLATE_VERSION,
     claim_email_outbox,
     render_outbox_email,
     send_outbox_email,
@@ -1013,6 +1014,26 @@ class EmailVerificationWorkerTests(TransactionTestCase):
         payload = provider.call_args.args[1]
         self.assertIn("/hesap/eposta-dogrula/", payload.html_body)
         self.assertIn("/hesap/eposta-dogrula/", payload.text_body)
+
+    @patch("notifications.outbox_service._send_with_provider")
+    def test_unsupported_template_version_is_dead_without_attempt(self, provider):
+        _user, outbox = self.enqueue()
+        EmailOutbox.objects.filter(pk=outbox.pk).update(template_version=2)
+
+        call_command("process_email_outbox", "--once")
+
+        outbox.refresh_from_db()
+        self.assertEqual(outbox.status, EmailOutbox.Status.DEAD)
+        self.assertEqual(
+            outbox.last_error_code,
+            OUTBOX_UNSUPPORTED_TEMPLATE_VERSION,
+        )
+        self.assertEqual(outbox.attempt_count, 0)
+        self.assertIsNone(outbox.first_attempt_at)
+        self.assertIsNone(outbox.provider_retry_deadline_at)
+        self.assertEqual(outbox.payload_hash, "")
+        self.assertFalse(EmailDelivery.objects.filter(outbox=outbox).exists())
+        provider.assert_not_called()
 
     def test_already_verified_is_cancelled_before_provider(self):
         self.assert_cancelled_after(

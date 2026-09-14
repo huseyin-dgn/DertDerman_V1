@@ -47,6 +47,29 @@ class OutboxConfigurationError(OutboxError):
     """Global worker configuration is invalid; queued items stay intact."""
 
 
+OUTBOX_UNSUPPORTED_TEMPLATE_VERSION = "OUTBOX_UNSUPPORTED_TEMPLATE_VERSION"
+OUTBOX_INVALID_RECIPE = "OUTBOX_INVALID_RECIPE"
+OUTBOX_PROVIDER_MISMATCH = "OUTBOX_PROVIDER_MISMATCH"
+_PERMANENT_ITEM_ERROR_CODES = frozenset(
+    {
+        OUTBOX_UNSUPPORTED_TEMPLATE_VERSION,
+        OUTBOX_INVALID_RECIPE,
+        OUTBOX_PROVIDER_MISMATCH,
+    }
+)
+
+
+class OutboxPermanentItemError(OutboxError):
+    """One persisted outbox recipe is permanently invalid."""
+
+    def __init__(self, code):
+        safe_code = str(code or "").strip().upper()
+        if safe_code not in _PERMANENT_ITEM_ERROR_CODES:
+            safe_code = OUTBOX_INVALID_RECIPE
+        super().__init__("Email outbox item is permanently invalid.")
+        self.code = safe_code[:64]
+
+
 class OutboxRendererUnavailable(OutboxConfigurationError):
     """A producer-specific renderer has not been installed yet."""
 
@@ -100,15 +123,22 @@ def canonical_payload_hash(payload: EmailPayload) -> str:
     return hashlib.sha256(serialized).hexdigest()
 
 
-def validate_dispatch_configuration(provider_name) -> None:
+def _validate_outbox_provider(provider_name) -> None:
+    configured_provider = (
+        getattr(settings, "EMAIL_PROVIDER", "resend") or ""
+    ).strip().lower()
+    if (provider_name or "").strip().lower() != configured_provider:
+        raise OutboxPermanentItemError(OUTBOX_PROVIDER_MISMATCH)
+
+
+def validate_dispatch_configuration() -> None:
     if not getattr(settings, "EMAIL_SENDING_ENABLED", False):
         raise OutboxConfigurationError("Email sending is disabled.")
 
     configured_provider = (
         getattr(settings, "EMAIL_PROVIDER", "resend") or ""
     ).strip().lower()
-    provider_name = (provider_name or "").strip().lower()
-    if configured_provider != "resend" or provider_name != configured_provider:
+    if configured_provider != "resend":
         raise OutboxConfigurationError("Unsupported email provider.")
 
     api_key = (getattr(settings, "RESEND_API_KEY", "") or "").strip()
@@ -122,8 +152,7 @@ def validate_dispatch_configuration(provider_name) -> None:
 
 
 def validate_worker_configuration() -> None:
-    provider = getattr(settings, "EMAIL_PROVIDER", "resend")
-    validate_dispatch_configuration(provider)
+    validate_dispatch_configuration()
 
 
 def _claimable(now):
@@ -261,6 +290,22 @@ def cancel_email_outbox_claim(*, outbox_id, claim_token, code, now=None):
         )
 
 
+def mark_email_outbox_permanent_failure(
+    *, outbox_id, claim_token, error_code, now=None
+):
+    """Dead-letter one owned poison item without changing delivery history."""
+    now = now or timezone.now()
+    safe_error = OutboxPermanentItemError(error_code)
+    with transaction.atomic():
+        outbox = _load_owned_outbox(outbox_id, claim_token, now)
+        _set_terminal(
+            outbox,
+            status=EmailOutbox.Status.DEAD,
+            code=safe_error.code,
+            now=now,
+        )
+
+
 def purge_cancelled_password_reset_noops(
     *,
     now=None,
@@ -367,6 +412,8 @@ def _prepare_dispatch(*, outbox_id, claim_token, payload, now):
                 now=now,
             )
             return outbox, None, "cancelled", None
+
+        _validate_outbox_provider(outbox.provider)
 
         if outbox.payload_hash and outbox.payload_hash != payload_digest:
             _set_terminal(
@@ -622,8 +669,8 @@ def _finalize_success(*, outbox_id, claim_token, provider_message_id, now):
 
 
 def _send_with_provider(outbox, payload):
-    if outbox.provider != "resend":
-        raise OutboxConfigurationError("Unsupported email provider.")
+    if (outbox.provider or "").strip().lower() != "resend":
+        raise OutboxPermanentItemError(OUTBOX_PROVIDER_MISMATCH)
     try:
         provider = ResendProvider(
             api_key=getattr(settings, "RESEND_API_KEY", ""),
@@ -645,22 +692,22 @@ def _send_with_provider(outbox, payload):
 def send_outbox_email(*, outbox_id, claim_token, payload, now=None):
     """Dispatch one claimed outbox item without holding a DB transaction."""
     now = now or timezone.now()
+    validate_dispatch_configuration()
     try:
-        provider_name = (
+        (
             EmailOutbox.objects.filter(
                 pk=outbox_id,
                 status=EmailOutbox.Status.PROCESSING,
                 claim_token=claim_token,
                 lease_expires_at__gt=now,
             )
-            .values_list("provider", flat=True)
+            .values_list("pk", flat=True)
             .get()
         )
     except EmailOutbox.DoesNotExist as exc:
         raise OutboxClaimLost(
             "Email outbox item is missing or the claim is no longer valid."
         ) from exc
-    validate_dispatch_configuration(provider_name)
     payload = _validate_payload(payload)
     outbox, delivery, action, preparation = _prepare_dispatch(
         outbox_id=outbox_id,

@@ -21,8 +21,11 @@ from notifications.email_service import (
 from notifications.models import EmailOutbox
 from notifications.outbox_service import (
     EmailPayload,
+    OUTBOX_INVALID_RECIPE,
+    OUTBOX_UNSUPPORTED_TEMPLATE_VERSION,
     OutboxBusinessCancellation,
     OutboxConfigurationError,
+    OutboxPermanentItemError,
 )
 
 from .models import User
@@ -362,9 +365,7 @@ def request_email_verification_resend_for_user_id(user_id):
 def _email_verification_user_for_outbox(outbox, *, now=None):
     now = now or timezone.now()
     if outbox.kind != EmailOutbox.Kind.EMAIL_VERIFICATION:
-        raise EmailVerificationConfigurationError(
-            "Invalid email-verification outbox kind."
-        )
+        raise OutboxPermanentItemError(OUTBOX_INVALID_RECIPE)
     if outbox.expires_at is None or outbox.expires_at <= now:
         raise OutboxBusinessCancellation("OUTBOX_EXPIRED")
     if outbox.recipient_user_id is None:
@@ -422,10 +423,10 @@ def _render_email_verification_payload(user: User, *, issued_at=None):
 
 def render_email_verification_outbox(outbox):
     user = _email_verification_user_for_outbox(outbox)
-    if outbox.template_version != 1 or outbox.token_issued_at is None:
-        raise EmailVerificationConfigurationError(
-            "Unsupported email-verification template recipe."
-        )
+    if outbox.template_version != 1:
+        raise OutboxPermanentItemError(OUTBOX_UNSUPPORTED_TEMPLATE_VERSION)
+    if outbox.token_issued_at is None:
+        raise OutboxPermanentItemError(OUTBOX_INVALID_RECIPE)
     return _render_email_verification_payload(
         user,
         issued_at=outbox.token_issued_at,

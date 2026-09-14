@@ -15,10 +15,15 @@ from .email_service import build_recipient_hash
 from .models import EmailDelivery, EmailOutbox, Notification
 from .outbox_service import (
     EmailPayload,
+    OUTBOX_INVALID_RECIPE,
+    OUTBOX_PROVIDER_MISMATCH,
+    OUTBOX_UNSUPPORTED_TEMPLATE_VERSION,
     OutboxClaimLost,
     OutboxConfigurationError,
+    OutboxPermanentItemError,
     _finalize_success,
     claim_email_outbox,
+    mark_email_outbox_permanent_failure,
     release_email_outbox_claim,
     send_outbox_email,
 )
@@ -924,3 +929,175 @@ class EmailOutboxTests(TransactionTestCase):
         survivor.refresh_from_db()
         self.assertEqual(survivor.status, EmailOutbox.Status.SENT)
         self.assertEqual(provider_send.call_count, 1)
+
+    @patch("notifications.outbox_service._send_with_provider")
+    def test_command_dead_letters_poison_then_sends_valid_item(self, provider_send):
+        provider_send.return_value = "valid-after-poison"
+        poison = self.make_outbox(template_version=2)
+        valid = self.make_outbox()
+
+        call_command("process_email_outbox", once=True, batch_size=5)
+
+        poison.refresh_from_db()
+        valid.refresh_from_db()
+        self.assertEqual(poison.status, EmailOutbox.Status.DEAD)
+        self.assertEqual(
+            poison.last_error_code,
+            OUTBOX_UNSUPPORTED_TEMPLATE_VERSION,
+        )
+        self.assertEqual(poison.attempt_count, 0)
+        self.assertIsNone(poison.first_attempt_at)
+        self.assertIsNone(poison.provider_retry_deadline_at)
+        self.assertEqual(poison.payload_hash, "")
+        self.assertFalse(EmailDelivery.objects.filter(outbox=poison).exists())
+        self.assertEqual(valid.status, EmailOutbox.Status.SENT)
+        self.assertEqual(provider_send.call_count, 1)
+
+    @patch("notifications.outbox_service._send_with_provider")
+    def test_command_isolates_poison_between_valid_items(self, provider_send):
+        provider_send.side_effect = ["valid-before-poison", "valid-after-poison"]
+        first = self.make_outbox()
+        poison = self.make_outbox(template_version=2)
+        last = self.make_outbox()
+
+        call_command("process_email_outbox", once=True, batch_size=5)
+
+        first.refresh_from_db()
+        poison.refresh_from_db()
+        last.refresh_from_db()
+        self.assertEqual(first.status, EmailOutbox.Status.SENT)
+        self.assertEqual(poison.status, EmailOutbox.Status.DEAD)
+        self.assertEqual(last.status, EmailOutbox.Status.SENT)
+        self.assertEqual(provider_send.call_count, 2)
+
+    @patch("notifications.outbox_service._send_with_provider")
+    def test_stored_provider_mismatch_isolated_from_valid_item(self, provider_send):
+        provider_send.return_value = "valid-provider-message"
+        poison = self.make_outbox(provider="corrupt-provider")
+        valid = self.make_outbox()
+
+        call_command("process_email_outbox", once=True, batch_size=5)
+
+        poison.refresh_from_db()
+        valid.refresh_from_db()
+        self.assertEqual(poison.status, EmailOutbox.Status.DEAD)
+        self.assertEqual(poison.last_error_code, OUTBOX_PROVIDER_MISMATCH)
+        self.assertEqual(poison.attempt_count, 0)
+        self.assertIsNone(poison.first_attempt_at)
+        self.assertIsNone(poison.provider_retry_deadline_at)
+        self.assertEqual(poison.payload_hash, "")
+        self.assertFalse(EmailDelivery.objects.filter(outbox=poison).exists())
+        self.assertEqual(valid.status, EmailOutbox.Status.SENT)
+        self.assertEqual(provider_send.call_count, 1)
+
+    def test_stale_claim_cannot_dead_letter_poison_item(self):
+        outbox = self.make_outbox()
+        old_claim = self.claim_one(outbox)
+        EmailOutbox.objects.filter(pk=outbox.pk).update(
+            lease_expires_at=timezone.now() - timedelta(seconds=1)
+        )
+        new_claim = self.claim_one(outbox)
+
+        with self.assertRaises(OutboxClaimLost):
+            mark_email_outbox_permanent_failure(
+                outbox_id=outbox.pk,
+                claim_token=old_claim.claim_token,
+                error_code=OUTBOX_INVALID_RECIPE,
+            )
+
+        outbox.refresh_from_db()
+        self.assertEqual(outbox.status, EmailOutbox.Status.PROCESSING)
+        self.assertEqual(outbox.claim_token, new_claim.claim_token)
+        self.assertEqual(outbox.last_error_code, "")
+        self.assertIsNone(outbox.completed_at)
+
+    def test_permanent_finalizer_preserves_existing_delivery_audit(self):
+        first_attempt_at = timezone.now() - timedelta(minutes=10)
+        retry_deadline = first_attempt_at + timedelta(hours=23)
+        outbox = self.make_outbox(
+            payload_hash="a" * 64,
+            attempt_count=2,
+            first_attempt_at=first_attempt_at,
+            provider_retry_deadline_at=retry_deadline,
+        )
+        delivery = EmailDelivery.objects.create(
+            outbox=outbox,
+            notification=outbox.notification,
+            provider=outbox.provider,
+            idempotency_key=outbox.provider_idempotency_key,
+            recipient_hash=outbox.recipient_hash,
+            status=EmailDelivery.Status.FAILED,
+            attempt_count=2,
+            last_error_type="provider_timeout",
+        )
+        claim = self.claim_one(outbox)
+
+        mark_email_outbox_permanent_failure(
+            outbox_id=outbox.pk,
+            claim_token=claim.claim_token,
+            error_code=OUTBOX_INVALID_RECIPE,
+        )
+
+        outbox.refresh_from_db()
+        delivery.refresh_from_db()
+        self.assertEqual(outbox.status, EmailOutbox.Status.DEAD)
+        self.assertEqual(outbox.attempt_count, 2)
+        self.assertEqual(outbox.payload_hash, "a" * 64)
+        self.assertEqual(outbox.first_attempt_at, first_attempt_at)
+        self.assertEqual(outbox.provider_retry_deadline_at, retry_deadline)
+        self.assertEqual(delivery.status, EmailDelivery.Status.FAILED)
+        self.assertEqual(delivery.attempt_count, 2)
+        self.assertEqual(delivery.last_error_type, "provider_timeout")
+
+    @patch(
+        "notifications.management.commands.process_email_outbox."
+        "render_outbox_email"
+    )
+    @patch("notifications.outbox_service._send_with_provider")
+    def test_permanent_failure_does_not_log_or_persist_raw_detail(
+        self,
+        provider_send,
+        render,
+    ):
+        sensitive = "victim@example.com token=secret raw renderer failure"
+        render.side_effect = OutboxPermanentItemError(sensitive)
+        outbox = self.make_outbox()
+
+        with self.assertLogs(
+            "notifications.management.commands.process_email_outbox",
+            level="WARNING",
+        ) as captured:
+            call_command("process_email_outbox", once=True, batch_size=1)
+
+        outbox.refresh_from_db()
+        log_output = "\n".join(captured.output)
+        self.assertEqual(outbox.status, EmailOutbox.Status.DEAD)
+        self.assertEqual(outbox.last_error_code, OUTBOX_INVALID_RECIPE)
+        self.assertNotIn(sensitive, log_output)
+        self.assertNotIn("victim@example.com", log_output)
+        self.assertNotIn("secret", log_output)
+        provider_send.assert_not_called()
+
+    @override_settings(RESEND_API_KEY="")
+    def test_missing_api_key_remains_global_and_does_not_poison_item(self):
+        outbox = self.make_outbox()
+
+        with self.assertRaises(CommandError):
+            call_command("process_email_outbox", once=True)
+
+        outbox.refresh_from_db()
+        self.assertEqual(outbox.status, EmailOutbox.Status.PENDING)
+        self.assertEqual(outbox.attempt_count, 0)
+        self.assertFalse(EmailDelivery.objects.filter(outbox=outbox).exists())
+
+    @override_settings(EMAIL_PROVIDER="unsupported")
+    def test_unsupported_global_provider_does_not_poison_item(self):
+        outbox = self.make_outbox()
+
+        with self.assertRaises(CommandError):
+            call_command("process_email_outbox", once=True)
+
+        outbox.refresh_from_db()
+        self.assertEqual(outbox.status, EmailOutbox.Status.PENDING)
+        self.assertEqual(outbox.attempt_count, 0)
+        self.assertFalse(EmailDelivery.objects.filter(outbox=outbox).exists())

@@ -18,8 +18,11 @@ from notifications.email_service import build_recipient_hash
 from notifications.models import EmailOutbox
 from notifications.outbox_service import (
     EmailPayload,
+    OUTBOX_INVALID_RECIPE,
+    OUTBOX_UNSUPPORTED_TEMPLATE_VERSION,
     OutboxBusinessCancellation,
     OutboxConfigurationError,
+    OutboxPermanentItemError,
 )
 
 from .models import User
@@ -145,7 +148,7 @@ def build_password_reset_url(user: User, *, issued_at) -> tuple[str, str]:
 def _password_reset_user_for_outbox(outbox, *, now=None):
     now = now or timezone.now()
     if outbox.kind != EmailOutbox.Kind.PASSWORD_RESET:
-        raise PasswordResetConfigurationError("Invalid password-reset outbox kind.")
+        raise OutboxPermanentItemError(OUTBOX_INVALID_RECIPE)
     if outbox.recipient_user_id is None:
         raise OutboxBusinessCancellation("PASSWORD_RESET_NOOP")
     if outbox.expires_at is None or outbox.expires_at <= now:
@@ -176,9 +179,7 @@ def password_reset_cancellation_code(outbox, *, now=None):
 def render_password_reset_outbox(outbox):
     user = _password_reset_user_for_outbox(outbox)
     if outbox.template_version != 1:
-        raise PasswordResetConfigurationError(
-            "Unsupported password-reset template version."
-        )
+        raise OutboxPermanentItemError(OUTBOX_UNSUPPORTED_TEMPLATE_VERSION)
 
     reset_url, _token = build_password_reset_url(
         user,

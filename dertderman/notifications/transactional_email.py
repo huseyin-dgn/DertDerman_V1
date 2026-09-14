@@ -10,8 +10,11 @@ from .email_service import build_recipient_hash
 from .models import EmailOutbox, Notification
 from .outbox_service import (
     EmailPayload,
+    OUTBOX_INVALID_RECIPE,
+    OUTBOX_UNSUPPORTED_TEMPLATE_VERSION,
     OutboxBusinessCancellation,
     OutboxConfigurationError,
+    OutboxPermanentItemError,
 )
 
 
@@ -58,9 +61,7 @@ def _public_complaint_path(notification: Notification) -> str | None:
 def build_notification_target_url(notification: Notification) -> str:
     path = _public_complaint_path(notification) or notification.target_url
     if not path.startswith("/"):
-        raise TransactionalEmailConfigurationError(
-            "Notification target must be an internal absolute path."
-        )
+        raise OutboxPermanentItemError(OUTBOX_INVALID_RECIPE)
     return f"{_site_base_url()}{path}"
 
 
@@ -95,11 +96,9 @@ def enqueue_notification_email(notification: Notification):
 
 def _notification_for_outbox(outbox):
     if outbox.kind != EmailOutbox.Kind.NOTIFICATION:
-        raise TransactionalEmailConfigurationError(
-            "Invalid transactional-notification outbox kind."
-        )
+        raise OutboxPermanentItemError(OUTBOX_INVALID_RECIPE)
     if outbox.notification_id is None or outbox.recipient_user_id is None:
-        raise OutboxBusinessCancellation(NOTIFICATION_POLICY_CHANGED)
+        raise OutboxPermanentItemError(OUTBOX_INVALID_RECIPE)
 
     notification = (
         Notification.objects.select_related(
@@ -134,9 +133,7 @@ def notification_cancellation_code(outbox):
 def render_notification_outbox(outbox):
     notification = _notification_for_outbox(outbox)
     if outbox.template_version != 1:
-        raise TransactionalEmailConfigurationError(
-            "Unsupported transactional-notification template version."
-        )
+        raise OutboxPermanentItemError(OUTBOX_UNSUPPORTED_TEMPLATE_VERSION)
 
     decision = notification_email_policy(notification)
     context = {

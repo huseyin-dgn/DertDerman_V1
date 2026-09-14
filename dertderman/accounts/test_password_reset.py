@@ -11,6 +11,7 @@ from django.utils.http import base36_to_int, urlsafe_base64_encode
 from notifications.email_providers.resend import ResendDeliveryError
 from notifications.models import EmailDelivery, EmailOutbox
 from notifications.outbox_service import (
+    OUTBOX_UNSUPPORTED_TEMPLATE_VERSION,
     OutboxBusinessCancellation,
     OutboxClaimLost,
     cancel_email_outbox_claim,
@@ -345,6 +346,28 @@ class PasswordResetWorkerTests(TransactionTestCase):
         self.assertEqual(outbox.attempt_count, 0)
         self.assertIsNotNone(outbox.completed_at)
         self.assertFalse(EmailDelivery.objects.exists())
+        provider_send.assert_not_called()
+
+    @patch("notifications.outbox_service._send_with_provider")
+    def test_unsupported_template_version_is_dead_without_attempt(
+        self, provider_send
+    ):
+        outbox = self.enqueue(self.create_user())
+        EmailOutbox.objects.filter(pk=outbox.pk).update(template_version=2)
+
+        call_command("process_email_outbox", "--once")
+
+        outbox.refresh_from_db()
+        self.assertEqual(outbox.status, EmailOutbox.Status.DEAD)
+        self.assertEqual(
+            outbox.last_error_code,
+            OUTBOX_UNSUPPORTED_TEMPLATE_VERSION,
+        )
+        self.assertEqual(outbox.attempt_count, 0)
+        self.assertIsNone(outbox.first_attempt_at)
+        self.assertIsNone(outbox.provider_retry_deadline_at)
+        self.assertEqual(outbox.payload_hash, "")
+        self.assertFalse(EmailDelivery.objects.filter(outbox=outbox).exists())
         provider_send.assert_not_called()
 
     @patch("notifications.outbox_service._send_with_provider", return_value="resend-1")

@@ -12,8 +12,10 @@ from notifications.outbox_service import (
     OutboxBusinessCancellation,
     OutboxClaimLost,
     OutboxConfigurationError,
+    OutboxPermanentItemError,
     cancel_email_outbox_claim,
     claim_email_outbox,
+    mark_email_outbox_permanent_failure,
     purge_cancelled_password_reset_noops,
     release_email_outbox_claim,
     render_outbox_email,
@@ -93,6 +95,22 @@ class Command(BaseCommand):
                             "Email outbox claim lost: outbox_id=%s",
                             claim.outbox_id,
                         )
+                    except OutboxPermanentItemError as exc:
+                        logger.warning(
+                            "Email outbox item is permanently invalid: "
+                            "outbox_id=%s kind=%s error_code=%s",
+                            claim.outbox_id,
+                            outbox.kind,
+                            exc.code,
+                        )
+                        try:
+                            mark_email_outbox_permanent_failure(
+                                outbox_id=claim.outbox_id,
+                                claim_token=claim.claim_token,
+                                error_code=exc.code,
+                            )
+                        except OutboxClaimLost:
+                            pass
                     except OutboxBusinessCancellation as exc:
                         try:
                             cancel_email_outbox_claim(

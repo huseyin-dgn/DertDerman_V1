@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import PropertyMock, patch
 
 from django.core.management import call_command
 from django.core.management.base import CommandError
@@ -15,12 +15,15 @@ from .email_policy import notification_email_policy
 from .email_providers.resend import ResendDeliveryError
 from .models import EmailDelivery, EmailOutbox, Notification
 from .outbox_service import (
+    OUTBOX_INVALID_RECIPE,
+    OUTBOX_UNSUPPORTED_TEMPLATE_VERSION,
     claim_email_outbox,
     render_outbox_email,
     send_outbox_email,
 )
 from .services import send
 from .transactional_email import (
+    NOTIFICATION_POLICY_CHANGED,
     build_notification_target_url,
     enqueue_notification_email,
 )
@@ -290,6 +293,81 @@ class TransactionalNotificationWorkerTests(
         self.assertIn(notification.title.rstrip("."), payload.subject)
         self.assertIn("https://dertderman.com/", payload.html_body)
         self.assertIn("https://dertderman.com/", payload.text_body)
+
+    @patch("notifications.outbox_service._send_with_provider")
+    def test_unsupported_template_version_is_dead_without_attempt(
+        self, provider_send
+    ):
+        _notification, outbox = self.enqueue()
+        EmailOutbox.objects.filter(pk=outbox.pk).update(template_version=2)
+
+        call_command("process_email_outbox", "--once")
+
+        outbox.refresh_from_db()
+        self.assertEqual(outbox.status, EmailOutbox.Status.DEAD)
+        self.assertEqual(
+            outbox.last_error_code,
+            OUTBOX_UNSUPPORTED_TEMPLATE_VERSION,
+        )
+        self.assertEqual(outbox.attempt_count, 0)
+        self.assertIsNone(outbox.first_attempt_at)
+        self.assertIsNone(outbox.provider_retry_deadline_at)
+        self.assertEqual(outbox.payload_hash, "")
+        self.assertFalse(EmailDelivery.objects.filter(outbox=outbox).exists())
+        provider_send.assert_not_called()
+
+    @patch("notifications.outbox_service._send_with_provider")
+    def test_invalid_notification_target_is_dead_without_attempt(
+        self, provider_send
+    ):
+        _notification, outbox = self.enqueue()
+
+        with patch.object(
+            Notification,
+            "target_url",
+            new_callable=PropertyMock,
+            return_value="https://attacker.example/path",
+        ):
+            call_command("process_email_outbox", "--once")
+
+        outbox.refresh_from_db()
+        self.assertEqual(outbox.status, EmailOutbox.Status.DEAD)
+        self.assertEqual(outbox.last_error_code, OUTBOX_INVALID_RECIPE)
+        self.assertEqual(outbox.attempt_count, 0)
+        self.assertFalse(EmailDelivery.objects.filter(outbox=outbox).exists())
+        provider_send.assert_not_called()
+
+    @patch("notifications.outbox_service._send_with_provider")
+    def test_business_cancellation_precedes_stored_provider_mismatch(
+        self, provider_send
+    ):
+        notification, outbox = self.enqueue()
+        original_render = render_outbox_email
+
+        def render_then_invalidate_business_state(item):
+            payload = original_render(item)
+            User.objects.filter(pk=notification.recipient_user_id).update(
+                is_active=False
+            )
+            EmailOutbox.objects.filter(pk=item.pk).update(
+                provider="corrupt-provider"
+            )
+            return payload
+
+        with patch(
+            "notifications.management.commands.process_email_outbox."
+            "render_outbox_email",
+            side_effect=render_then_invalidate_business_state,
+        ):
+            call_command("process_email_outbox", "--once")
+
+        outbox.refresh_from_db()
+        self.assertEqual(outbox.status, EmailOutbox.Status.CANCELLED)
+        self.assertNotEqual(outbox.status, EmailOutbox.Status.DEAD)
+        self.assertEqual(outbox.last_error_code, NOTIFICATION_POLICY_CHANGED)
+        self.assertEqual(outbox.attempt_count, 0)
+        self.assertFalse(EmailDelivery.objects.filter(outbox=outbox).exists())
+        provider_send.assert_not_called()
 
     @patch("notifications.outbox_service._send_with_provider")
     def test_worker_policy_change_cancels_without_attempt(self, provider_send):
