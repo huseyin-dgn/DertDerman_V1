@@ -253,6 +253,7 @@ class EmailOutbox(models.Model):
 
     class Kind(models.TextChoices):
         PASSWORD_RESET = "PASSWORD_RESET", "Şifre sıfırlama"
+        EMAIL_VERIFICATION = "EMAIL_VERIFICATION", "E-posta doğrulama"
         NOTIFICATION = "NOTIFICATION", "Bildirim"
 
     class Status(models.TextChoices):
@@ -342,6 +343,17 @@ class EmailOutbox(models.Model):
                 | (
                     Q(
                         kind="PASSWORD_RESET",
+                        notification__isnull=True,
+                        recipient_user__isnull=False,
+                        token_issued_at__isnull=False,
+                        expires_at__isnull=False,
+                    )
+                    & ~Q(recipient_hash="")
+                    & ~Q(request_state_hash="")
+                )
+                | (
+                    Q(
+                        kind="EMAIL_VERIFICATION",
                         notification__isnull=True,
                         recipient_user__isnull=False,
                         token_issued_at__isnull=False,

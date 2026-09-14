@@ -349,8 +349,9 @@ PASSWORD_RESET_TIMEOUT = int(
 
 
 # Verification links are valid for 30 minutes by default.
-EMAIL_VERIFICATION_TIMEOUT = int(
-    os.getenv("EMAIL_VERIFICATION_TIMEOUT", "1800")
+EMAIL_VERIFICATION_TIMEOUT = _positive_env_int(
+    "EMAIL_VERIFICATION_TIMEOUT",
+    default=1800,
 )
 
 # Authenticated email-change links are valid for 10 minutes by default.

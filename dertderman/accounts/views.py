@@ -8,6 +8,7 @@ from django.contrib.auth.views import (
     PasswordChangeView,
 )
 from django.core.paginator import Paginator
+from django.db import transaction
 from django.http import HttpResponse
 from django.shortcuts import (
     get_object_or_404,
@@ -27,15 +28,13 @@ from core.rate_limit import (
     consume_rate_limit,
     rate_limit_status,
 )
-from notifications.email_service import EmailServiceError
-
 from .badges import (
     primary_badge,
     resolve_user_badges,
 )
 from .email_verification import (
+    enqueue_email_verification,
     resolve_email_verification_token,
-    send_verification_email,
     verify_email_verification_token,
 )
 from .forms import (
@@ -128,37 +127,28 @@ class RegisterView(FormView):
     ):
         # RegisterForm persists is_verified=False. The user is deliberately
         # NOT logged in here; verification must complete first.
-        user = form.save()
-
         try:
-            result = send_verification_email(user)
-        except EmailServiceError as exc:
+            with transaction.atomic():
+                user = form.save()
+                enqueue_email_verification(user)
+        except Exception as exc:
             logger.error(
-                "Verification email delivery failed: user_id=%s exception_type=%s",
-                user.pk,
+                "Registration verification enqueue failed: exception_type=%s",
                 exc.__class__.__name__,
             )
-            messages.warning(
-                self.request,
-                (
-                    "Hesabınız oluşturuldu ancak doğrulama e-postası şu anda "
-                    "gönderilemedi. Lütfen destek ekibiyle iletişime geçin."
-                ),
+            form.add_error(
+                None,
+                "Kayıt şu anda tamamlanamadı. Lütfen tekrar deneyin.",
             )
-        else:
-            if result.status == "sent":
-                messages.success(
-                    self.request,
-                    "Doğrulama bağlantısını e-posta adresinize gönderdik.",
-                )
-            else:
-                messages.warning(
-                    self.request,
-                    (
-                        "Hesabınız oluşturuldu ancak e-posta gönderimi şu anda "
-                        "devre dışı. Doğrulama tamamlanmadan giriş yapamazsınız."
-                    ),
-                )
+            return self.form_invalid(form)
+
+        messages.success(
+            self.request,
+            (
+                "Hesabınız oluşturuldu. Doğrulama bağlantısını "
+                "e-posta adresinize gönderdik."
+            ),
+        )
 
         return redirect(
             "accounts:email_verification_pending"

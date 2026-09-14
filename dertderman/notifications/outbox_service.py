@@ -296,6 +296,10 @@ def render_outbox_email(outbox):
         from accounts.password_reset import render_password_reset_outbox
 
         return render_password_reset_outbox(outbox)
+    if outbox.kind == EmailOutbox.Kind.EMAIL_VERIFICATION:
+        from accounts.email_verification import render_email_verification_outbox
+
+        return render_email_verification_outbox(outbox)
     if outbox.kind == EmailOutbox.Kind.NOTIFICATION:
         from .transactional_email import render_notification_outbox
 
@@ -308,6 +312,10 @@ def _business_cancellation_code(outbox, now):
         from accounts.password_reset import password_reset_cancellation_code
 
         return password_reset_cancellation_code(outbox, now=now)
+    if outbox.kind == EmailOutbox.Kind.EMAIL_VERIFICATION:
+        from accounts.email_verification import email_verification_cancellation_code
+
+        return email_verification_cancellation_code(outbox, now=now)
     if outbox.kind == EmailOutbox.Kind.NOTIFICATION:
         from .transactional_email import notification_cancellation_code
 

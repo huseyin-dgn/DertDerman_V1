@@ -1,5 +1,5 @@
 {% extends 'emails/base.txt' %}
-{% block email_content %}Merhaba{% if user.first_name %} {{ user.first_name }}{% endif %},
+{% block email_content %}Merhaba,
 
 DertDerman hesabınızı kullanmaya başlamadan önce e-posta adresinizi doğrulamanız gerekiyor.
 
