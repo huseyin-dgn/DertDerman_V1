@@ -1,3 +1,5 @@
+import json
+from importlib import metadata
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
@@ -134,29 +136,74 @@ class EmailServiceTests(TestCase):
 
 
 class ResendProviderTests(SimpleTestCase):
+    send_kwargs = {
+        "recipient_email": "user@example.com",
+        "subject": "Test",
+        "html_body": "<p>HTML</p>",
+        "text_body": "TEXT",
+        "from_email": "DertDerman <info@dertderman.com>",
+        "reply_to": "destek@dertderman.com",
+        "idempotency_key": "dertderman/test-key",
+    }
+
+    def sdk_response(self, status, error_type, *, headers=None, message="rejected"):
+        response_headers = {"content-type": "application/json"}
+        response_headers.update(headers or {})
+        return SimpleNamespace(
+            content=json.dumps(
+                {
+                    "statusCode": status,
+                    "name": error_type,
+                    "message": message,
+                }
+            ).encode("utf-8"),
+            status_code=status,
+            headers=response_headers,
+        )
+
+    def sdk_error(self, status, error_type, *, headers=None):
+        response = self.sdk_response(status, error_type, headers=headers)
+        with patch(
+            "resend.http_client_requests.requests.request",
+            return_value=response,
+        ):
+            with self.assertRaises(ResendDeliveryError) as context:
+                ResendProvider(api_key="re_test_only").send(**self.send_kwargs)
+        return context.exception
+
     def test_provider_requires_api_key(self):
         with self.assertRaises(ResendConfigurationError):
             ResendProvider(api_key="")
 
+    def test_installed_resend_contract_is_pinned_version(self):
+        import resend
+
+        self.assertEqual(metadata.version("resend"), "2.44.0")
+        self.assertTrue(callable(resend.RequestsClient))
+        self.assertTrue(callable(resend.Emails.send))
+        self.assertTrue(hasattr(resend.exceptions.ResendError, "__init__"))
+
     @patch("notifications.email_providers.resend._load_resend")
     def test_provider_uses_reply_to_text_html_and_idempotency(self, load_resend):
         emails = SimpleNamespace(send=Mock(return_value={"id": "resend-id-1"}))
-        fake_resend = SimpleNamespace(api_key=None, Emails=emails)
+        requests_client = Mock(return_value=object())
+        previous_api_key = object()
+        previous_http_client = object()
+        fake_resend = SimpleNamespace(
+            api_key=previous_api_key,
+            default_http_client=previous_http_client,
+            Emails=emails,
+            RequestsClient=requests_client,
+        )
         load_resend.return_value = fake_resend
 
-        provider = ResendProvider(api_key="re_test_only")
-        provider_id = provider.send(
-            recipient_email="user@example.com",
-            subject="Test",
-            html_body="<p>HTML</p>",
-            text_body="TEXT",
-            from_email="DertDerman <info@dertderman.com>",
-            reply_to="destek@dertderman.com",
-            idempotency_key="dertderman/test-key",
-        )
+        provider = ResendProvider(api_key="re_test_only", timeout_seconds=13)
+        provider_id = provider.send(**self.send_kwargs)
 
         self.assertEqual(provider_id, "resend-id-1")
-        self.assertEqual(fake_resend.api_key, "re_test_only")
+        requests_client.assert_called_once_with(timeout=13)
+        self.assertIs(fake_resend.api_key, previous_api_key)
+        self.assertIs(fake_resend.default_http_client, previous_http_client)
         params = emails.send.call_args.args[0]
         options = emails.send.call_args.kwargs["options"]
         self.assertEqual(params["to"], ["user@example.com"])
@@ -166,23 +213,63 @@ class ResendProviderTests(SimpleTestCase):
         self.assertEqual(options["idempotency_key"], "dertderman/test-key")
 
     @patch("notifications.email_providers.resend._load_resend")
-    def test_provider_does_not_expose_raw_provider_failure(self, load_resend):
+    def test_provider_restores_sdk_globals_after_exception(self, load_resend):
+        previous_api_key = object()
+        previous_http_client = object()
+        fake_resend = SimpleNamespace(
+            api_key=previous_api_key,
+            default_http_client=previous_http_client,
+            Emails=SimpleNamespace(send=Mock(side_effect=RuntimeError("private"))),
+            RequestsClient=Mock(return_value=object()),
+        )
+        load_resend.return_value = fake_resend
+
+        with self.assertRaises(ResendDeliveryError):
+            ResendProvider(api_key="re_test_only").send(**self.send_kwargs)
+
+        self.assertIs(fake_resend.api_key, previous_api_key)
+        self.assertIs(fake_resend.default_http_client, previous_http_client)
+
+    def test_explicit_timeout_reaches_real_sdk_transport(self):
+        response = SimpleNamespace(
+            content=b'{"id":"resend-id-real-sdk"}',
+            status_code=200,
+            headers={"content-type": "application/json"},
+        )
+        with patch(
+            "resend.http_client_requests.requests.request",
+            return_value=response,
+        ) as request:
+            provider_id = ResendProvider(
+                api_key="re_test_only",
+                timeout_seconds=7,
+            ).send(**self.send_kwargs)
+
+        self.assertEqual(provider_id, "resend-id-real-sdk")
+        self.assertEqual(request.call_args.kwargs["timeout"], 7)
+        self.assertEqual(
+            request.call_args.kwargs["headers"]["Idempotency-Key"],
+            "dertderman/test-key",
+        )
+
+    @patch("notifications.email_providers.resend._load_resend")
+    def test_unknown_exception_is_retryable_ambiguous(self, load_resend):
         emails = SimpleNamespace(send=Mock(side_effect=RuntimeError("secret-ish payload")))
-        load_resend.return_value = SimpleNamespace(api_key=None, Emails=emails)
+        load_resend.return_value = SimpleNamespace(
+            api_key=None,
+            default_http_client=None,
+            Emails=emails,
+            RequestsClient=Mock(return_value=object()),
+        )
 
         provider = ResendProvider(api_key="re_test_only")
 
         with self.assertRaises(ResendDeliveryError) as context:
-            provider.send(
-                recipient_email="user@example.com",
-                subject="Test",
-                html_body="<p>HTML</p>",
-                text_body="TEXT",
-                from_email="DertDerman <info@dertderman.com>",
-                reply_to="destek@dertderman.com",
-                idempotency_key="dertderman/test-key",
-            )
+            provider.send(**self.send_kwargs)
 
+        self.assertEqual(context.exception.code, "provider_transport_unknown")
+        self.assertTrue(context.exception.retryable)
+        self.assertTrue(context.exception.outcome_unknown)
         self.assertNotIn("secret-ish payload", str(context.exception))
 
     @patch("notifications.email_providers.resend._load_resend")
@@ -193,21 +280,171 @@ class ResendProviderTests(SimpleTestCase):
         emails = SimpleNamespace(
             send=Mock(side_effect=TimeoutError("socket detail"))
         )
-        load_resend.return_value = SimpleNamespace(api_key=None, Emails=emails)
+        load_resend.return_value = SimpleNamespace(
+            api_key=None,
+            default_http_client=None,
+            Emails=emails,
+            RequestsClient=Mock(return_value=object()),
+        )
         provider = ResendProvider(api_key="re_test_only")
 
         with self.assertRaises(ResendDeliveryError) as context:
-            provider.send(
-                recipient_email="user@example.com",
-                subject="Test",
-                html_body="<p>HTML</p>",
-                text_body="TEXT",
-                from_email="DertDerman <info@dertderman.com>",
-                reply_to="destek@dertderman.com",
-                idempotency_key="dertderman/test-key",
-            )
+            provider.send(**self.send_kwargs)
 
-        self.assertEqual(context.exception.code, "provider_network_error")
+        self.assertEqual(context.exception.code, "provider_timeout")
         self.assertTrue(context.exception.retryable)
         self.assertTrue(context.exception.outcome_unknown)
         self.assertNotIn("socket detail", str(context.exception))
+
+    def test_real_sdk_timeout_is_retryable_ambiguous(self):
+        import requests
+
+        with patch(
+            "resend.http_client_requests.requests.request",
+            side_effect=requests.exceptions.Timeout("private timeout detail"),
+        ):
+            with self.assertRaises(ResendDeliveryError) as context:
+                ResendProvider(api_key="re_test_only").send(**self.send_kwargs)
+
+        self.assertEqual(context.exception.code, "provider_timeout")
+        self.assertTrue(context.exception.retryable)
+        self.assertTrue(context.exception.outcome_unknown)
+
+    def test_real_sdk_connection_error_is_retryable_ambiguous(self):
+        import requests
+
+        with patch(
+            "resend.http_client_requests.requests.request",
+            side_effect=requests.exceptions.ConnectionError("private connection detail"),
+        ):
+            with self.assertRaises(ResendDeliveryError) as context:
+                ResendProvider(api_key="re_test_only").send(**self.send_kwargs)
+
+        self.assertEqual(context.exception.code, "provider_connection_error")
+        self.assertTrue(context.exception.retryable)
+        self.assertTrue(context.exception.outcome_unknown)
+
+    def test_400_is_permanent_invalid_request(self):
+        error = self.sdk_error(400, "validation_error")
+        self.assertEqual(error.code, "provider_invalid_request")
+        self.assertFalse(error.retryable)
+        self.assertFalse(error.outcome_unknown)
+
+    def test_401_is_global_authentication_failure(self):
+        error = self.sdk_error(401, "missing_api_key")
+        self.assertEqual(error.code, "provider_authentication")
+        self.assertFalse(error.retryable)
+        self.assertFalse(error.outcome_unknown)
+        self.assertTrue(error.global_problem)
+
+    def test_403_is_global_authentication_failure(self):
+        error = self.sdk_error(403, "invalid_api_key")
+        self.assertEqual(error.code, "provider_authentication")
+        self.assertFalse(error.retryable)
+        self.assertFalse(error.outcome_unknown)
+        self.assertTrue(error.global_problem)
+
+    def test_404_is_permanent_invalid_request(self):
+        error = self.sdk_error(404, "not_found")
+        self.assertEqual(error.code, "provider_invalid_request")
+        self.assertFalse(error.retryable)
+
+    def test_422_is_permanent_invalid_request(self):
+        error = self.sdk_error(422, "validation_error")
+        self.assertEqual(error.code, "provider_invalid_request")
+        self.assertFalse(error.retryable)
+        self.assertFalse(error.outcome_unknown)
+
+    def test_429_is_retryable_and_preserves_retry_after(self):
+        error = self.sdk_error(
+            429,
+            "rate_limit_exceeded",
+            headers={"Retry-After": "17"},
+        )
+        self.assertEqual(error.code, "provider_rate_limited")
+        self.assertTrue(error.retryable)
+        self.assertFalse(error.outcome_unknown)
+        self.assertEqual(error.retry_after_seconds, 17)
+
+    def test_500_is_retryable_server_error(self):
+        error = self.sdk_error(500, "application_error")
+        self.assertEqual(error.code, "provider_server_error")
+        self.assertTrue(error.retryable)
+        self.assertTrue(error.outcome_unknown)
+
+    def test_503_is_retryable_server_error(self):
+        error = self.sdk_error(503, "internal_server_error")
+        self.assertEqual(error.code, "provider_server_error")
+        self.assertTrue(error.retryable)
+        self.assertTrue(error.outcome_unknown)
+
+    def test_idempotency_payload_conflict_is_permanent(self):
+        error = self.sdk_error(409, "invalid_idempotent_request")
+        self.assertEqual(error.code, "provider_idempotency_conflict")
+        self.assertFalse(error.retryable)
+        self.assertFalse(error.outcome_unknown)
+
+    def test_concurrent_idempotent_request_is_retryable(self):
+        error = self.sdk_error(
+            409,
+            "concurrent_idempotent_requests",
+            headers={"retry-after": "3"},
+        )
+        self.assertEqual(error.code, "provider_idempotency_in_progress")
+        self.assertTrue(error.retryable)
+        self.assertTrue(error.outcome_unknown)
+        self.assertEqual(error.retry_after_seconds, 3)
+
+    def test_unknown_409_uses_ambiguous_fallback(self):
+        error = self.sdk_error(409, "unrecognized_conflict")
+        self.assertEqual(error.code, "provider_transport_unknown")
+        self.assertTrue(error.retryable)
+        self.assertTrue(error.outcome_unknown)
+
+    def test_missing_provider_message_id_is_invalid_response(self):
+        emails = SimpleNamespace(send=Mock(return_value={"id": ""}))
+        fake_resend = SimpleNamespace(
+            api_key=None,
+            default_http_client=None,
+            Emails=emails,
+            RequestsClient=Mock(return_value=object()),
+        )
+        with patch(
+            "notifications.email_providers.resend._load_resend",
+            return_value=fake_resend,
+        ):
+            with self.assertRaises(ResendDeliveryError) as context:
+                ResendProvider(api_key="re_test_only").send(**self.send_kwargs)
+
+        self.assertEqual(context.exception.code, "provider_invalid_response")
+
+    def test_logs_exclude_provider_payload_and_message_content(self):
+        sensitive_values = (
+            "private-person@example.com",
+            "PRIVATE EMAIL BODY",
+            "re_private_api_key",
+            "PRIVATE PROVIDER RESPONSE",
+        )
+        kwargs = {
+            **self.send_kwargs,
+            "recipient_email": sensitive_values[0],
+            "html_body": sensitive_values[1],
+        }
+        response = self.sdk_response(
+            400,
+            "validation_error",
+            message=f"{sensitive_values[2]} {sensitive_values[3]}",
+        )
+        with patch(
+            "resend.http_client_requests.requests.request",
+            return_value=response,
+        ), self.assertLogs(
+            "notifications.email_providers.resend",
+            level="WARNING",
+        ) as captured:
+            with self.assertRaises(ResendDeliveryError):
+                ResendProvider(api_key=sensitive_values[2]).send(**kwargs)
+
+        log_output = " ".join(captured.output)
+        for sensitive_value in sensitive_values:
+            self.assertNotIn(sensitive_value, log_output)

@@ -406,7 +406,7 @@ class EmailOutboxTests(TransactionTestCase):
     @patch("notifications.email_providers.resend.ResendProvider.send")
     def test_retry_reuses_exact_provider_idempotency_key(self, provider_send):
         provider_send.side_effect = [
-            ResendDeliveryError(code="provider_network_error"),
+            ResendDeliveryError(code="provider_timeout"),
             "provider-after-retry",
         ]
         outbox = self.make_outbox()
@@ -457,10 +457,41 @@ class EmailOutboxTests(TransactionTestCase):
     @patch("notifications.outbox_service._send_with_provider")
     def test_transient_error_moves_item_to_retry(self, provider_send):
         provider_send.side_effect = ResendDeliveryError(
-            code="rate_limit_exceeded",
+            code="provider_rate_limited",
             retryable=True,
             outcome_unknown=False,
             retry_after_seconds=10,
+        )
+        outbox = self.make_outbox()
+        claim = self.claim_one(outbox)
+        before_send = timezone.now()
+
+        result = send_outbox_email(
+            outbox_id=outbox.pk,
+            claim_token=claim.claim_token,
+            payload=self.payload(),
+        )
+
+        outbox.refresh_from_db()
+        self.assertEqual(result.status, "retry")
+        self.assertEqual(outbox.status, EmailOutbox.Status.RETRY)
+        self.assertIsNone(outbox.claim_token)
+        self.assertEqual(outbox.last_error_code, "provider_rate_limited")
+        self.assertGreaterEqual(
+            outbox.available_at,
+            before_send + timedelta(seconds=10),
+        )
+        self.assertLess(
+            outbox.available_at,
+            before_send + timedelta(seconds=11),
+        )
+
+    @patch("notifications.outbox_service._send_with_provider")
+    def test_provider_server_error_moves_item_to_retry(self, provider_send):
+        provider_send.side_effect = ResendDeliveryError(
+            code="provider_server_error",
+            retryable=True,
+            outcome_unknown=True,
         )
         outbox = self.make_outbox()
         claim = self.claim_one(outbox)
@@ -474,13 +505,12 @@ class EmailOutboxTests(TransactionTestCase):
         outbox.refresh_from_db()
         self.assertEqual(result.status, "retry")
         self.assertEqual(outbox.status, EmailOutbox.Status.RETRY)
-        self.assertIsNone(outbox.claim_token)
-        self.assertEqual(outbox.last_error_code, "rate_limit_exceeded")
+        self.assertEqual(outbox.last_error_code, "provider_server_error")
 
     @patch("notifications.outbox_service._send_with_provider")
     def test_permanent_error_moves_item_to_dead(self, provider_send):
         provider_send.side_effect = ResendDeliveryError(
-            code="validation_error",
+            code="provider_invalid_request",
             retryable=False,
             outcome_unknown=False,
         )
@@ -498,6 +528,184 @@ class EmailOutboxTests(TransactionTestCase):
         self.assertEqual(outbox.status, EmailOutbox.Status.DEAD)
         self.assertIsNotNone(outbox.completed_at)
         self.assertIsNone(outbox.claim_token)
+        self.assertEqual(outbox.last_error_code, "provider_invalid_request")
+        self.assertEqual(claim_email_outbox(batch_size=1), [])
+        self.assertEqual(provider_send.call_count, 1)
+
+    @patch(
+        "notifications.management.commands.process_email_outbox."
+        "validate_worker_configuration"
+    )
+    @patch(
+        "notifications.management.commands.process_email_outbox."
+        "render_outbox_email"
+    )
+    @patch("notifications.outbox_service._send_with_provider")
+    def test_global_authentication_failure_stops_worker_without_dead_lettering(
+        self,
+        provider_send,
+        render,
+        _validate,
+    ):
+        provider_send.side_effect = ResendDeliveryError(
+            code="provider_authentication",
+            retryable=False,
+            outcome_unknown=False,
+            global_problem=True,
+        )
+        render.return_value = self.payload()
+        outbox = self.make_outbox()
+
+        with self.assertRaises(CommandError):
+            call_command(
+                "process_email_outbox",
+                once=True,
+                batch_size=1,
+                poll_seconds=0.1,
+            )
+
+        outbox.refresh_from_db()
+        self.assertEqual(outbox.status, EmailOutbox.Status.RETRY)
+        self.assertNotEqual(outbox.status, EmailOutbox.Status.DEAD)
+        self.assertEqual(outbox.attempt_count, 0)
+        self.assertIsNone(outbox.first_attempt_at)
+        self.assertIsNone(outbox.provider_retry_deadline_at)
+        self.assertEqual(outbox.last_error_code, "WORKER_CONFIGURATION")
+        self.assertIsNone(outbox.claim_token)
+        self.assertEqual(provider_send.call_count, 1)
+        self.assertEqual(outbox.delivery.status, EmailDelivery.Status.PENDING)
+        self.assertEqual(outbox.delivery.attempt_count, 1)
+
+    @patch(
+        "notifications.management.commands.process_email_outbox."
+        "validate_worker_configuration"
+    )
+    @patch(
+        "notifications.management.commands.process_email_outbox."
+        "render_outbox_email"
+    )
+    @patch("notifications.outbox_service._send_with_provider")
+    def test_repeated_global_auth_failures_do_not_exhaust_retry_budget(
+        self,
+        provider_send,
+        render,
+        _validate,
+    ):
+        provider_send.side_effect = ResendDeliveryError(
+            code="provider_authentication",
+            retryable=False,
+            outcome_unknown=False,
+            global_problem=True,
+        )
+        render.return_value = self.payload()
+        outbox = self.make_outbox(max_attempts=2)
+
+        for _ in range(3):
+            EmailOutbox.objects.filter(pk=outbox.pk).update(
+                available_at=timezone.now() - timedelta(seconds=1)
+            )
+            with self.assertRaises(CommandError):
+                call_command(
+                    "process_email_outbox",
+                    once=True,
+                    batch_size=1,
+                    poll_seconds=0.1,
+                )
+
+        outbox.refresh_from_db()
+        self.assertEqual(outbox.status, EmailOutbox.Status.RETRY)
+        self.assertEqual(outbox.attempt_count, 0)
+        self.assertIsNone(outbox.first_attempt_at)
+        self.assertIsNone(outbox.provider_retry_deadline_at)
+        self.assertIsNone(outbox.completed_at)
+        self.assertEqual(outbox.delivery.attempt_count, 3)
+
+    @patch(
+        "notifications.management.commands.process_email_outbox."
+        "validate_worker_configuration"
+    )
+    @patch(
+        "notifications.management.commands.process_email_outbox."
+        "render_outbox_email"
+    )
+    @patch("notifications.outbox_service._send_with_provider")
+    def test_item_sends_after_global_authentication_is_fixed(
+        self,
+        provider_send,
+        render,
+        _validate,
+    ):
+        provider_send.side_effect = [
+            ResendDeliveryError(
+                code="provider_authentication",
+                retryable=False,
+                outcome_unknown=False,
+                global_problem=True,
+            ),
+            "provider-after-config-fix",
+        ]
+        render.return_value = self.payload()
+        outbox = self.make_outbox(max_attempts=1)
+
+        with self.assertRaises(CommandError):
+            call_command("process_email_outbox", once=True, batch_size=1)
+        EmailOutbox.objects.filter(pk=outbox.pk).update(
+            available_at=timezone.now() - timedelta(seconds=1)
+        )
+        call_command("process_email_outbox", once=True, batch_size=1)
+
+        outbox.refresh_from_db()
+        self.assertEqual(outbox.status, EmailOutbox.Status.SENT)
+        self.assertEqual(outbox.attempt_count, 1)
+        self.assertEqual(outbox.delivery.attempt_count, 2)
+        self.assertEqual(
+            outbox.delivery.provider_message_id,
+            "provider-after-config-fix",
+        )
+
+    @patch("notifications.outbox_service._send_with_provider")
+    def test_global_auth_rollback_preserves_prior_retry_window(self, provider_send):
+        provider_send.side_effect = [
+            ResendDeliveryError(
+                code="provider_timeout",
+                retryable=True,
+                outcome_unknown=True,
+            ),
+            ResendDeliveryError(
+                code="provider_authentication",
+                retryable=False,
+                outcome_unknown=False,
+                global_problem=True,
+            ),
+        ]
+        outbox = self.make_outbox(max_attempts=3)
+        first_claim = self.claim_one(outbox)
+        first_result = send_outbox_email(
+            outbox_id=outbox.pk,
+            claim_token=first_claim.claim_token,
+            payload=self.payload(),
+        )
+        self.assertEqual(first_result.status, "retry")
+        outbox.refresh_from_db()
+        first_attempt_at = outbox.first_attempt_at
+        retry_deadline = outbox.provider_retry_deadline_at
+
+        EmailOutbox.objects.filter(pk=outbox.pk).update(
+            available_at=timezone.now() - timedelta(seconds=1)
+        )
+        second_claim = self.claim_one(outbox)
+        with self.assertRaises(OutboxConfigurationError):
+            send_outbox_email(
+                outbox_id=outbox.pk,
+                claim_token=second_claim.claim_token,
+                payload=self.payload(),
+            )
+
+        outbox.refresh_from_db()
+        self.assertEqual(outbox.attempt_count, 1)
+        self.assertEqual(outbox.first_attempt_at, first_attempt_at)
+        self.assertEqual(outbox.provider_retry_deadline_at, retry_deadline)
+        self.assertEqual(outbox.delivery.attempt_count, 2)
 
     @patch("notifications.outbox_service._send_with_provider")
     def test_max_attempts_moves_item_to_dead(self, provider_send):
@@ -582,6 +790,31 @@ class EmailOutboxTests(TransactionTestCase):
         self.assertEqual(outbox.status, EmailOutbox.Status.RETRY)
         self.assertNotEqual(outbox.status, EmailOutbox.Status.DEAD)
         self.assertIsNone(outbox.claim_token)
+
+    @patch("notifications.outbox_service._send_with_provider")
+    def test_provider_configuration_failure_rolls_back_prepared_attempt(
+        self,
+        provider_send,
+    ):
+        provider_send.side_effect = OutboxConfigurationError(
+            "Provider client configuration failed."
+        )
+        outbox = self.make_outbox()
+        claim = self.claim_one(outbox)
+
+        with self.assertRaises(OutboxConfigurationError):
+            send_outbox_email(
+                outbox_id=outbox.pk,
+                claim_token=claim.claim_token,
+                payload=self.payload(),
+            )
+
+        outbox.refresh_from_db()
+        self.assertEqual(outbox.status, EmailOutbox.Status.PROCESSING)
+        self.assertEqual(outbox.attempt_count, 0)
+        self.assertIsNone(outbox.first_attempt_at)
+        self.assertIsNone(outbox.provider_retry_deadline_at)
+        self.assertEqual(outbox.delivery.attempt_count, 1)
 
     @patch(
         "notifications.management.commands.process_email_outbox."

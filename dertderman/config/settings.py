@@ -75,6 +75,19 @@ def _nonnegative_env_int(name, *, default=0):
     return value
 
 
+def _positive_env_int(name, *, default):
+    raw_value = os.getenv(name)
+    if raw_value is None or not raw_value.strip():
+        return default
+    try:
+        value = int(raw_value)
+    except ValueError as exc:
+        raise ImproperlyConfigured(f"{name} must be a positive integer.") from exc
+    if value <= 0:
+        raise ImproperlyConfigured(f"{name} must be a positive integer.")
+    return value
+
+
 def _validate_https_origin(origin, *, setting_name):
     try:
         parsed = urlsplit(origin)
@@ -296,6 +309,10 @@ RESEND_API_KEY = os.getenv("RESEND_API_KEY", "").strip()
 RESEND_WEBHOOK_SECRET = os.getenv("RESEND_WEBHOOK_SECRET", "").strip()
 RESEND_WEBHOOK_MAX_BODY_BYTES = int(
     os.getenv("RESEND_WEBHOOK_MAX_BODY_BYTES", "131072")
+)
+RESEND_TIMEOUT_SECONDS = _positive_env_int(
+    "RESEND_TIMEOUT_SECONDS",
+    default=30,
 )
 
 DEFAULT_FROM_EMAIL = os.getenv(

@@ -4,7 +4,7 @@ import logging
 import random
 import uuid
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from django.conf import settings
 from django.db import connection, transaction
@@ -73,6 +73,14 @@ class EmailPayload:
     text_body: str
     from_email: str
     reply_to: str
+
+
+@dataclass(frozen=True)
+class DispatchPreparation:
+    previous_attempt_count: int
+    previous_first_attempt_at: datetime | None
+    previous_provider_retry_deadline_at: datetime | None
+    prepared_attempt_count: int
 
 
 def canonical_payload_hash(payload: EmailPayload) -> str:
@@ -332,7 +340,7 @@ def _prepare_dispatch(*, outbox_id, claim_token, payload, now):
                 code=cancellation_code,
                 now=now,
             )
-            return outbox, None, "cancelled"
+            return outbox, None, "cancelled", None
 
         if outbox.expires_at is not None and outbox.expires_at <= now:
             _set_terminal(
@@ -341,7 +349,7 @@ def _prepare_dispatch(*, outbox_id, claim_token, payload, now):
                 code="OUTBOX_EXPIRED",
                 now=now,
             )
-            return outbox, None, "cancelled"
+            return outbox, None, "cancelled", None
 
         if outbox.recipient_hash != build_recipient_hash(payload.recipient_email):
             _set_terminal(
@@ -350,7 +358,7 @@ def _prepare_dispatch(*, outbox_id, claim_token, payload, now):
                 code="RECIPIENT_CHANGED",
                 now=now,
             )
-            return outbox, None, "cancelled"
+            return outbox, None, "cancelled", None
 
         if outbox.payload_hash and outbox.payload_hash != payload_digest:
             _set_terminal(
@@ -359,7 +367,7 @@ def _prepare_dispatch(*, outbox_id, claim_token, payload, now):
                 code="PAYLOAD_HASH_MISMATCH",
                 now=now,
             )
-            return outbox, None, "dead"
+            return outbox, None, "dead", None
 
         if outbox.attempt_count >= outbox.max_attempts:
             _set_terminal(
@@ -368,7 +376,7 @@ def _prepare_dispatch(*, outbox_id, claim_token, payload, now):
                 code="MAX_ATTEMPTS_EXCEEDED",
                 now=now,
             )
-            return outbox, None, "dead"
+            return outbox, None, "dead", None
 
         if (
             outbox.provider_retry_deadline_at is not None
@@ -380,7 +388,7 @@ def _prepare_dispatch(*, outbox_id, claim_token, payload, now):
                 code="PROVIDER_RETRY_DEADLINE_EXCEEDED",
                 now=now,
             )
-            return outbox, None, "dead"
+            return outbox, None, "dead", None
 
         delivery = (
             EmailDelivery.objects.select_for_update()
@@ -398,7 +406,7 @@ def _prepare_dispatch(*, outbox_id, claim_token, payload, now):
                 code="DELIVERY_INVARIANT_MISMATCH",
                 now=now,
             )
-            return outbox, None, "dead"
+            return outbox, None, "dead", None
 
         conflicting_delivery = None
         if delivery is None:
@@ -412,7 +420,7 @@ def _prepare_dispatch(*, outbox_id, claim_token, payload, now):
                 code="DELIVERY_OWNERSHIP_CONFLICT",
                 now=now,
             )
-            return outbox, None, "dead"
+            return outbox, None, "dead", None
 
         if delivery is not None and delivery.status == EmailDelivery.Status.SENT:
             _set_terminal(
@@ -421,7 +429,14 @@ def _prepare_dispatch(*, outbox_id, claim_token, payload, now):
                 code="",
                 now=now,
             )
-            return outbox, delivery, "sent"
+            return outbox, delivery, "sent", None
+
+        preparation = DispatchPreparation(
+            previous_attempt_count=outbox.attempt_count,
+            previous_first_attempt_at=outbox.first_attempt_at,
+            previous_provider_retry_deadline_at=outbox.provider_retry_deadline_at,
+            prepared_attempt_count=outbox.attempt_count + 1,
+        )
 
         if delivery is None:
             delivery = EmailDelivery.objects.create(
@@ -465,7 +480,31 @@ def _prepare_dispatch(*, outbox_id, claim_token, payload, now):
                 "updated_at",
             ]
         )
-        return outbox, delivery, "dispatch"
+        return outbox, delivery, "dispatch", preparation
+
+
+def _rollback_global_provider_attempt(
+    *, outbox_id, claim_token, preparation, now
+):
+    """Restore the retry budget for an owned global provider failure."""
+    with transaction.atomic():
+        outbox = _load_owned_outbox(outbox_id, claim_token, now)
+        if outbox.attempt_count != preparation.prepared_attempt_count:
+            raise OutboxClaimLost("Email outbox dispatch state has changed.")
+
+        outbox.attempt_count = preparation.previous_attempt_count
+        outbox.first_attempt_at = preparation.previous_first_attempt_at
+        outbox.provider_retry_deadline_at = (
+            preparation.previous_provider_retry_deadline_at
+        )
+        outbox.save(
+            update_fields=[
+                "attempt_count",
+                "first_attempt_at",
+                "provider_retry_deadline_at",
+                "updated_at",
+            ]
+        )
 
 
 def _retry_delay(attempt_count, retry_after_seconds=None):
@@ -578,7 +617,10 @@ def _send_with_provider(outbox, payload):
     if outbox.provider != "resend":
         raise OutboxConfigurationError("Unsupported email provider.")
     try:
-        provider = ResendProvider(api_key=getattr(settings, "RESEND_API_KEY", ""))
+        provider = ResendProvider(
+            api_key=getattr(settings, "RESEND_API_KEY", ""),
+            timeout_seconds=getattr(settings, "RESEND_TIMEOUT_SECONDS", 30),
+        )
         return provider.send(
             recipient_email=payload.recipient_email,
             subject=payload.subject,
@@ -612,7 +654,7 @@ def send_outbox_email(*, outbox_id, claim_token, payload, now=None):
         ) from exc
     validate_dispatch_configuration(provider_name)
     payload = _validate_payload(payload)
-    outbox, delivery, action = _prepare_dispatch(
+    outbox, delivery, action, preparation = _prepare_dispatch(
         outbox_id=outbox_id,
         claim_token=claim_token,
         payload=payload,
@@ -634,9 +676,21 @@ def send_outbox_email(*, outbox_id, claim_token, payload, now=None):
     except OutboxConfigurationError:
         # Startup validation normally prevents this. Keep the claimed item
         # recoverable instead of consuming/dead-lettering it on global config.
+        _rollback_global_provider_attempt(
+            outbox_id=outbox.pk,
+            claim_token=claim_token,
+            preparation=preparation,
+            now=timezone.now(),
+        )
         raise
     except ResendDeliveryError as exc:
         if getattr(exc, "global_problem", False):
+            _rollback_global_provider_attempt(
+                outbox_id=outbox.pk,
+                claim_token=claim_token,
+                preparation=preparation,
+                now=timezone.now(),
+            )
             raise OutboxConfigurationError(
                 "Email provider global configuration failed."
             ) from exc

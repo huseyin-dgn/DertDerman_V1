@@ -75,7 +75,10 @@ def _resend_provider():
     from .email_providers.resend import ResendConfigurationError, ResendProvider
 
     try:
-        return ResendProvider(api_key=getattr(settings, "RESEND_API_KEY", ""))
+        return ResendProvider(
+            api_key=getattr(settings, "RESEND_API_KEY", ""),
+            timeout_seconds=getattr(settings, "RESEND_TIMEOUT_SECONDS", 30),
+        )
     except ResendConfigurationError as exc:
         raise EmailConfigurationError("Resend is not configured.") from exc
 

@@ -29,6 +29,7 @@ class SettingsProfileTests(SimpleTestCase):
         "DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS",
         "DJANGO_SECURE_HSTS_PRELOAD",
         "DJANGO_TRUST_X_FORWARDED_PROTO",
+        "RESEND_TIMEOUT_SECONDS",
         "SITE_BASE_URL",
     }
 
@@ -179,3 +180,13 @@ print(json.dumps({
         )
         self.assert_configuration_error(result, "DJANGO_ALLOWED_HOSTS")
         self.assertNotIn(secret, result.stdout + result.stderr)
+
+    def test_resend_timeout_must_be_a_positive_integer(self):
+        for invalid_value in ("0", "-1", "1.5", "invalid"):
+            with self.subTest(invalid_value=invalid_value):
+                env = {
+                    **self.production_env,
+                    "RESEND_TIMEOUT_SECONDS": invalid_value,
+                }
+                result = self.run_settings("import config.settings", env=env)
+                self.assert_configuration_error(result, "RESEND_TIMEOUT_SECONDS")
