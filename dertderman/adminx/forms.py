@@ -94,6 +94,34 @@ class CompanyApprovalActionForm(
         )
     )
 
+    rejection_reason = forms.CharField(
+        label="Red nedeni",
+        required=False,
+        max_length=1000,
+        strip=True,
+        widget=forms.Textarea(
+            attrs={
+                "rows": 4,
+                "maxlength": 1000,
+            }
+        ),
+    )
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        if (
+            cleaned_data.get("action")
+            == self.Action.REJECT
+            and not cleaned_data.get("rejection_reason")
+        ):
+            self.add_error(
+                "rejection_reason",
+                "Şirket başvurusu reddedilirken neden belirtilmelidir.",
+            )
+
+        return cleaned_data
+
 
 class ContactStatusForm(
     forms.Form

@@ -238,6 +238,12 @@ def notify_company_of_admin_action(
             for key in previous
         )
     ):
+        if (
+            previous["approval_status"] == "PENDING"
+            and instance.approval_status == "REJECTED"
+        ):
+            return
+
         title = (
             "Şirketinizin onay veya doğrulama durumu güncellendi."
         )

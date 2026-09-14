@@ -172,7 +172,10 @@ class CompanyAuthenticationFlowTests(TestCase):
         self.client.force_login(self.admin)
         self.client.post(
             reverse("adminx:company_application_detail", args=[company.pk]),
-            {"action": "reject"},
+            {
+                "action": "reject",
+                "rejection_reason": "Başvuru bilgileri doğrulanamadı.",
+            },
         )
         company.refresh_from_db()
         membership.refresh_from_db()

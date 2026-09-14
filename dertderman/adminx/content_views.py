@@ -235,6 +235,13 @@ def company_application_detail(
                             "action"
                         ]
                     ],
+                    actor=request.user,
+                    rejection_reason=(
+                        form.cleaned_data.get(
+                            "rejection_reason",
+                            "",
+                        )
+                    ),
                 )
             )
 

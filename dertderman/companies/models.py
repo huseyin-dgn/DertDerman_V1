@@ -83,6 +83,16 @@ class Company(models.Model):
         default=ApprovalStatus.APPROVED,
         db_index=True,
     )
+    rejection_reason = models.CharField(
+        max_length=1000,
+        blank=True,
+        default="",
+    )
+    rejected_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        editable=False,
+    )
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

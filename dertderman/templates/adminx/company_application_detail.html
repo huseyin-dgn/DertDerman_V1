@@ -11,6 +11,8 @@
         <div><dt>Telefon</dt><dd>{{ company.phone|default:'—' }}</dd></div>
         <div><dt>Web sitesi</dt><dd>{% if company.website %}<a href="{{ company.website }}" rel="noopener noreferrer">{{ company.website }}</a>{% else %}—{% endif %}</dd></div>
         <div><dt>Başvuru tarihi</dt><dd>{{ company.created_at|date:'d.m.Y H:i' }}</dd></div>
+        {% if company.rejected_at %}<div><dt>Son red tarihi</dt><dd>{{ company.rejected_at|date:'d.m.Y H:i' }}</dd></div>{% endif %}
+        {% if company.rejection_reason %}<div><dt>Son red nedeni</dt><dd>{{ company.rejection_reason }}</dd></div>{% endif %}
     </dl>
     <h2>Yetkililer</h2>
     <ul class="management-list">
@@ -21,6 +23,12 @@
     {% if company.approval_status == 'PENDING' and not company.archived_at %}
     <form method="post" class="account-form-actions">
         {% csrf_token %}
+        <div>
+            <label for="{{ form.rejection_reason.id_for_label }}">{{ form.rejection_reason.label }}</label>
+            {{ form.rejection_reason }}
+            {% for error in form.rejection_reason.errors %}<p class="form-error">{{ error }}</p>{% endfor %}
+            <p>Yalnızca başvuruyu reddederken zorunludur.</p>
+        </div>
         <button class="primary-action" type="submit" name="action" value="approve">Onayla</button>
         <button class="danger-action" type="submit" name="action" value="reject" data-confirm="Bu şirket başvurusunu reddetmek inceleme sürecini sonlandırır. Devam etmek istiyor musunuz?">Reddet</button>
     </form>

@@ -45,7 +45,13 @@ def get_accessible_company_membership(user, slug):
 
 
 @transaction.atomic
-def decide_company_application(company_id, target_status):
+def decide_company_application(
+    company_id,
+    target_status,
+    *,
+    actor=None,
+    rejection_reason="",
+):
     if target_status not in {
         Company.ApprovalStatus.APPROVED,
         Company.ApprovalStatus.REJECTED,
@@ -65,6 +71,29 @@ def decide_company_application(company_id, target_status):
 
     if company.approval_status != Company.ApprovalStatus.PENDING:
         return company, False
+
+    rejection_reason = (rejection_reason or "").strip()
+
+    if target_status == Company.ApprovalStatus.REJECTED:
+        if not (
+            actor is not None
+            and getattr(actor, "is_authenticated", False)
+            and actor.is_active
+            and actor.user_type == "ADMIN"
+        ):
+            raise ValidationError(
+                "Şirket başvurusu kararı için geçerli yönetici gereklidir."
+            )
+
+        if not rejection_reason:
+            raise ValidationError(
+                "Şirket başvurusu reddedilirken neden belirtilmelidir."
+            )
+
+        if len(rejection_reason) > 1000:
+            raise ValidationError(
+                "Şirket başvurusu red nedeni 1000 karakteri aşamaz."
+            )
 
     memberships = (
         CompanyMembership.objects
@@ -115,6 +144,8 @@ def decide_company_application(company_id, target_status):
 
         company.is_active = False
         company.is_verified = False
+        company.rejection_reason = rejection_reason
+        company.rejected_at = timezone.now()
 
     company.approval_status = target_status
 
@@ -123,9 +154,28 @@ def decide_company_application(company_id, target_status):
             "approval_status",
             "is_active",
             "is_verified",
+            "rejection_reason",
+            "rejected_at",
             "updated_at",
         ]
     )
+
+    if target_status == Company.ApprovalStatus.REJECTED:
+        from adminx.models import AdminAuditLog
+
+        AdminAuditLog.objects.create(
+            actor=actor,
+            action=AdminAuditLog.Action.REJECT,
+            target_type="company_application",
+            target_id=str(company.pk),
+            target_label=company.name,
+            description="Şirket başvurusu reddedildi.",
+            metadata={
+                "previous_status": Company.ApprovalStatus.PENDING,
+                "new_status": Company.ApprovalStatus.REJECTED,
+                "rejection_reason": rejection_reason,
+            },
+        )
 
     return company, True
 
@@ -239,5 +289,22 @@ def resubmit_company_application(
 
     company.refresh_from_db()
 
-    return company
+    from notifications.services import send_admins
 
+    reapplication_cycle = (
+        company.rejected_at.isoformat()
+        if company.rejected_at
+        else now.isoformat()
+    )
+    send_admins(
+        kind="APPLICATION",
+        event_key=(
+            f"company:{company.pk}:reapplication:"
+            f"{reapplication_cycle}"
+        ),
+        title="Şirket başvurusu yeniden inceleme bekliyor.",
+        message=company.name,
+        company=company,
+    )
+
+    return company
