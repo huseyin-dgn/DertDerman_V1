@@ -1,5 +1,8 @@
+import uuid
+
 from django.conf import settings
 from django.db import models
+from django.db.models import Q
 from django.urls import reverse
 
 
@@ -244,6 +247,159 @@ class Notification(models.Model):
             'bell'
         )
 
+
+class EmailOutbox(models.Model):
+    """Durable email intent; message bodies and raw recipients are not stored."""
+
+    class Kind(models.TextChoices):
+        PASSWORD_RESET = "PASSWORD_RESET", "Şifre sıfırlama"
+        NOTIFICATION = "NOTIFICATION", "Bildirim"
+
+    class Status(models.TextChoices):
+        PENDING = "PENDING", "Bekliyor"
+        PROCESSING = "PROCESSING", "İşleniyor"
+        RETRY = "RETRY", "Yeniden denenecek"
+        SENT = "SENT", "Gönderildi"
+        DEAD = "DEAD", "Kalıcı hata"
+        CANCELLED = "CANCELLED", "İptal edildi"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    kind = models.CharField(max_length=32, choices=Kind.choices)
+    status = models.CharField(
+        max_length=16,
+        choices=Status.choices,
+        default=Status.PENDING,
+    )
+    recipient_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="email_outbox_items",
+    )
+    notification = models.OneToOneField(
+        Notification,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="email_outbox_item",
+    )
+    recipient_hash = models.CharField(
+        max_length=64,
+        blank=True,
+        default="",
+        db_index=True,
+    )
+    request_state_hash = models.CharField(max_length=64, blank=True, default="")
+    provider = models.CharField(max_length=32, default="resend")
+    provider_idempotency_key = models.CharField(max_length=128, unique=True)
+    template_version = models.PositiveSmallIntegerField(default=1)
+    token_issued_at = models.DateTimeField(null=True, blank=True)
+    payload_hash = models.CharField(max_length=64, blank=True, default="")
+    attempt_count = models.PositiveIntegerField(default=0)
+    max_attempts = models.PositiveSmallIntegerField(default=8)
+    available_at = models.DateTimeField(db_index=True)
+    first_attempt_at = models.DateTimeField(null=True, blank=True)
+    provider_retry_deadline_at = models.DateTimeField(null=True, blank=True)
+    expires_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    claimed_at = models.DateTimeField(null=True, blank=True)
+    lease_expires_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    claim_token = models.UUIDField(null=True, blank=True)
+    last_error_code = models.CharField(max_length=64, blank=True, default="")
+    last_error_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("created_at", "pk")
+        indexes = [
+            models.Index(
+                fields=["status", "available_at"],
+                name="email_outbox_available",
+            ),
+            models.Index(
+                fields=["status", "lease_expires_at"],
+                name="email_outbox_lease",
+            ),
+            models.Index(
+                fields=["kind", "status", "created_at"],
+                name="email_outbox_kind_status",
+            ),
+        ]
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    Q(
+                        kind="NOTIFICATION",
+                        recipient_user__isnull=False,
+                        notification__isnull=False,
+                        token_issued_at__isnull=True,
+                        request_state_hash="",
+                    )
+                    & ~Q(recipient_hash="")
+                )
+                | (
+                    Q(
+                        kind="PASSWORD_RESET",
+                        notification__isnull=True,
+                        recipient_user__isnull=False,
+                        token_issued_at__isnull=False,
+                        expires_at__isnull=False,
+                    )
+                    & ~Q(recipient_hash="")
+                    & ~Q(request_state_hash="")
+                )
+                | Q(
+                    kind="PASSWORD_RESET",
+                    notification__isnull=True,
+                    recipient_user__isnull=True,
+                    recipient_hash="",
+                    request_state_hash="",
+                    token_issued_at__isnull=True,
+                    expires_at__isnull=True,
+                ),
+                name="email_outbox_recipe",
+            ),
+            models.CheckConstraint(
+                condition=Q(
+                    status="PROCESSING",
+                    claim_token__isnull=False,
+                    claimed_at__isnull=False,
+                    lease_expires_at__isnull=False,
+                )
+                | (
+                    ~Q(status="PROCESSING")
+                    & Q(
+                        claim_token__isnull=True,
+                        claimed_at__isnull=True,
+                        lease_expires_at__isnull=True,
+                    )
+                ),
+                name="email_outbox_claim_fields",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    Q(status__in=("SENT", "DEAD", "CANCELLED"))
+                    & Q(completed_at__isnull=False)
+                )
+                | (
+                    ~Q(status__in=("SENT", "DEAD", "CANCELLED"))
+                    & Q(completed_at__isnull=True)
+                ),
+                name="email_outbox_completed",
+            ),
+            models.CheckConstraint(
+                condition=Q(max_attempts__gte=1),
+                name="email_outbox_attempts_positive",
+            ),
+            models.CheckConstraint(
+                condition=~Q(provider="") & ~Q(provider_idempotency_key=""),
+                name="email_outbox_provider_key",
+            ),
+        ]
+
+
 class EmailDelivery(models.Model):
     """
     Kalıcı e-posta teslimat kaydı.
@@ -274,6 +430,14 @@ class EmailDelivery(models.Model):
         null=True,
         blank=True,
         related_name="email_deliveries",
+    )
+
+    outbox = models.OneToOneField(
+        EmailOutbox,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="delivery",
     )
 
     provider = models.CharField(max_length=32)
@@ -385,4 +549,3 @@ class EmailWebhookEvent(models.Model):
                 name="email_webhook_lookup",
             )
         ]
-

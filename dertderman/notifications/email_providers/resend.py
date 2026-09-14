@@ -11,9 +11,29 @@ class ResendProviderError(RuntimeError):
 class ResendConfigurationError(ResendProviderError):
     """Raised when the Resend adapter cannot be configured."""
 
+    code = "provider_configuration"
+    global_problem = True
+
 
 class ResendDeliveryError(ResendProviderError):
-    """Raised when Resend rejects or fails an email request."""
+    """Sanitized provider failure with an explicit retry contract."""
+
+    def __init__(
+        self,
+        message="Resend delivery failed.",
+        *,
+        code="provider_transport_unknown",
+        retryable=True,
+        outcome_unknown=True,
+        global_problem=False,
+        retry_after_seconds=None,
+    ):
+        super().__init__(message)
+        self.code = code
+        self.retryable = retryable
+        self.outcome_unknown = outcome_unknown
+        self.global_problem = global_problem
+        self.retry_after_seconds = retry_after_seconds
 
 
 def _load_resend():
@@ -63,6 +83,18 @@ class ResendProvider:
 
         try:
             response = resend.Emails.send(params, options=options)
+        except (TimeoutError, ConnectionError) as exc:
+            logger.warning(
+                "Resend email request failed: exception_type=%s",
+                exc.__class__.__name__,
+            )
+            raise ResendDeliveryError(
+                code="provider_network_error",
+                retryable=True,
+                outcome_unknown=True,
+            ) from exc
+        except ResendProviderError:
+            raise
         except Exception as exc:
             # Do not log message bodies, token-bearing URLs, recipient addresses,
             # provider credentials or raw provider error payloads here.
@@ -70,7 +102,10 @@ class ResendProvider:
                 "Resend email request failed: exception_type=%s",
                 exc.__class__.__name__,
             )
-            raise ResendDeliveryError("Resend delivery failed.") from exc
+            # The SDK is optional and its exception contract is not available
+            # in this repository. Unknown SDK failures are therefore treated
+            # as transient/ambiguous rather than guessing at private fields.
+            raise ResendDeliveryError() from exc
 
         provider_message_id = (
             response.get("id")
@@ -80,7 +115,10 @@ class ResendProvider:
 
         if not provider_message_id:
             raise ResendDeliveryError(
-                "Resend response did not include a message id."
+                "Resend response did not include a message id.",
+                code="provider_invalid_response",
+                retryable=True,
+                outcome_unknown=True,
             )
 
         return str(provider_message_id)

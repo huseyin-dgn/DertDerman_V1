@@ -1,0 +1,116 @@
+import logging
+import signal
+import threading
+
+from django.core.management.base import BaseCommand, CommandError
+from django.db import close_old_connections
+
+from notifications.models import EmailOutbox
+from notifications.outbox_service import (
+    OutboxClaimLost,
+    OutboxConfigurationError,
+    claim_email_outbox,
+    release_email_outbox_claim,
+    render_outbox_email,
+    send_outbox_email,
+    validate_worker_configuration,
+)
+
+
+logger = logging.getLogger(__name__)
+
+
+class Command(BaseCommand):
+    help = "Process durable email outbox items."
+
+    def add_arguments(self, parser):
+        parser.add_argument("--once", action="store_true")
+        parser.add_argument("--batch-size", type=int, default=25)
+        parser.add_argument("--poll-seconds", type=float, default=2.0)
+
+    def handle(self, *args, **options):
+        batch_size = options["batch_size"]
+        poll_seconds = options["poll_seconds"]
+        if batch_size < 1 or batch_size > 250:
+            raise CommandError("--batch-size must be between 1 and 250.")
+        if poll_seconds < 0.1 or poll_seconds > 300:
+            raise CommandError("--poll-seconds must be between 0.1 and 300.")
+
+        try:
+            validate_worker_configuration()
+        except OutboxConfigurationError as exc:
+            raise CommandError(str(exc)) from exc
+
+        stop_event = threading.Event()
+
+        def request_stop(_signum, _frame):
+            stop_event.set()
+
+        previous_handlers = {}
+        for signum in (signal.SIGTERM, signal.SIGINT):
+            try:
+                previous_handlers[signum] = signal.signal(signum, request_stop)
+            except (ValueError, OSError):
+                pass
+
+        try:
+            while not stop_event.is_set():
+                close_old_connections()
+                claims = claim_email_outbox(batch_size=batch_size)
+                fatal_error = None
+                processed_claims = 0
+
+                for claim in claims:
+                    if stop_event.is_set():
+                        break
+                    processed_claims += 1
+                    try:
+                        outbox = EmailOutbox.objects.get(pk=claim.outbox_id)
+                        payload = render_outbox_email(outbox)
+                        send_outbox_email(
+                            outbox_id=claim.outbox_id,
+                            claim_token=claim.claim_token,
+                            payload=payload,
+                        )
+                    except (OutboxClaimLost, EmailOutbox.DoesNotExist):
+                        logger.info(
+                            "Email outbox claim lost: outbox_id=%s",
+                            claim.outbox_id,
+                        )
+                    except OutboxConfigurationError as exc:
+                        fatal_error = exc
+                        self._release_claim(claim, "WORKER_CONFIGURATION")
+                        break
+                    except Exception as exc:
+                        logger.error(
+                            "Email outbox item failed unexpectedly: "
+                            "outbox_id=%s exception_type=%s",
+                            claim.outbox_id,
+                            exc.__class__.__name__,
+                        )
+                        self._release_claim(claim, "WORKER_UNEXPECTED_ERROR")
+
+                for claim in claims[processed_claims:]:
+                    self._release_claim(claim, "WORKER_INTERRUPTED")
+
+                if fatal_error is not None:
+                    raise CommandError(str(fatal_error)) from fatal_error
+                if options["once"]:
+                    break
+                if not claims:
+                    stop_event.wait(poll_seconds)
+        finally:
+            close_old_connections()
+            for signum, previous in previous_handlers.items():
+                signal.signal(signum, previous)
+
+    @staticmethod
+    def _release_claim(claim, code):
+        try:
+            release_email_outbox_claim(
+                outbox_id=claim.outbox_id,
+                claim_token=claim.claim_token,
+                code=code,
+            )
+        except OutboxClaimLost:
+            pass

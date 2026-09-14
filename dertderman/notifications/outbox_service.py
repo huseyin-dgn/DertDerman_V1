@@ -1,0 +1,584 @@
+import hashlib
+import json
+import logging
+import random
+import uuid
+from dataclasses import dataclass
+from datetime import timedelta
+
+from django.conf import settings
+from django.db import connection, transaction
+from django.db.models import Q
+from django.utils import timezone
+
+from .email_providers.resend import (
+    ResendConfigurationError,
+    ResendDeliveryError,
+    ResendProvider,
+    _load_resend,
+)
+from .email_service import (
+    EmailSendResult,
+    _required,
+    _validate_recipient,
+    build_recipient_hash,
+)
+from .models import EmailDelivery, EmailOutbox
+
+
+logger = logging.getLogger(__name__)
+
+DEFAULT_LEASE_SECONDS = 120
+PROVIDER_RETRY_WINDOW = timedelta(hours=23)
+MAX_BACKOFF_SECONDS = 60 * 60
+
+
+class OutboxError(RuntimeError):
+    """Base error for durable email processing."""
+
+
+class OutboxClaimLost(OutboxError):
+    """The caller no longer owns the outbox lease."""
+
+
+class OutboxConfigurationError(OutboxError):
+    """Global worker configuration is invalid; queued items stay intact."""
+
+
+class OutboxRendererUnavailable(OutboxConfigurationError):
+    """A producer-specific renderer has not been installed yet."""
+
+
+@dataclass(frozen=True)
+class OutboxClaim:
+    outbox_id: uuid.UUID
+    claim_token: uuid.UUID
+
+
+@dataclass(frozen=True)
+class EmailPayload:
+    recipient_email: str
+    subject: str
+    html_body: str
+    text_body: str
+    from_email: str
+    reply_to: str
+
+
+def canonical_payload_hash(payload: EmailPayload) -> str:
+    values = [
+        payload.recipient_email.strip(),
+        payload.from_email.strip(),
+        payload.reply_to.strip(),
+        payload.subject.strip(),
+        payload.html_body,
+        payload.text_body,
+    ]
+    serialized = json.dumps(
+        values,
+        ensure_ascii=False,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(serialized).hexdigest()
+
+
+def validate_dispatch_configuration(provider_name) -> None:
+    if not getattr(settings, "EMAIL_SENDING_ENABLED", False):
+        raise OutboxConfigurationError("Email sending is disabled.")
+
+    configured_provider = (
+        getattr(settings, "EMAIL_PROVIDER", "resend") or ""
+    ).strip().lower()
+    provider_name = (provider_name or "").strip().lower()
+    if configured_provider != "resend" or provider_name != configured_provider:
+        raise OutboxConfigurationError("Unsupported email provider.")
+
+    api_key = (getattr(settings, "RESEND_API_KEY", "") or "").strip()
+    if not api_key:
+        raise OutboxConfigurationError("Resend is not configured.")
+
+    try:
+        _load_resend()
+    except ResendConfigurationError as exc:
+        raise OutboxConfigurationError("Resend is not available.") from exc
+
+
+def validate_worker_configuration() -> None:
+    provider = getattr(settings, "EMAIL_PROVIDER", "resend")
+    validate_dispatch_configuration(provider)
+
+
+def _claimable(now):
+    return Q(
+        status__in=(EmailOutbox.Status.PENDING, EmailOutbox.Status.RETRY),
+        available_at__lte=now,
+    ) | Q(
+        status=EmailOutbox.Status.PROCESSING,
+        lease_expires_at__lt=now,
+    )
+
+
+def claim_email_outbox(
+    *,
+    batch_size=25,
+    lease_seconds=DEFAULT_LEASE_SECONDS,
+    now=None,
+):
+    if batch_size < 1:
+        raise ValueError("batch_size must be positive.")
+    if lease_seconds < 1:
+        raise ValueError("lease_seconds must be positive.")
+
+    now = now or timezone.now()
+    lease_expires_at = now + timedelta(seconds=lease_seconds)
+    claims = []
+
+    with transaction.atomic():
+        candidates = EmailOutbox.objects.filter(_claimable(now)).order_by(
+            "available_at", "created_at", "pk"
+        )
+        if connection.features.has_select_for_update_skip_locked:
+            candidates = candidates.select_for_update(skip_locked=True)
+
+        candidate_ids = list(candidates.values_list("pk", flat=True)[:batch_size])
+        for outbox_id in candidate_ids:
+            claim_token = uuid.uuid4()
+            updated = EmailOutbox.objects.filter(
+                pk=outbox_id,
+            ).filter(_claimable(now)).update(
+                status=EmailOutbox.Status.PROCESSING,
+                claim_token=claim_token,
+                claimed_at=now,
+                lease_expires_at=lease_expires_at,
+                completed_at=None,
+                updated_at=now,
+            )
+            if updated == 1:
+                claims.append(OutboxClaim(outbox_id, claim_token))
+
+    return claims
+
+
+def _clear_claim(outbox):
+    outbox.claim_token = None
+    outbox.claimed_at = None
+    outbox.lease_expires_at = None
+
+
+def _owns_claim(outbox, claim_token, now):
+    return (
+        outbox.status == EmailOutbox.Status.PROCESSING
+        and outbox.claim_token == claim_token
+        and outbox.lease_expires_at is not None
+        and outbox.lease_expires_at > now
+    )
+
+
+def _set_terminal(outbox, *, status, code, now):
+    outbox.status = status
+    outbox.last_error_code = code[:64]
+    outbox.last_error_at = now if code else None
+    outbox.completed_at = now
+    _clear_claim(outbox)
+    outbox.save(
+        update_fields=[
+            "status",
+            "last_error_code",
+            "last_error_at",
+            "completed_at",
+            "claim_token",
+            "claimed_at",
+            "lease_expires_at",
+            "updated_at",
+        ]
+    )
+
+
+def _load_owned_outbox(outbox_id, claim_token, now):
+    try:
+        outbox = EmailOutbox.objects.select_for_update().get(pk=outbox_id)
+    except EmailOutbox.DoesNotExist as exc:
+        raise OutboxClaimLost("Email outbox item no longer exists.") from exc
+    if not _owns_claim(outbox, claim_token, now):
+        raise OutboxClaimLost("Email outbox claim is no longer valid.")
+    return outbox
+
+
+def release_email_outbox_claim(
+    *, outbox_id, claim_token, code="WORKER_INTERRUPTED", delay_seconds=30
+):
+    """Return an owned claim to the queue without consuming an attempt."""
+    now = timezone.now()
+    with transaction.atomic():
+        outbox = _load_owned_outbox(outbox_id, claim_token, now)
+        outbox.status = EmailOutbox.Status.RETRY
+        outbox.available_at = now + timedelta(seconds=max(1, delay_seconds))
+        outbox.last_error_code = (code or "WORKER_INTERRUPTED")[:64]
+        outbox.last_error_at = now
+        _clear_claim(outbox)
+        outbox.save(
+            update_fields=[
+                "status",
+                "available_at",
+                "last_error_code",
+                "last_error_at",
+                "claim_token",
+                "claimed_at",
+                "lease_expires_at",
+                "updated_at",
+            ]
+        )
+
+
+def render_outbox_email(_outbox):
+    """Producer renderers are deliberately added in stages 2 and 3."""
+    raise OutboxRendererUnavailable("No outbox renderer is installed for this kind.")
+
+
+def _validate_payload(payload):
+    return EmailPayload(
+        recipient_email=_validate_recipient(payload.recipient_email),
+        subject=_required(payload.subject, "Email subject"),
+        html_body=_required(payload.html_body, "Email HTML body"),
+        text_body=_required(payload.text_body, "Email text body"),
+        from_email=_required(payload.from_email, "From email"),
+        reply_to=_required(payload.reply_to, "Reply-To email"),
+    )
+
+
+def _prepare_dispatch(*, outbox_id, claim_token, payload, now):
+    payload_digest = canonical_payload_hash(payload)
+
+    with transaction.atomic():
+        outbox = _load_owned_outbox(outbox_id, claim_token, now)
+
+        if outbox.expires_at is not None and outbox.expires_at <= now:
+            _set_terminal(
+                outbox,
+                status=EmailOutbox.Status.CANCELLED,
+                code="OUTBOX_EXPIRED",
+                now=now,
+            )
+            return outbox, None, "cancelled"
+
+        if outbox.recipient_hash != build_recipient_hash(payload.recipient_email):
+            _set_terminal(
+                outbox,
+                status=EmailOutbox.Status.CANCELLED,
+                code="RECIPIENT_CHANGED",
+                now=now,
+            )
+            return outbox, None, "cancelled"
+
+        if outbox.payload_hash and outbox.payload_hash != payload_digest:
+            _set_terminal(
+                outbox,
+                status=EmailOutbox.Status.DEAD,
+                code="PAYLOAD_HASH_MISMATCH",
+                now=now,
+            )
+            return outbox, None, "dead"
+
+        if outbox.attempt_count >= outbox.max_attempts:
+            _set_terminal(
+                outbox,
+                status=EmailOutbox.Status.DEAD,
+                code="MAX_ATTEMPTS_EXCEEDED",
+                now=now,
+            )
+            return outbox, None, "dead"
+
+        if (
+            outbox.provider_retry_deadline_at is not None
+            and outbox.provider_retry_deadline_at <= now
+        ):
+            _set_terminal(
+                outbox,
+                status=EmailOutbox.Status.DEAD,
+                code="PROVIDER_RETRY_DEADLINE_EXCEEDED",
+                now=now,
+            )
+            return outbox, None, "dead"
+
+        delivery = (
+            EmailDelivery.objects.select_for_update()
+            .filter(outbox=outbox)
+            .first()
+        )
+        if delivery is not None and (
+            delivery.idempotency_key != outbox.provider_idempotency_key
+            or delivery.provider != outbox.provider
+            or delivery.recipient_hash != outbox.recipient_hash
+        ):
+            _set_terminal(
+                outbox,
+                status=EmailOutbox.Status.DEAD,
+                code="DELIVERY_INVARIANT_MISMATCH",
+                now=now,
+            )
+            return outbox, None, "dead"
+
+        conflicting_delivery = None
+        if delivery is None:
+            conflicting_delivery = EmailDelivery.objects.filter(
+                idempotency_key=outbox.provider_idempotency_key
+            ).first()
+        if conflicting_delivery is not None:
+            _set_terminal(
+                outbox,
+                status=EmailOutbox.Status.DEAD,
+                code="DELIVERY_OWNERSHIP_CONFLICT",
+                now=now,
+            )
+            return outbox, None, "dead"
+
+        if delivery is not None and delivery.status == EmailDelivery.Status.SENT:
+            _set_terminal(
+                outbox,
+                status=EmailOutbox.Status.SENT,
+                code="",
+                now=now,
+            )
+            return outbox, delivery, "sent"
+
+        if delivery is None:
+            delivery = EmailDelivery.objects.create(
+                outbox=outbox,
+                notification=outbox.notification,
+                provider=outbox.provider,
+                idempotency_key=outbox.provider_idempotency_key,
+                recipient_hash=outbox.recipient_hash,
+                status=EmailDelivery.Status.PENDING,
+                attempt_count=1,
+            )
+        else:
+            # A valid outbox lease, not EmailDelivery.PENDING itself, grants
+            # authority to resume an interrupted outbox-owned dispatch.
+            delivery.provider = outbox.provider
+            delivery.status = EmailDelivery.Status.PENDING
+            delivery.attempt_count += 1
+            delivery.last_error_type = ""
+            delivery.save(
+                update_fields=[
+                    "provider",
+                    "status",
+                    "attempt_count",
+                    "last_error_type",
+                    "updated_at",
+                ]
+            )
+
+        if not outbox.payload_hash:
+            outbox.payload_hash = payload_digest
+        if outbox.first_attempt_at is None:
+            outbox.first_attempt_at = now
+            outbox.provider_retry_deadline_at = now + PROVIDER_RETRY_WINDOW
+        outbox.attempt_count += 1
+        outbox.save(
+            update_fields=[
+                "payload_hash",
+                "first_attempt_at",
+                "provider_retry_deadline_at",
+                "attempt_count",
+                "updated_at",
+            ]
+        )
+        return outbox, delivery, "dispatch"
+
+
+def _retry_delay(attempt_count, retry_after_seconds=None):
+    if retry_after_seconds is not None:
+        try:
+            retry_after = float(retry_after_seconds)
+        except (TypeError, ValueError):
+            retry_after = None
+        if retry_after is not None:
+            return max(1.0, min(retry_after, MAX_BACKOFF_SECONDS))
+    ceiling = min(MAX_BACKOFF_SECONDS, 30 * (2 ** max(0, attempt_count - 1)))
+    return random.uniform(max(1, ceiling / 2), ceiling)
+
+
+def _finalize_failure(*, outbox_id, claim_token, error, now):
+    with transaction.atomic():
+        outbox = _load_owned_outbox(outbox_id, claim_token, now)
+        delivery = EmailDelivery.objects.select_for_update().get(outbox=outbox)
+        code = (getattr(error, "code", "provider_transport_unknown") or "")[:64]
+        delivery.status = EmailDelivery.Status.FAILED
+        delivery.last_error_type = code[:128]
+        delivery.sent_at = None
+        delivery.save(
+            update_fields=["status", "last_error_type", "sent_at", "updated_at"]
+        )
+
+        retryable = bool(getattr(error, "retryable", True))
+        delay = _retry_delay(
+            outbox.attempt_count,
+            getattr(error, "retry_after_seconds", None),
+        )
+        available_at = now + timedelta(seconds=delay)
+        deadline_exceeded = (
+            outbox.provider_retry_deadline_at is not None
+            and available_at >= outbox.provider_retry_deadline_at
+        )
+        exhausted = outbox.attempt_count >= outbox.max_attempts
+
+        if not retryable or deadline_exceeded or exhausted:
+            terminal_code = code
+            if exhausted:
+                terminal_code = "MAX_ATTEMPTS_EXCEEDED"
+            elif deadline_exceeded:
+                terminal_code = "PROVIDER_RETRY_DEADLINE_EXCEEDED"
+            _set_terminal(
+                outbox,
+                status=EmailOutbox.Status.DEAD,
+                code=terminal_code,
+                now=now,
+            )
+            return "dead"
+
+        outbox.status = EmailOutbox.Status.RETRY
+        outbox.available_at = available_at
+        outbox.last_error_code = code
+        outbox.last_error_at = now
+        _clear_claim(outbox)
+        outbox.save(
+            update_fields=[
+                "status",
+                "available_at",
+                "last_error_code",
+                "last_error_at",
+                "claim_token",
+                "claimed_at",
+                "lease_expires_at",
+                "updated_at",
+            ]
+        )
+        return "retry"
+
+
+def _finalize_success(*, outbox_id, claim_token, provider_message_id, now):
+    with transaction.atomic():
+        outbox = _load_owned_outbox(outbox_id, claim_token, now)
+        delivery = EmailDelivery.objects.select_for_update().get(outbox=outbox)
+        delivery.status = EmailDelivery.Status.SENT
+        delivery.provider_message_id = str(provider_message_id)[:255]
+        delivery.last_error_type = ""
+        delivery.sent_at = now
+        delivery.save(
+            update_fields=[
+                "status",
+                "provider_message_id",
+                "last_error_type",
+                "sent_at",
+                "updated_at",
+            ]
+        )
+        _set_terminal(
+            outbox,
+            status=EmailOutbox.Status.SENT,
+            code="",
+            now=now,
+        )
+
+    try:
+        from .webhook_service import reconcile_unmatched_resend_events
+
+        reconcile_unmatched_resend_events(str(provider_message_id))
+    except Exception as exc:
+        logger.warning(
+            "Email webhook reconciliation failed: outbox_id=%s exception_type=%s",
+            outbox_id,
+            exc.__class__.__name__,
+        )
+
+
+def _send_with_provider(outbox, payload):
+    if outbox.provider != "resend":
+        raise OutboxConfigurationError("Unsupported email provider.")
+    try:
+        provider = ResendProvider(api_key=getattr(settings, "RESEND_API_KEY", ""))
+        return provider.send(
+            recipient_email=payload.recipient_email,
+            subject=payload.subject,
+            html_body=payload.html_body,
+            text_body=payload.text_body,
+            from_email=payload.from_email,
+            reply_to=payload.reply_to,
+            idempotency_key=outbox.provider_idempotency_key,
+        )
+    except ResendConfigurationError as exc:
+        raise OutboxConfigurationError("Resend is not configured.") from exc
+
+
+def send_outbox_email(*, outbox_id, claim_token, payload, now=None):
+    """Dispatch one claimed outbox item without holding a DB transaction."""
+    now = now or timezone.now()
+    try:
+        provider_name = (
+            EmailOutbox.objects.filter(
+                pk=outbox_id,
+                status=EmailOutbox.Status.PROCESSING,
+                claim_token=claim_token,
+                lease_expires_at__gt=now,
+            )
+            .values_list("provider", flat=True)
+            .get()
+        )
+    except EmailOutbox.DoesNotExist as exc:
+        raise OutboxClaimLost(
+            "Email outbox item is missing or the claim is no longer valid."
+        ) from exc
+    validate_dispatch_configuration(provider_name)
+    payload = _validate_payload(payload)
+    outbox, delivery, action = _prepare_dispatch(
+        outbox_id=outbox_id,
+        claim_token=claim_token,
+        payload=payload,
+        now=now,
+    )
+
+    if action != "dispatch":
+        return EmailSendResult(
+            provider=outbox.provider,
+            status=action,
+            provider_message_id=(
+                delivery.provider_message_id if delivery is not None else None
+            ),
+            idempotency_key=outbox.provider_idempotency_key,
+        )
+
+    try:
+        provider_message_id = _send_with_provider(outbox, payload)
+    except OutboxConfigurationError:
+        # Startup validation normally prevents this. Keep the claimed item
+        # recoverable instead of consuming/dead-lettering it on global config.
+        raise
+    except ResendDeliveryError as exc:
+        if getattr(exc, "global_problem", False):
+            raise OutboxConfigurationError(
+                "Email provider global configuration failed."
+            ) from exc
+        status = _finalize_failure(
+            outbox_id=outbox.pk,
+            claim_token=claim_token,
+            error=exc,
+            now=timezone.now(),
+        )
+        return EmailSendResult(
+            provider=outbox.provider,
+            status=status,
+            idempotency_key=outbox.provider_idempotency_key,
+        )
+
+    _finalize_success(
+        outbox_id=outbox.pk,
+        claim_token=claim_token,
+        provider_message_id=provider_message_id,
+        now=timezone.now(),
+    )
+    return EmailSendResult(
+        provider=outbox.provider,
+        status="sent",
+        provider_message_id=str(provider_message_id),
+        idempotency_key=outbox.provider_idempotency_key,
+    )

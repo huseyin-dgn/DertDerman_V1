@@ -184,3 +184,30 @@ class ResendProviderTests(SimpleTestCase):
             )
 
         self.assertNotIn("secret-ish payload", str(context.exception))
+
+    @patch("notifications.email_providers.resend._load_resend")
+    def test_provider_classifies_builtin_timeout_as_ambiguous_retry(
+        self,
+        load_resend,
+    ):
+        emails = SimpleNamespace(
+            send=Mock(side_effect=TimeoutError("socket detail"))
+        )
+        load_resend.return_value = SimpleNamespace(api_key=None, Emails=emails)
+        provider = ResendProvider(api_key="re_test_only")
+
+        with self.assertRaises(ResendDeliveryError) as context:
+            provider.send(
+                recipient_email="user@example.com",
+                subject="Test",
+                html_body="<p>HTML</p>",
+                text_body="TEXT",
+                from_email="DertDerman <info@dertderman.com>",
+                reply_to="destek@dertderman.com",
+                idempotency_key="dertderman/test-key",
+            )
+
+        self.assertEqual(context.exception.code, "provider_network_error")
+        self.assertTrue(context.exception.retryable)
+        self.assertTrue(context.exception.outcome_unknown)
+        self.assertNotIn("socket detail", str(context.exception))
