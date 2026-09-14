@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from django.utils import timezone
 
 from core.models import AbuseAttempt
+from core.rate_limit import consume_rate_limit
 
 from .models import Complaint
 
@@ -35,6 +36,12 @@ REJECTION_RESTRICTED_MAX_24_HOURS = 1
 
 FORM_SESSION_KEY = "complaint_form_opened_at"
 
+# Edits are less restrictive than new complaint submissions so a genuine user
+# can correct a record a few times, while an automated notification loop is
+# still bounded per owned complaint.
+COMPLAINT_EDIT_LIMIT = 3
+COMPLAINT_EDIT_WINDOW_SECONDS = 10 * 60
+
 
 @dataclass(frozen=True)
 class ComplaintAntiAbuseResult:
@@ -47,6 +54,15 @@ class ComplaintAntiAbuseResult:
 def _allow():
     return ComplaintAntiAbuseResult(
         allowed=True,
+    )
+
+
+def consume_complaint_edit_rate_limit(*, user, complaint_id):
+    return consume_rate_limit(
+        scope="complaint-edit",
+        identifier=f"user:{user.pk}:complaint:{complaint_id}",
+        limit=COMPLAINT_EDIT_LIMIT,
+        window_seconds=COMPLAINT_EDIT_WINDOW_SECONDS,
     )
 
 

@@ -107,7 +107,7 @@ class ProductRefinementSecurityTests(TestCase):
         self.client.force_login(self.company_user)
         self.assertEqual(self.client.get(url).status_code, 403)
         self.client.force_login(self.owner)
-        response = self.client.post(url, {"company": self.company.pk, "title": "Güncellenen şikayet", "description": "Güncellenmiş ve yeterince uzun şikayet açıklaması."})
+        response = self.client.post(url, {"company": self.company.pk, "category": Complaint.Category.OTHER, "title": "Güncellenen şikayet", "description": "Güncellenmiş ve yeterince uzun şikayet açıklaması."})
         self.assertRedirects(response, reverse("complaints:detail", args=[self.complaint.pk]))
         self.complaint.refresh_from_db()
         self.assertEqual(self.complaint.status, Complaint.Status.PENDING)
@@ -118,7 +118,7 @@ class ProductRefinementSecurityTests(TestCase):
         self.client.force_login(self.owner)
         for status, expected_status in (("PENDING", "PENDING"), ("REJECTED", "PENDING")):
             item = Complaint.objects.create(user=self.owner, company=self.company, title=f"{status} şikayet", description="Politika testi için yeterince uzun açıklama.", status=status)
-            response = self.client.post(reverse("complaints:edit", args=[item.pk]), {"company": self.company.pk, "title": f"{status} güncellendi", "description": "Politika için güncellenmiş yeterince uzun açıklama."})
+            response = self.client.post(reverse("complaints:edit", args=[item.pk]), {"company": self.company.pk, "category": Complaint.Category.OTHER, "title": f"{status} güncellendi", "description": "Politika için güncellenmiş yeterince uzun açıklama."})
             self.assertEqual(response.status_code, 302); item.refresh_from_db(); self.assertEqual(item.status, expected_status)
         resolved = Complaint.objects.create(user=self.owner, company=self.company, title="Resolved şikayet", description="Çözülen kayıt için yeterince uzun açıklama.", status="RESOLVED")
         self.assertEqual(self.client.get(reverse("complaints:edit", args=[resolved.pk])).status_code, 403)

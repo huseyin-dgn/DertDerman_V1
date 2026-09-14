@@ -1626,14 +1626,35 @@ def complaint_edit(
 
         if form.is_valid():
             from .services import (
+                ComplaintEditRateLimited,
                 edit_complaint,
             )
 
-            edit_complaint(
-                complaint=complaint,
-                form=form,
-                actor=request.user,
-            )
+            try:
+                edit_complaint(
+                    complaint=complaint,
+                    form=form,
+                    actor=request.user,
+                )
+            except ComplaintEditRateLimited as error:
+                form.add_error(
+                    None,
+                    (
+                        "Kısa sürede çok fazla düzenleme yaptınız. "
+                        "Lütfen biraz bekleyip tekrar deneyin."
+                    ),
+                )
+                response = render(
+                    request,
+                    "complaints/complaint_edit.html",
+                    {
+                        "complaint": complaint,
+                        "form": form,
+                    },
+                    status=429,
+                )
+                response["Retry-After"] = str(error.retry_after)
+                return response
 
             messages.success(
                 request,
