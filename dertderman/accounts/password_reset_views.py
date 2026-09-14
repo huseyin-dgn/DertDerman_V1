@@ -17,6 +17,7 @@ from core.rate_limit import (
 )
 
 from .password_reset import (
+    password_reset_token_generator,
     request_password_reset,
 )
 
@@ -107,6 +108,7 @@ class PasswordResetDoneView(TemplateView):
 class SecurePasswordResetConfirmView(
     DjangoPasswordResetConfirmView
 ):
+    token_generator = password_reset_token_generator
     template_name = (
         "accounts/password_reset_confirm.html"
     )

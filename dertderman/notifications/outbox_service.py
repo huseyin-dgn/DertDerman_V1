@@ -31,6 +31,8 @@ logger = logging.getLogger(__name__)
 DEFAULT_LEASE_SECONDS = 120
 PROVIDER_RETRY_WINDOW = timedelta(hours=23)
 MAX_BACKOFF_SECONDS = 60 * 60
+PASSWORD_RESET_NOOP_RETENTION = timedelta(hours=24)
+PASSWORD_RESET_NOOP_CLEANUP_BATCH_SIZE = 100
 
 
 class OutboxError(RuntimeError):
@@ -47,6 +49,14 @@ class OutboxConfigurationError(OutboxError):
 
 class OutboxRendererUnavailable(OutboxConfigurationError):
     """A producer-specific renderer has not been installed yet."""
+
+
+class OutboxBusinessCancellation(OutboxError):
+    """A claimed intent is no longer eligible for provider dispatch."""
+
+    def __init__(self, code):
+        super().__init__("Email outbox business cancellation.")
+        self.code = (code or "OUTBOX_CANCELLED")[:64]
 
 
 @dataclass(frozen=True)
@@ -230,9 +240,63 @@ def release_email_outbox_claim(
         )
 
 
-def render_outbox_email(_outbox):
-    """Producer renderers are deliberately added in stages 2 and 3."""
+def cancel_email_outbox_claim(*, outbox_id, claim_token, code, now=None):
+    """Cancel an owned claim without creating a delivery or using an attempt."""
+    now = now or timezone.now()
+    with transaction.atomic():
+        outbox = _load_owned_outbox(outbox_id, claim_token, now)
+        _set_terminal(
+            outbox,
+            status=EmailOutbox.Status.CANCELLED,
+            code=code or "OUTBOX_CANCELLED",
+            now=now,
+        )
+
+
+def purge_cancelled_password_reset_noops(
+    *,
+    now=None,
+    batch_size=PASSWORD_RESET_NOOP_CLEANUP_BATCH_SIZE,
+):
+    """Delete a bounded batch of expired noop intents without delivery audits."""
+    if batch_size < 1:
+        raise ValueError("batch_size must be positive.")
+    now = now or timezone.now()
+    cutoff = now - PASSWORD_RESET_NOOP_RETENTION
+    noop_filter = Q(
+        kind=EmailOutbox.Kind.PASSWORD_RESET,
+        status=EmailOutbox.Status.CANCELLED,
+        recipient_user__isnull=True,
+        completed_at__lt=cutoff,
+    )
+    outbox_ids = list(
+        EmailOutbox.objects.filter(noop_filter)
+        .order_by("completed_at", "pk")
+        .values_list("pk", flat=True)[:batch_size]
+    )
+    if not outbox_ids:
+        return 0
+    deleted, _details = EmailOutbox.objects.filter(
+        noop_filter,
+        pk__in=outbox_ids,
+    ).delete()
+    return deleted
+
+
+def render_outbox_email(outbox):
+    if outbox.kind == EmailOutbox.Kind.PASSWORD_RESET:
+        from accounts.password_reset import render_password_reset_outbox
+
+        return render_password_reset_outbox(outbox)
     raise OutboxRendererUnavailable("No outbox renderer is installed for this kind.")
+
+
+def _business_cancellation_code(outbox, now):
+    if outbox.kind == EmailOutbox.Kind.PASSWORD_RESET:
+        from accounts.password_reset import password_reset_cancellation_code
+
+        return password_reset_cancellation_code(outbox, now=now)
+    return None
 
 
 def _validate_payload(payload):
@@ -251,6 +315,16 @@ def _prepare_dispatch(*, outbox_id, claim_token, payload, now):
 
     with transaction.atomic():
         outbox = _load_owned_outbox(outbox_id, claim_token, now)
+
+        cancellation_code = _business_cancellation_code(outbox, now)
+        if cancellation_code:
+            _set_terminal(
+                outbox,
+                status=EmailOutbox.Status.CANCELLED,
+                code=cancellation_code,
+                now=now,
+            )
+            return outbox, None, "cancelled"
 
         if outbox.expires_at is not None and outbox.expires_at <= now:
             _set_terminal(

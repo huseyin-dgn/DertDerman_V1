@@ -1,15 +1,20 @@
 import logging
 import signal
 import threading
+from datetime import timedelta
 
 from django.core.management.base import BaseCommand, CommandError
 from django.db import close_old_connections
+from django.utils import timezone
 
 from notifications.models import EmailOutbox
 from notifications.outbox_service import (
+    OutboxBusinessCancellation,
     OutboxClaimLost,
     OutboxConfigurationError,
+    cancel_email_outbox_claim,
     claim_email_outbox,
+    purge_cancelled_password_reset_noops,
     release_email_outbox_claim,
     render_outbox_email,
     send_outbox_email,
@@ -54,8 +59,19 @@ class Command(BaseCommand):
                 pass
 
         try:
+            next_housekeeping_at = None
             while not stop_event.is_set():
                 close_old_connections()
+                now = timezone.now()
+                if next_housekeeping_at is None or now >= next_housekeeping_at:
+                    try:
+                        purge_cancelled_password_reset_noops(now=now)
+                    except Exception as exc:
+                        logger.error(
+                            "Email outbox housekeeping failed: exception_type=%s",
+                            exc.__class__.__name__,
+                        )
+                    next_housekeeping_at = now + timedelta(hours=1)
                 claims = claim_email_outbox(batch_size=batch_size)
                 fatal_error = None
                 processed_claims = 0
@@ -77,6 +93,15 @@ class Command(BaseCommand):
                             "Email outbox claim lost: outbox_id=%s",
                             claim.outbox_id,
                         )
+                    except OutboxBusinessCancellation as exc:
+                        try:
+                            cancel_email_outbox_claim(
+                                outbox_id=claim.outbox_id,
+                                claim_token=claim.claim_token,
+                                code=exc.code,
+                            )
+                        except OutboxClaimLost:
+                            pass
                     except OutboxConfigurationError as exc:
                         fatal_error = exc
                         self._release_claim(claim, "WORKER_CONFIGURATION")
