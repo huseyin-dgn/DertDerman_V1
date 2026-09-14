@@ -298,6 +298,7 @@ class EmailOutbox(models.Model):
     token_issued_at = models.DateTimeField(null=True, blank=True)
     payload_hash = models.CharField(max_length=64, blank=True, default="")
     attempt_count = models.PositiveIntegerField(default=0)
+    render_failure_count = models.PositiveIntegerField(default=0)
     max_attempts = models.PositiveSmallIntegerField(default=8)
     available_at = models.DateTimeField(db_index=True)
     first_attempt_at = models.DateTimeField(null=True, blank=True)

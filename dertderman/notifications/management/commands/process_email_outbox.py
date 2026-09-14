@@ -5,6 +5,7 @@ from datetime import timedelta
 
 from django.core.management.base import BaseCommand, CommandError
 from django.db import close_old_connections
+from django.template import TemplateDoesNotExist, TemplateSyntaxError
 from django.utils import timezone
 
 from notifications.models import EmailOutbox
@@ -17,8 +18,10 @@ from notifications.outbox_service import (
     claim_email_outbox,
     mark_email_outbox_permanent_failure,
     purge_cancelled_password_reset_noops,
+    record_email_outbox_render_failure,
     release_email_outbox_claim,
     render_outbox_email,
+    reset_email_outbox_render_failure_count,
     send_outbox_email,
     validate_worker_configuration,
 )
@@ -84,7 +87,42 @@ class Command(BaseCommand):
                     processed_claims += 1
                     try:
                         outbox = EmailOutbox.objects.get(pk=claim.outbox_id)
-                        payload = render_outbox_email(outbox)
+                        try:
+                            payload = render_outbox_email(outbox)
+                        except (
+                            OutboxClaimLost,
+                            EmailOutbox.DoesNotExist,
+                            OutboxPermanentItemError,
+                            OutboxBusinessCancellation,
+                            OutboxConfigurationError,
+                        ):
+                            raise
+                        except (TemplateDoesNotExist, TemplateSyntaxError):
+                            raise OutboxConfigurationError(
+                                "Required email templates are unavailable."
+                            ) from None
+                        except Exception as exc:
+                            logger.error(
+                                "Email outbox render failed unexpectedly: "
+                                "outbox_id=%s kind=%s exception_type=%s",
+                                claim.outbox_id,
+                                outbox.kind,
+                                exc.__class__.__name__,
+                            )
+                            try:
+                                record_email_outbox_render_failure(
+                                    outbox_id=claim.outbox_id,
+                                    claim_token=claim.claim_token,
+                                )
+                            except OutboxClaimLost:
+                                pass
+                            continue
+
+                        if outbox.render_failure_count > 0:
+                            reset_email_outbox_render_failure_count(
+                                outbox_id=claim.outbox_id,
+                                claim_token=claim.claim_token,
+                            )
                         send_outbox_email(
                             outbox_id=claim.outbox_id,
                             claim_token=claim.claim_token,
@@ -126,7 +164,7 @@ class Command(BaseCommand):
                         break
                     except Exception as exc:
                         logger.error(
-                            "Email outbox item failed unexpectedly: "
+                            "Email outbox dispatch failed unexpectedly: "
                             "outbox_id=%s exception_type=%s",
                             claim.outbox_id,
                             exc.__class__.__name__,

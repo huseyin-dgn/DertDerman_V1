@@ -40,6 +40,9 @@ logger = logging.getLogger(__name__)
 DEFAULT_LEASE_SECONDS = 120
 PROVIDER_RETRY_WINDOW = timedelta(hours=23)
 MAX_BACKOFF_SECONDS = 60 * 60
+MAX_RENDER_FAILURES = 5
+RENDER_RETRY_BASE_SECONDS = 30
+RENDER_RETRY_MAX_SECONDS = 240
 PASSWORD_RESET_NOOP_RETENTION = timedelta(hours=24)
 PASSWORD_RESET_NOOP_CLEANUP_BATCH_SIZE = 100
 
@@ -59,6 +62,7 @@ class OutboxConfigurationError(OutboxError):
 OUTBOX_UNSUPPORTED_TEMPLATE_VERSION = "OUTBOX_UNSUPPORTED_TEMPLATE_VERSION"
 OUTBOX_INVALID_RECIPE = "OUTBOX_INVALID_RECIPE"
 OUTBOX_PROVIDER_MISMATCH = "OUTBOX_PROVIDER_MISMATCH"
+OUTBOX_RENDER_RETRY_EXHAUSTED = "OUTBOX_RENDER_RETRY_EXHAUSTED"
 _PERMANENT_ITEM_ERROR_CODES = frozenset(
     {
         OUTBOX_UNSUPPORTED_TEMPLATE_VERSION,
@@ -274,7 +278,7 @@ def _owns_claim(outbox, claim_token, now):
     )
 
 
-def _set_terminal(outbox, *, status, code, now):
+def _set_terminal(outbox, *, status, code, now, extra_update_fields=()):
     outbox.status = status
     outbox.last_error_code = code[:64]
     outbox.last_error_at = now if code else None
@@ -290,6 +294,7 @@ def _set_terminal(outbox, *, status, code, now):
             "claimed_at",
             "lease_expires_at",
             "updated_at",
+            *extra_update_fields,
         ]
     )
 
@@ -328,6 +333,75 @@ def release_email_outbox_claim(
                 "updated_at",
             ]
         )
+
+
+def _render_retry_delay(render_failure_count):
+    return min(
+        RENDER_RETRY_MAX_SECONDS,
+        RENDER_RETRY_BASE_SECONDS * (2 ** max(0, render_failure_count - 1)),
+    )
+
+
+def record_email_outbox_render_failure(
+    *,
+    outbox_id,
+    claim_token,
+    now=None,
+):
+    """Record one owned generic render failure without using provider budget."""
+    now = now or timezone.now()
+    with transaction.atomic():
+        outbox = _load_owned_outbox(outbox_id, claim_token, now)
+        outbox.render_failure_count += 1
+
+        if outbox.render_failure_count >= MAX_RENDER_FAILURES:
+            _set_terminal(
+                outbox,
+                status=EmailOutbox.Status.DEAD,
+                code=OUTBOX_RENDER_RETRY_EXHAUSTED,
+                now=now,
+                extra_update_fields=("render_failure_count",),
+            )
+            return "dead"
+
+        outbox.status = EmailOutbox.Status.RETRY
+        outbox.available_at = now + timedelta(
+            seconds=_render_retry_delay(outbox.render_failure_count)
+        )
+        outbox.last_error_code = "WORKER_UNEXPECTED_ERROR"
+        outbox.last_error_at = now
+        _clear_claim(outbox)
+        outbox.save(
+            update_fields=[
+                "status",
+                "render_failure_count",
+                "available_at",
+                "last_error_code",
+                "last_error_at",
+                "claim_token",
+                "claimed_at",
+                "lease_expires_at",
+                "updated_at",
+            ]
+        )
+        return "retry"
+
+
+def reset_email_outbox_render_failure_count(
+    *,
+    outbox_id,
+    claim_token,
+    now=None,
+):
+    """Reset an owned consecutive render-failure sequence after success."""
+    now = now or timezone.now()
+    with transaction.atomic():
+        outbox = _load_owned_outbox(outbox_id, claim_token, now)
+        if outbox.render_failure_count == 0:
+            return False
+        outbox.render_failure_count = 0
+        outbox.save(update_fields=["render_failure_count", "updated_at"])
+        return True
 
 
 def cancel_email_outbox_claim(*, outbox_id, claim_token, code, now=None):
