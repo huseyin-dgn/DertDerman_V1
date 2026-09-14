@@ -1,4 +1,5 @@
 import json
+import logging
 import secrets
 import uuid
 from datetime import timedelta
@@ -33,6 +34,13 @@ MAX_TOKEN_LENGTH = 1024
 EMAIL_VERIFICATION_ALREADY_VERIFIED = "EMAIL_VERIFICATION_ALREADY_VERIFIED"
 EMAIL_VERIFICATION_USER_INELIGIBLE = "EMAIL_VERIFICATION_USER_INELIGIBLE"
 EMAIL_VERIFICATION_STATE_CHANGED = "EMAIL_VERIFICATION_STATE_CHANGED"
+RESEND_IDENTITY_SALT = "accounts.email_verification.resend_identity.v1"
+PENDING_RESEND_IDENTITY_SALT = (
+    "accounts.email_verification.pending_resend_identity.v1"
+)
+
+
+logger = logging.getLogger(__name__)
 
 
 class EmailVerificationConfigurationError(OutboxConfigurationError):
@@ -52,7 +60,7 @@ def _verification_state_digest(user: User) -> str:
     return sha256(material.encode("utf-8")).hexdigest()
 
 
-def _normalized_email(email: str) -> str:
+def normalize_email_verification_address(email: str) -> str:
     return User.objects.normalize_email((email or "").strip()).casefold()
 
 
@@ -64,7 +72,7 @@ def _is_email_verification_eligible(user: User | None) -> bool:
         and user.is_active
         and not user.is_verified
         and not user.is_permanently_closed
-        and _normalized_email(user.email)
+        and normalize_email_verification_address(user.email)
     )
 
 
@@ -73,7 +81,7 @@ def build_email_verification_request_state_hash(user: User) -> str:
         [
             1,
             str(user.pk),
-            _normalized_email(user.email),
+            normalize_email_verification_address(user.email),
             user.password or "",
             bool(user.is_verified),
             bool(user.is_active),
@@ -86,6 +94,35 @@ def build_email_verification_request_state_hash(user: User) -> str:
     return salted_hmac(
         REQUEST_STATE_SALT,
         canonical_state,
+        secret=settings.SECRET_KEY,
+        algorithm="sha256",
+    ).hexdigest()
+
+
+def build_email_verification_resend_identity(email: str) -> str:
+    normalized = normalize_email_verification_address(email)
+    return salted_hmac(
+        RESEND_IDENTITY_SALT,
+        normalized,
+        secret=settings.SECRET_KEY,
+        algorithm="sha256",
+    ).hexdigest()
+
+
+def _canonical_pending_resend_user_id(user_id) -> str:
+    if isinstance(user_id, bool):
+        return "invalid"
+    try:
+        value = int(user_id)
+    except (TypeError, ValueError, OverflowError):
+        return "invalid"
+    return str(value) if value > 0 else "invalid"
+
+
+def build_email_verification_pending_resend_identity(user_id) -> str:
+    return salted_hmac(
+        PENDING_RESEND_IDENTITY_SALT,
+        _canonical_pending_resend_user_id(user_id),
         secret=settings.SECRET_KEY,
         algorithm="sha256",
     ).hexdigest()
@@ -233,7 +270,9 @@ def enqueue_email_verification(user: User):
         status=EmailOutbox.Status.PENDING,
         recipient_user=user,
         notification=None,
-        recipient_hash=build_recipient_hash(_normalized_email(user.email)),
+        recipient_hash=build_recipient_hash(
+            normalize_email_verification_address(user.email)
+        ),
         request_state_hash=build_email_verification_request_state_hash(user),
         provider="resend",
         provider_idempotency_key=f"dertderman/email/{outbox_id}",
@@ -242,6 +281,82 @@ def enqueue_email_verification(user: User):
         expires_at=now + timedelta(seconds=_token_max_age()),
         available_at=now,
     )
+
+
+def _resend_cooldown_seconds() -> int:
+    try:
+        value = int(
+            getattr(settings, "EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS", 60)
+        )
+    except (TypeError, ValueError) as exc:
+        raise EmailVerificationConfigurationError(
+            "EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS must be a positive integer."
+        ) from exc
+    if value <= 0:
+        raise EmailVerificationConfigurationError(
+            "EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS must be a positive integer."
+        )
+    return value
+
+
+def _enqueue_email_verification_resend_for_locked_user(user, *, now):
+    if not _is_email_verification_eligible(user):
+        return None
+
+    if EmailOutbox.objects.filter(
+        kind=EmailOutbox.Kind.EMAIL_VERIFICATION,
+        recipient_user=user,
+        status__in=(
+            EmailOutbox.Status.PENDING,
+            EmailOutbox.Status.PROCESSING,
+            EmailOutbox.Status.RETRY,
+        ),
+        expires_at__gt=now,
+    ).exists():
+        return None
+
+    cooldown_started_after = now - timedelta(
+        seconds=_resend_cooldown_seconds()
+    )
+    if EmailOutbox.objects.filter(
+        kind=EmailOutbox.Kind.EMAIL_VERIFICATION,
+        recipient_user=user,
+        status=EmailOutbox.Status.SENT,
+        completed_at__gt=cooldown_started_after,
+    ).exists():
+        return None
+
+    return enqueue_email_verification(user)
+
+
+def _request_email_verification_resend(**lookup):
+    try:
+        with transaction.atomic():
+            user = User.objects.select_for_update().filter(**lookup).first()
+            return _enqueue_email_verification_resend_for_locked_user(
+                user,
+                now=timezone.now(),
+            )
+    except Exception as exc:
+        logger.error(
+            "Email verification resend enqueue failed: exception_type=%s",
+            exc.__class__.__name__,
+        )
+        return None
+
+
+def request_email_verification_resend(email: str):
+    """Create at most one actionable resend intent for an email identity."""
+    normalized = normalize_email_verification_address(email)
+    return _request_email_verification_resend(email__iexact=normalized)
+
+
+def request_email_verification_resend_for_user_id(user_id):
+    """Create an actionable resend intent for a server-side pending user id."""
+    canonical_user_id = _canonical_pending_resend_user_id(user_id)
+    if canonical_user_id == "invalid":
+        return None
+    return _request_email_verification_resend(pk=canonical_user_id)
 
 
 def _email_verification_user_for_outbox(outbox, *, now=None):
@@ -267,7 +382,9 @@ def _email_verification_user_for_outbox(outbox, *, now=None):
     if not secrets.compare_digest(outbox.request_state_hash, current_state_hash):
         raise OutboxBusinessCancellation(EMAIL_VERIFICATION_STATE_CHANGED)
 
-    current_recipient_hash = build_recipient_hash(_normalized_email(user.email))
+    current_recipient_hash = build_recipient_hash(
+        normalize_email_verification_address(user.email)
+    )
     if not secrets.compare_digest(outbox.recipient_hash, current_recipient_hash):
         raise OutboxBusinessCancellation(EMAIL_VERIFICATION_STATE_CHANGED)
     return user

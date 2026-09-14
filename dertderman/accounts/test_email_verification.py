@@ -2,6 +2,8 @@ from datetime import timedelta
 from types import SimpleNamespace
 from unittest.mock import patch
 
+from django.contrib.messages import get_messages
+from django.core.cache import cache
 from django.core.management import call_command
 from django.db import IntegrityError, transaction
 from django.test import Client, TestCase, TransactionTestCase, override_settings
@@ -12,16 +14,21 @@ from accounts.email_verification import (
     EMAIL_VERIFICATION_ALREADY_VERIFIED,
     EMAIL_VERIFICATION_STATE_CHANGED,
     EMAIL_VERIFICATION_USER_INELIGIBLE,
+    build_email_verification_pending_resend_identity,
+    build_email_verification_resend_identity,
     build_email_verification_request_state_hash,
     build_email_verification_url,
     enqueue_email_verification,
     make_email_verification_token,
+    request_email_verification_resend,
+    request_email_verification_resend_for_user_id,
     render_email_verification_outbox,
     resolve_email_verification_token,
     send_verification_email,
 )
 from accounts.forms import UNVERIFIED_LOGIN_ERROR
 from accounts.models import User
+from accounts.views import PENDING_EMAIL_VERIFICATION_USER_ID_SESSION_KEY
 from notifications.email_providers.resend import ResendDeliveryError
 from notifications.models import EmailDelivery, EmailOutbox
 from notifications.outbox_service import (
@@ -29,6 +36,7 @@ from notifications.outbox_service import (
     render_outbox_email,
     send_outbox_email,
 )
+from core.rate_limit import RateLimitResult
 
 
 VERIFICATION_SETTINGS = {
@@ -39,6 +47,7 @@ VERIFICATION_SETTINGS = {
     "EMAIL_REPLY_TO": "destek@dertderman.com",
     "SITE_BASE_URL": "https://dertderman.com",
     "EMAIL_VERIFICATION_TIMEOUT": 1800,
+    "EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS": 60,
 }
 
 
@@ -81,6 +90,11 @@ class EmailVerificationTests(TestCase):
         self.assertNotIn("_auth_user_id", self.client.session)
 
         user = User.objects.get(username="new-verification-user")
+        self.assertEqual(
+            self.client.session[PENDING_EMAIL_VERIFICATION_USER_ID_SESSION_KEY],
+            user.pk,
+        )
+        self.assertNotIn(user.email, str(dict(self.client.session)))
         self.assertFalse(user.is_verified)
         outbox = EmailOutbox.objects.get(recipient_user=user)
         self.assertEqual(outbox.kind, EmailOutbox.Kind.EMAIL_VERIFICATION)
@@ -115,6 +129,10 @@ class EmailVerificationTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertFalse(User.objects.filter(username="rollback-user").exists())
+        self.assertNotIn(
+            PENDING_EMAIL_VERIFICATION_USER_ID_SESSION_KEY,
+            self.client.session,
+        )
         output = " ".join(logs.output)
         self.assertNotIn("private database detail", output)
         self.assertNotIn("private-rollback@example.com", output)
@@ -378,6 +396,560 @@ class EmailVerificationTests(TestCase):
         self.assertIn("DertDerman", kwargs["html_body"])
         self.assertIn("DertDerman", kwargs["text_body"])
         self.assertNotIn(user.email, kwargs["event_key"])
+
+
+@override_settings(**VERIFICATION_SETTINGS)
+@override_settings(RATE_LIMIT_ENABLED=True)
+class EmailVerificationResendTests(TestCase):
+    password = "StrongRiver#9284Moon"
+
+    def setUp(self):
+        cache.clear()
+        self.url = reverse("accounts:email_verification_resend")
+
+    def create_user(self, **overrides):
+        data = {
+            "username": f"resend-user-{User.objects.count()}",
+            "email": f"resend-{User.objects.count()}@example.com",
+            "password": self.password,
+            "user_type": User.UserType.USER,
+            "is_active": True,
+            "is_verified": False,
+            "is_permanently_closed": False,
+        }
+        data.update(overrides)
+        return User.objects.create_user(**data)
+
+    def post(self, email, *, ip="127.0.0.70", client=None):
+        return (client or self.client).post(
+            self.url,
+            {"email": email},
+            REMOTE_ADDR=ip,
+            follow=True,
+        )
+
+    def public_signature(self, response):
+        return (
+            response.status_code,
+            response.redirect_chain,
+            [str(message) for message in get_messages(response.wsgi_request)],
+        )
+
+    def test_account_states_have_identical_generic_public_response(self):
+        eligible = self.create_user(
+            username="resend-eligible",
+            email="resend-eligible@example.com",
+        )
+        cases = (
+            "unknown@example.com",
+            eligible.email,
+            self.create_user(
+                username="resend-verified",
+                email="resend-verified@example.com",
+                is_verified=True,
+            ).email,
+            self.create_user(
+                username="resend-inactive",
+                email="resend-inactive@example.com",
+                is_active=False,
+            ).email,
+            self.create_user(
+                username="resend-company",
+                email="resend-company@example.com",
+                user_type=User.UserType.COMPANY,
+            ).email,
+            self.create_user(
+                username="resend-closed",
+                email="resend-closed@example.com",
+                is_permanently_closed=True,
+            ).email,
+        )
+
+        signatures = [
+            self.public_signature(self.post(email, ip=f"127.0.1.{index + 1}"))
+            for index, email in enumerate(cases)
+        ]
+
+        self.assertTrue(all(signature == signatures[0] for signature in signatures))
+        self.assertIn("Eğer bu adres", signatures[0][2][0])
+        self.assertEqual(
+            EmailOutbox.objects.filter(
+                kind=EmailOutbox.Kind.EMAIL_VERIFICATION
+            ).count(),
+            1,
+        )
+
+    def test_only_eligible_user_creates_verification_outbox(self):
+        eligible = self.create_user(
+            username="actionable-resend",
+            email="actionable-resend@example.com",
+        )
+        self.post(eligible.email)
+        outbox = EmailOutbox.objects.get(recipient_user=eligible)
+        self.assertEqual(outbox.kind, EmailOutbox.Kind.EMAIL_VERIFICATION)
+        self.assertEqual(outbox.status, EmailOutbox.Status.PENDING)
+        self.assertEqual(
+            outbox.provider_idempotency_key,
+            f"dertderman/email/{outbox.pk}",
+        )
+
+    def test_unknown_and_ineligible_accounts_create_no_outbox(self):
+        cases = (
+            "missing@example.com",
+            self.create_user(is_verified=True).email,
+            self.create_user(is_active=False).email,
+            self.create_user(user_type=User.UserType.COMPANY).email,
+            self.create_user(is_permanently_closed=True).email,
+        )
+        for index, email in enumerate(cases):
+            self.post(email, ip=f"127.0.2.{index + 1}")
+        self.assertFalse(EmailOutbox.objects.exists())
+
+    def test_unknown_email_is_not_persisted(self):
+        submitted = "private-missing-person@example.com"
+        self.post(submitted)
+        self.assertFalse(EmailOutbox.objects.exists())
+        self.assertNotIn(submitted, str(list(EmailOutbox.objects.values())))
+
+    def test_request_path_does_not_generate_token_render_or_call_provider(self):
+        user = self.create_user()
+        with (
+            patch("accounts.email_verification.make_email_verification_token") as token,
+            patch("accounts.email_verification.render_to_string") as render,
+            patch(
+                "notifications.email_providers.resend.ResendProvider.send"
+            ) as provider,
+        ):
+            self.post(user.email)
+        token.assert_not_called()
+        render.assert_not_called()
+        provider.assert_not_called()
+
+    def test_identity_rate_limit_allows_five_service_calls(self):
+        with patch("accounts.views.request_email_verification_resend") as request:
+            responses = [self.post("identity-limit@example.com") for _ in range(6)]
+        self.assertEqual(request.call_count, 5)
+        signatures = [self.public_signature(response) for response in responses]
+        self.assertTrue(all(signature == signatures[0] for signature in signatures))
+
+    def test_identity_rate_limited_request_creates_no_outbox(self):
+        email = "becomes-eligible-after-limit@example.com"
+        for _ in range(5):
+            self.post(email)
+        user = self.create_user(
+            username="limited-before-eligible",
+            email=email,
+        )
+
+        response = self.post(email)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(EmailOutbox.objects.filter(recipient_user=user).exists())
+
+    def test_ip_rate_limit_allows_twenty_service_calls(self):
+        with patch("accounts.views.request_email_verification_resend") as request:
+            responses = [
+                self.post(f"ip-limit-{index}@example.com", ip="127.0.0.81")
+                for index in range(21)
+            ]
+        self.assertEqual(request.call_count, 20)
+        signatures = [self.public_signature(response) for response in responses]
+        self.assertTrue(all(signature == signatures[0] for signature in signatures))
+
+    @patch("accounts.views.consume_rate_limit")
+    def test_rate_limit_identity_is_keyed_hmac_not_raw_email(self, consume):
+        consume.return_value = RateLimitResult(True, 1, 5, 0)
+        submitted = "Private.Person@Example.COM"
+
+        self.post(submitted)
+
+        identity_call = next(
+            call
+            for call in consume.call_args_list
+            if call.kwargs["scope"] == "email-verification-resend-identity"
+        )
+        identifier = identity_call.kwargs["identifier"]
+        self.assertEqual(len(identifier), 64)
+        self.assertNotEqual(identifier, submitted.casefold())
+        self.assertEqual(
+            identifier,
+            build_email_verification_resend_identity(submitted),
+        )
+
+    def test_repeated_sequential_posts_create_one_active_intent(self):
+        user = self.create_user()
+        self.post(user.email)
+        self.post(user.email)
+        self.assertEqual(
+            EmailOutbox.objects.filter(recipient_user=user).count(),
+            1,
+        )
+
+    def test_resend_service_locks_user_row_before_rechecking(self):
+        user = self.create_user()
+        with patch.object(
+            User.objects,
+            "select_for_update",
+            wraps=User.objects.select_for_update,
+        ) as select_for_update:
+            request_email_verification_resend(user.email)
+        select_for_update.assert_called_once_with()
+        self.assertEqual(EmailOutbox.objects.filter(recipient_user=user).count(), 1)
+
+    def test_active_pending_retry_and_processing_intents_are_deduplicated(self):
+        for status in (
+            EmailOutbox.Status.PENDING,
+            EmailOutbox.Status.RETRY,
+            EmailOutbox.Status.PROCESSING,
+        ):
+            with self.subTest(status=status):
+                user = self.create_user()
+                outbox = enqueue_email_verification(user)
+                if status == EmailOutbox.Status.RETRY:
+                    EmailOutbox.objects.filter(pk=outbox.pk).update(status=status)
+                elif status == EmailOutbox.Status.PROCESSING:
+                    claim_email_outbox(batch_size=100)
+
+                request_email_verification_resend(user.email)
+
+                self.assertEqual(
+                    EmailOutbox.objects.filter(recipient_user=user).count(),
+                    1,
+                )
+
+    def test_expired_pending_does_not_block_new_intent(self):
+        user = self.create_user()
+        old = enqueue_email_verification(user)
+        EmailOutbox.objects.filter(pk=old.pk).update(
+            expires_at=timezone.now() - timedelta(seconds=1)
+        )
+        request_email_verification_resend(user.email)
+        self.assertEqual(EmailOutbox.objects.filter(recipient_user=user).count(), 2)
+
+    def test_dead_and_cancelled_intents_do_not_block_new_intent(self):
+        for status in (EmailOutbox.Status.DEAD, EmailOutbox.Status.CANCELLED):
+            with self.subTest(status=status):
+                user = self.create_user()
+                old = enqueue_email_verification(user)
+                EmailOutbox.objects.filter(pk=old.pk).update(
+                    status=status,
+                    completed_at=timezone.now(),
+                )
+                request_email_verification_resend(user.email)
+                self.assertEqual(
+                    EmailOutbox.objects.filter(recipient_user=user).count(),
+                    2,
+                )
+
+    def test_recent_sent_intent_enforces_cooldown(self):
+        user = self.create_user()
+        sent = enqueue_email_verification(user)
+        EmailOutbox.objects.filter(pk=sent.pk).update(
+            status=EmailOutbox.Status.SENT,
+            completed_at=timezone.now(),
+        )
+        request_email_verification_resend(user.email)
+        self.assertEqual(EmailOutbox.objects.filter(recipient_user=user).count(), 1)
+
+    def test_sent_intent_older_than_cooldown_allows_new_intent(self):
+        user = self.create_user()
+        sent = enqueue_email_verification(user)
+        EmailOutbox.objects.filter(pk=sent.pk).update(
+            status=EmailOutbox.Status.SENT,
+            completed_at=timezone.now() - timedelta(seconds=61),
+        )
+        request_email_verification_resend(user.email)
+        self.assertEqual(EmailOutbox.objects.filter(recipient_user=user).count(), 2)
+
+    @patch(
+        "accounts.email_verification.enqueue_email_verification",
+        side_effect=RuntimeError("private database detail"),
+    )
+    def test_enqueue_failure_keeps_generic_response_and_sanitized_log(self, _enqueue):
+        user = self.create_user(email="private-enqueue@example.com")
+        with self.assertLogs("accounts.email_verification", level="ERROR") as logs:
+            response = self.post(user.email)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Eğer bu adres", self.public_signature(response)[2][0])
+        output = " ".join(logs.output)
+        self.assertNotIn(user.email, output)
+        self.assertNotIn("private database detail", output)
+
+    def test_endpoint_requires_post_and_csrf(self):
+        self.assertEqual(self.client.get(self.url).status_code, 405)
+        csrf_client = Client(enforce_csrf_checks=True)
+        response = csrf_client.post(self.url, {"email": "csrf@example.com"})
+        self.assertEqual(response.status_code, 403)
+
+
+@override_settings(**VERIFICATION_SETTINGS)
+@override_settings(RATE_LIMIT_ENABLED=True)
+class EmailVerificationPendingResendTests(TestCase):
+    password = "StrongRiver#9284Moon"
+
+    def setUp(self):
+        cache.clear()
+        self.url = reverse("accounts:email_verification_resend_current")
+
+    def create_user(self, **overrides):
+        index = User.objects.count()
+        data = {
+            "username": f"pending-resend-{index}",
+            "email": f"pending-resend-{index}@example.com",
+            "password": self.password,
+            "user_type": User.UserType.USER,
+            "is_active": True,
+            "is_verified": False,
+            "is_permanently_closed": False,
+        }
+        data.update(overrides)
+        return User.objects.create_user(**data)
+
+    def set_pending_user(self, user_id, *, client=None):
+        client = client or self.client
+        session = client.session
+        session[PENDING_EMAIL_VERIFICATION_USER_ID_SESSION_KEY] = user_id
+        session.save()
+
+    def post(self, *, data=None, ip="127.0.3.1", client=None):
+        return (client or self.client).post(
+            self.url,
+            data or {},
+            REMOTE_ADDR=ip,
+            follow=True,
+        )
+
+    def public_signature(self, response):
+        return (
+            response.status_code,
+            response.redirect_chain,
+            [str(message) for message in get_messages(response.wsgi_request)],
+        )
+
+    def test_pending_page_has_button_without_email_field(self):
+        response = self.client.get(
+            reverse("accounts:email_verification_pending")
+        )
+        self.assertContains(response, "Doğrulama e-postasını tekrar gönder")
+        self.assertContains(response, f'action="{self.url}"')
+        self.assertContains(response, 'method="post"')
+        self.assertNotContains(response, 'name="email"')
+        self.assertNotContains(response, 'type="email"')
+
+    def test_endpoint_requires_post_and_csrf(self):
+        self.assertEqual(self.client.get(self.url).status_code, 405)
+        csrf_client = Client(enforce_csrf_checks=True)
+        self.set_pending_user(1, client=csrf_client)
+        self.assertEqual(csrf_client.post(self.url).status_code, 403)
+
+    def test_session_bound_resend_creates_outbox_for_current_user(self):
+        user = self.create_user()
+        self.set_pending_user(user.pk)
+
+        response = self.post()
+
+        self.assertEqual(response.status_code, 200)
+        outbox = EmailOutbox.objects.get(recipient_user=user)
+        self.assertEqual(outbox.kind, EmailOutbox.Kind.EMAIL_VERIFICATION)
+        self.assertEqual(outbox.status, EmailOutbox.Status.PENDING)
+
+    def test_request_body_cannot_select_another_user_or_email(self):
+        current_user = self.create_user()
+        other_user = self.create_user()
+        self.set_pending_user(current_user.pk)
+
+        self.post(
+            data={
+                "user_id": other_user.pk,
+                "email": other_user.email,
+            }
+        )
+
+        self.assertTrue(
+            EmailOutbox.objects.filter(recipient_user=current_user).exists()
+        )
+        self.assertFalse(
+            EmailOutbox.objects.filter(recipient_user=other_user).exists()
+        )
+
+    def test_missing_invalid_and_ineligible_sessions_are_generic_noops(self):
+        cases = [
+            None,
+            "invalid-user-id",
+            self.create_user(is_verified=True).pk,
+            self.create_user(is_active=False).pk,
+            self.create_user(user_type=User.UserType.COMPANY).pk,
+            self.create_user(is_permanently_closed=True).pk,
+        ]
+        signatures = []
+        for index, user_id in enumerate(cases):
+            if user_id is None:
+                self.client.session.flush()
+            else:
+                self.set_pending_user(user_id)
+            signatures.append(
+                self.public_signature(self.post(ip=f"127.0.4.{index + 1}"))
+            )
+
+        self.assertTrue(all(item == signatures[0] for item in signatures))
+        self.assertFalse(EmailOutbox.objects.exists())
+
+    def test_active_intents_are_deduplicated(self):
+        for status in (
+            EmailOutbox.Status.PENDING,
+            EmailOutbox.Status.RETRY,
+            EmailOutbox.Status.PROCESSING,
+        ):
+            with self.subTest(status=status):
+                user = self.create_user()
+                outbox = enqueue_email_verification(user)
+                if status == EmailOutbox.Status.RETRY:
+                    EmailOutbox.objects.filter(pk=outbox.pk).update(status=status)
+                elif status == EmailOutbox.Status.PROCESSING:
+                    claim_email_outbox(batch_size=100)
+                self.set_pending_user(user.pk)
+
+                self.post(ip=f"127.0.5.{user.pk}")
+
+                self.assertEqual(
+                    EmailOutbox.objects.filter(recipient_user=user).count(),
+                    1,
+                )
+
+    def test_recent_sent_intent_enforces_cooldown(self):
+        user = self.create_user()
+        sent = enqueue_email_verification(user)
+        EmailOutbox.objects.filter(pk=sent.pk).update(
+            status=EmailOutbox.Status.SENT,
+            completed_at=timezone.now(),
+        )
+        self.set_pending_user(user.pk)
+
+        self.post()
+
+        self.assertEqual(EmailOutbox.objects.filter(recipient_user=user).count(), 1)
+
+    def test_sent_intent_older_than_cooldown_allows_new_intent(self):
+        user = self.create_user()
+        sent = enqueue_email_verification(user)
+        EmailOutbox.objects.filter(pk=sent.pk).update(
+            status=EmailOutbox.Status.SENT,
+            completed_at=timezone.now() - timedelta(seconds=61),
+        )
+        self.set_pending_user(user.pk)
+
+        self.post()
+
+        self.assertEqual(EmailOutbox.objects.filter(recipient_user=user).count(), 2)
+
+    def test_account_identity_limit_allows_five_service_calls(self):
+        self.set_pending_user(7001)
+        with patch(
+            "accounts.views.request_email_verification_resend_for_user_id"
+        ) as request:
+            responses = [self.post() for _ in range(6)]
+
+        self.assertEqual(request.call_count, 5)
+        signatures = [self.public_signature(response) for response in responses]
+        self.assertTrue(all(item == signatures[0] for item in signatures))
+
+    def test_ip_limit_allows_twenty_service_calls(self):
+        with patch(
+            "accounts.views.request_email_verification_resend_for_user_id"
+        ) as request:
+            responses = []
+            for user_id in range(8001, 8022):
+                self.set_pending_user(user_id)
+                responses.append(self.post(ip="127.0.6.1"))
+
+        self.assertEqual(request.call_count, 20)
+        signatures = [self.public_signature(response) for response in responses]
+        self.assertTrue(all(item == signatures[0] for item in signatures))
+
+    @patch("accounts.views.consume_rate_limit")
+    def test_account_rate_limit_identity_is_keyed_user_id_hmac(self, consume):
+        consume.return_value = RateLimitResult(True, 1, 5, 0)
+        user = self.create_user()
+        self.set_pending_user(user.pk)
+
+        self.post()
+
+        identity_call = next(
+            call
+            for call in consume.call_args_list
+            if call.kwargs["scope"]
+            == "email-verification-pending-resend-identity"
+        )
+        identifier = identity_call.kwargs["identifier"]
+        self.assertEqual(len(identifier), 64)
+        self.assertNotEqual(identifier, str(user.pk))
+        self.assertEqual(
+            identifier,
+            build_email_verification_pending_resend_identity(user.pk),
+        )
+
+    def test_request_path_does_not_generate_token_render_or_call_provider(self):
+        user = self.create_user()
+        self.set_pending_user(user.pk)
+        with (
+            patch("accounts.email_verification.make_email_verification_token") as token,
+            patch("accounts.email_verification.render_to_string") as render,
+            patch(
+                "notifications.email_providers.resend.ResendProvider.send"
+            ) as provider,
+        ):
+            self.post()
+
+        token.assert_not_called()
+        render.assert_not_called()
+        provider.assert_not_called()
+
+    def test_session_resend_service_locks_user_row(self):
+        user = self.create_user()
+        with patch.object(
+            User.objects,
+            "select_for_update",
+            wraps=User.objects.select_for_update,
+        ) as select_for_update:
+            request_email_verification_resend_for_user_id(user.pk)
+
+        select_for_update.assert_called_once_with()
+        self.assertEqual(EmailOutbox.objects.filter(recipient_user=user).count(), 1)
+
+    def test_successful_verification_clears_matching_pending_session(self):
+        user = self.create_user()
+        self.set_pending_user(user.pk)
+        token = make_email_verification_token(user)
+
+        self.client.post(
+            reverse(
+                "accounts:email_verification_confirm",
+                kwargs={"token": token},
+            )
+        )
+
+        self.assertNotIn(
+            PENDING_EMAIL_VERIFICATION_USER_ID_SESSION_KEY,
+            self.client.session,
+        )
+
+    def test_successful_verification_preserves_other_pending_session(self):
+        verified_user = self.create_user()
+        other_user = self.create_user()
+        self.set_pending_user(other_user.pk)
+        token = make_email_verification_token(verified_user)
+
+        self.client.post(
+            reverse(
+                "accounts:email_verification_confirm",
+                kwargs={"token": token},
+            )
+        )
+
+        self.assertEqual(
+            self.client.session[PENDING_EMAIL_VERIFICATION_USER_ID_SESSION_KEY],
+            other_user.pk,
+        )
 
 
 @override_settings(**VERIFICATION_SETTINGS)

@@ -20,6 +20,8 @@ from .views import (
     account_entry,
     email_verification_confirm,
     email_verification_pending,
+    email_verification_resend,
+    email_verification_resend_current,
     invalidate_history_session,
     profile,
     profile_edit,
@@ -41,6 +43,16 @@ urlpatterns = [
         "eposta-dogrula/<str:token>/",
         email_verification_confirm,
         name="email_verification_confirm",
+    ),
+    path(
+        "eposta-dogrulama/yeniden-gonder/",
+        email_verification_resend,
+        name="email_verification_resend",
+    ),
+    path(
+        "eposta-dogrulama/tekrar-gonder/",
+        email_verification_resend_current,
+        name="email_verification_resend_current",
     ),
     path("giris/", SecureLoginView.as_view(), name="login"),
     path(

@@ -136,6 +136,14 @@ class RegisterForm(UserCreationForm):
         return user
 
 
+class EmailVerificationResendForm(forms.Form):
+    email = forms.EmailField(
+        label="E-posta",
+        max_length=254,
+        widget=forms.EmailInput(attrs={"autocomplete": "email"}),
+    )
+
+
 class ProfileUpdateForm(ModelForm):
     selected_avatar = forms.ChoiceField(
         label="Hazır avatar", choices=USER_AVATAR_CHOICES, required=False,

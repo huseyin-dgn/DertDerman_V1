@@ -353,6 +353,10 @@ EMAIL_VERIFICATION_TIMEOUT = _positive_env_int(
     "EMAIL_VERIFICATION_TIMEOUT",
     default=1800,
 )
+EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS = _positive_env_int(
+    "EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS",
+    default=60,
+)
 
 # Authenticated email-change links are valid for 10 minutes by default.
 EMAIL_CHANGE_TIMEOUT = int(

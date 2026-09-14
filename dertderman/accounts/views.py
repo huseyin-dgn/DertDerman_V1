@@ -33,11 +33,17 @@ from .badges import (
     resolve_user_badges,
 )
 from .email_verification import (
+    build_email_verification_pending_resend_identity,
+    build_email_verification_resend_identity,
     enqueue_email_verification,
+    normalize_email_verification_address,
+    request_email_verification_resend,
+    request_email_verification_resend_for_user_id,
     resolve_email_verification_token,
     verify_email_verification_token,
 )
 from .forms import (
+    EmailVerificationResendForm,
     ProfileUpdateForm,
     RegisterForm,
     UserAuthenticationForm,
@@ -59,6 +65,16 @@ LOGIN_IP_LIMIT = 20
 LOGIN_WINDOW_SECONDS = 15 * 60
 REGISTER_IP_LIMIT = 10
 REGISTER_WINDOW_SECONDS = 60 * 60
+EMAIL_VERIFICATION_RESEND_IDENTITY_LIMIT = 5
+EMAIL_VERIFICATION_RESEND_IP_LIMIT = 20
+EMAIL_VERIFICATION_RESEND_WINDOW_SECONDS = 15 * 60
+EMAIL_VERIFICATION_RESEND_MESSAGE = (
+    "Eğer bu adres doğrulanmamış uygun bir hesaba aitse yeni doğrulama "
+    "bağlantısı gönderilecektir."
+)
+PENDING_EMAIL_VERIFICATION_USER_ID_SESSION_KEY = (
+    "pending_email_verification_user_id"
+)
 
 
 def role_redirect_url(user):
@@ -142,6 +158,8 @@ class RegisterView(FormView):
             )
             return self.form_invalid(form)
 
+        self.request.session[PENDING_EMAIL_VERIFICATION_USER_ID_SESSION_KEY] = user.pk
+
         messages.success(
             self.request,
             (
@@ -164,6 +182,67 @@ def email_verification_pending(request):
         request,
         "accounts/email_verification_pending.html",
     )
+
+
+@never_cache
+@require_POST
+def email_verification_resend(request):
+    form = EmailVerificationResendForm(request.POST)
+    if not form.is_valid():
+        return render(
+            request,
+            "accounts/email_verification_pending.html",
+            {"resend_form": form},
+            status=400,
+        )
+
+    normalized_email = normalize_email_verification_address(
+        form.cleaned_data["email"]
+    )
+    identity = build_email_verification_resend_identity(normalized_email)
+    identity_decision = consume_rate_limit(
+        scope="email-verification-resend-identity",
+        identifier=identity,
+        limit=EMAIL_VERIFICATION_RESEND_IDENTITY_LIMIT,
+        window_seconds=EMAIL_VERIFICATION_RESEND_WINDOW_SECONDS,
+    )
+    ip_decision = consume_rate_limit(
+        scope="email-verification-resend-ip",
+        identifier=client_ip(request),
+        limit=EMAIL_VERIFICATION_RESEND_IP_LIMIT,
+        window_seconds=EMAIL_VERIFICATION_RESEND_WINDOW_SECONDS,
+    )
+    if identity_decision.allowed and ip_decision.allowed:
+        request_email_verification_resend(normalized_email)
+
+    messages.success(request, EMAIL_VERIFICATION_RESEND_MESSAGE)
+    return redirect("accounts:email_verification_pending")
+
+
+@never_cache
+@require_POST
+def email_verification_resend_current(request):
+    pending_user_id = request.session.get(
+        PENDING_EMAIL_VERIFICATION_USER_ID_SESSION_KEY
+    )
+    identity = build_email_verification_pending_resend_identity(pending_user_id)
+    identity_decision = consume_rate_limit(
+        scope="email-verification-pending-resend-identity",
+        identifier=identity,
+        limit=EMAIL_VERIFICATION_RESEND_IDENTITY_LIMIT,
+        window_seconds=EMAIL_VERIFICATION_RESEND_WINDOW_SECONDS,
+    )
+    ip_decision = consume_rate_limit(
+        scope="email-verification-resend-ip",
+        identifier=client_ip(request),
+        limit=EMAIL_VERIFICATION_RESEND_IP_LIMIT,
+        window_seconds=EMAIL_VERIFICATION_RESEND_WINDOW_SECONDS,
+    )
+    if identity_decision.allowed and ip_decision.allowed:
+        request_email_verification_resend_for_user_id(pending_user_id)
+
+    messages.success(request, EMAIL_VERIFICATION_RESEND_MESSAGE)
+    return redirect("accounts:email_verification_pending")
 
 
 @never_cache
@@ -191,6 +270,12 @@ def email_verification_confirm(request, token):
             {"token_valid": False},
             status=400,
         )
+
+    if (
+        request.session.get(PENDING_EMAIL_VERIFICATION_USER_ID_SESSION_KEY)
+        == user.pk
+    ):
+        request.session.pop(PENDING_EMAIL_VERIFICATION_USER_ID_SESSION_KEY, None)
 
     messages.success(
         request,

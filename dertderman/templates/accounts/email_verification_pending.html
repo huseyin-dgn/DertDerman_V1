@@ -19,6 +19,13 @@
         <h1 id="auth-title">Gelen kutunuzu kontrol edin</h1>
         <p>Size gönderilen doğrulama bağlantısını açın. Bağlantıdaki sayfada ayrıca “E-postamı Doğrula” düğmesine basmadan hesabınız doğrulanmaz.</p>
       </header>
+      <form method="post" action="{% url 'accounts:email_verification_resend_current' %}" class="ax-form">
+        {% csrf_token %}
+        <button type="submit" class="ax-submit">
+          <span>Doğrulama e-postasını tekrar gönder</span>
+          {% include 'components/icon.html' %}
+        </button>
+      </form>
       <div class="ax-alternative">
         <span>Doğrulamayı tamamladınız mı?</span>
         <a href="{% url 'accounts:login' %}">Giriş Yap {% include 'components/icon.html' %}</a>
