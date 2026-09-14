@@ -22,11 +22,19 @@ _PROVIDER_STATUS_BY_EVENT = {
 }
 
 
-def _event_time(value):
+def _event_time(value, *, required=False):
     if not isinstance(value, str) or not value.strip():
+        if required:
+            raise ResendWebhookPayloadError(
+                "Tracked email event is missing a valid created_at."
+            )
         return timezone.now()
     parsed = parse_datetime(value.strip())
     if parsed is None:
+        if required:
+            raise ResendWebhookPayloadError(
+                "Tracked email event has an invalid created_at."
+            )
         return timezone.now()
     if timezone.is_naive(parsed):
         parsed = parsed.replace(tzinfo=datetime_timezone.utc)
@@ -48,7 +56,11 @@ def _extract(payload):
     provider_status = _PROVIDER_STATUS_BY_EVENT.get(event_type)
     if provider_status and not message_id:
         raise ResendWebhookPayloadError("Tracked email event is missing email_id.")
-    return event_type, message_id, provider_status, _event_time(payload.get("created_at"))
+    event_created_at = _event_time(
+        payload.get("created_at"),
+        required=provider_status is not None,
+    )
+    return event_type, message_id, provider_status, event_created_at
 
 
 def _match_delivery(message_id):

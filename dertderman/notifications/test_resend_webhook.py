@@ -6,7 +6,11 @@ from django.urls import reverse
 
 from .models import EmailDelivery, EmailWebhookEvent
 from .webhook_security import ResendWebhookConfigurationError, ResendWebhookVerificationError
-from .webhook_service import reconcile_unmatched_resend_events
+from .webhook_service import (
+    ResendWebhookPayloadError,
+    process_resend_webhook,
+    reconcile_unmatched_resend_events,
+)
 
 
 @override_settings(RESEND_WEBHOOK_SECRET="whsec_test_only", RESEND_WEBHOOK_MAX_BODY_BYTES=131072)
@@ -78,6 +82,72 @@ class ResendWebhookTests(TestCase):
         payload = {"type": "email.bounced", "created_at": "2026-09-13T12:00:00Z", "data": {}}
         r = self.post_verified("msg_missing", payload)
         self.assertEqual(r.status_code, 400)
+
+    def _assert_invalid_tracked_created_at(self, event_id, payload):
+        baseline = datetime(2026, 9, 13, 11, 0, tzinfo=dt_timezone.utc)
+        self.delivery.provider_status = EmailDelivery.ProviderStatus.SENT
+        self.delivery.provider_status_at = baseline
+        self.delivery.save(update_fields=["provider_status", "provider_status_at"])
+
+        response = self.post_verified(event_id, payload)
+
+        self.assertEqual(response.status_code, 400)
+        self.delivery.refresh_from_db()
+        self.assertEqual(
+            self.delivery.provider_status,
+            EmailDelivery.ProviderStatus.SENT,
+        )
+        self.assertEqual(self.delivery.provider_status_at, baseline)
+        self.assertFalse(EmailWebhookEvent.objects.filter(event_id=event_id).exists())
+
+    def test_tracked_event_missing_created_at_is_rejected_without_side_effects(self):
+        payload = self.payload("email.bounced")
+        payload.pop("created_at")
+
+        self._assert_invalid_tracked_created_at("msg_missing_time", payload)
+
+    def test_tracked_event_blank_created_at_is_rejected_without_side_effects(self):
+        self._assert_invalid_tracked_created_at(
+            "msg_blank_time",
+            self.payload("email.bounced", created_at="   "),
+        )
+
+    def test_tracked_event_malformed_created_at_is_rejected_without_side_effects(self):
+        payload = self.payload("email.bounced", created_at="not-a-timestamp")
+
+        self._assert_invalid_tracked_created_at("msg_bad_time", payload)
+
+        with self.assertRaises(ResendWebhookPayloadError):
+            process_resend_webhook(event_id="msg_bad_time_service", payload=payload)
+
+    def test_valid_naive_timestamp_is_treated_as_utc(self):
+        response = self.post_verified(
+            "msg_naive_time",
+            self.payload("email.delivered", created_at="2026-09-13T12:00:00"),
+        )
+
+        self.assertEqual(response.status_code, 204)
+        self.delivery.refresh_from_db()
+        self.assertEqual(
+            self.delivery.provider_status_at,
+            datetime(2026, 9, 13, 12, 0, tzinfo=dt_timezone.utc),
+        )
+
+    def test_untracked_event_keeps_permissive_timestamp_behavior(self):
+        payload = self.payload("email.opened", created_at="not-a-timestamp")
+
+        response = self.post_verified("msg_untracked", payload)
+
+        self.assertEqual(response.status_code, 204)
+        self.delivery.refresh_from_db()
+        self.assertEqual(self.delivery.provider_status, "")
+        self.assertIsNone(self.delivery.provider_status_at)
+        event = EmailWebhookEvent.objects.get(event_id="msg_untracked")
+        self.assertEqual(
+            event.processing_result,
+            EmailWebhookEvent.ProcessingResult.IGNORED,
+        )
+        self.assertIsNotNone(event.event_created_at)
 
     def test_out_of_order_event_does_not_regress(self):
         newer = datetime(2026, 9, 13, 12, 5, tzinfo=dt_timezone.utc)
