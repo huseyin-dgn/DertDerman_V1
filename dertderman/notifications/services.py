@@ -1,3 +1,4 @@
+from django.db import transaction
 from django.utils import timezone
 
 from accounts.models import User
@@ -23,31 +24,28 @@ def send(
     if not recipient.is_active or recipient.user_type != scope:
         return None
 
-    notification, created = Notification.objects.get_or_create(
-        recipient_user=recipient,
-        recipient_role=scope,
-        event_key=event_key,
-        defaults={
-            "notification_type": kind,
-            "title": title,
-            "message": message,
-            "complaint": complaint,
-            "company": None if complaint else company,
-            "content_report": content_report,
-            "user_report": user_report,
-            "company_report": company_report,
-            "abuse_attempt": abuse_attempt,
-        },
-    )
+    with transaction.atomic():
+        notification, created = Notification.objects.get_or_create(
+            recipient_user=recipient,
+            recipient_role=scope,
+            event_key=event_key,
+            defaults={
+                "notification_type": kind,
+                "title": title,
+                "message": message,
+                "complaint": complaint,
+                "company": None if complaint else company,
+                "content_report": content_report,
+                "user_report": user_report,
+                "company_report": company_report,
+                "abuse_attempt": abuse_attempt,
+            },
+        )
 
-    if created:
-        # AŞAMA 5:
-        # Site içi bildirim business event'in kalıcı kaydıdır.
-        # E-posta yalnız politika uygunsa ve transaction commit edildikten
-        # sonra best-effort olarak gönderilir.
-        from .transactional_email import schedule_notification_email
+        if created:
+            from .transactional_email import enqueue_notification_email
 
-        schedule_notification_email(notification)
+            enqueue_notification_email(notification)
 
     return notification
 

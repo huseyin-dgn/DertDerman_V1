@@ -288,6 +288,10 @@ def render_outbox_email(outbox):
         from accounts.password_reset import render_password_reset_outbox
 
         return render_password_reset_outbox(outbox)
+    if outbox.kind == EmailOutbox.Kind.NOTIFICATION:
+        from .transactional_email import render_notification_outbox
+
+        return render_notification_outbox(outbox)
     raise OutboxRendererUnavailable("No outbox renderer is installed for this kind.")
 
 
@@ -296,6 +300,10 @@ def _business_cancellation_code(outbox, now):
         from accounts.password_reset import password_reset_cancellation_code
 
         return password_reset_cancellation_code(outbox, now=now)
+    if outbox.kind == EmailOutbox.Kind.NOTIFICATION:
+        from .transactional_email import notification_cancellation_code
+
+        return notification_cancellation_code(outbox)
     return None
 
 

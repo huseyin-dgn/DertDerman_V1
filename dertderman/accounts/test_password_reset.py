@@ -323,8 +323,11 @@ class PasswordResetWorkerTests(TransactionTestCase):
         )
 
     def enqueue(self, user=None):
-        request_password_reset(user.email if user else "missing@example.com")
-        return EmailOutbox.objects.order_by("created_at", "pk").last()
+        outbox = request_password_reset(
+            user.email if user else "missing@example.com"
+        )
+        self.assertIsNotNone(outbox)
+        return outbox
 
     def claim(self, outbox):
         claims = claim_email_outbox(batch_size=100)
