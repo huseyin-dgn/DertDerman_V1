@@ -1602,8 +1602,12 @@ def complaint_edit(
 
     if (
         complaint.withdrawn_at
-        or complaint.status
-        == Complaint.Status.RESOLVED
+        or complaint.status in (
+            Complaint.Status.RESOLVED,
+            Complaint.Status.REMOVED,
+        )
+        or complaint.removed_for_violation
+        or complaint.violation_removed_at is not None
     ):
         return render(
             request,

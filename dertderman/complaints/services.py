@@ -27,7 +27,12 @@ def edit_complaint(*, complaint, form, actor):
 
     if (
         locked.withdrawn_at
-        or locked.status == Complaint.Status.RESOLVED
+        or locked.status in (
+            Complaint.Status.RESOLVED,
+            Complaint.Status.REMOVED,
+        )
+        or locked.removed_for_violation
+        or locked.violation_removed_at is not None
     ):
         raise ComplaintStateConflict
 
@@ -172,18 +177,27 @@ def resolve_complaint(
     if (
         complaint.status
         != Complaint.Status.PUBLISHED
+        or complaint.withdrawn_at
+        or complaint.removed_for_violation
+        or complaint.violation_removed_at is not None
     ):
         raise ComplaintStateConflict
 
     occurred_at = timezone.now()
 
-    Complaint.objects.filter(
+    updated = Complaint.objects.filter(
         pk=complaint.pk,
         status=Complaint.Status.PUBLISHED,
+        withdrawn_at__isnull=True,
+        removed_for_violation=False,
+        violation_removed_at__isnull=True,
     ).update(
         status=Complaint.Status.RESOLVED,
         updated_at=occurred_at,
     )
+
+    if updated != 1:
+        raise ComplaintStateConflict
 
     complaint.status = Complaint.Status.RESOLVED
     complaint.updated_at = occurred_at
