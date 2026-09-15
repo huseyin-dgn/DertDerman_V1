@@ -17,6 +17,10 @@ from .services import active_company_memberships_for
 
 
 COMPANY_LOGIN_ERROR = "Kurumsal giriş bilgileri doğrulanamadı."
+COMPANY_REGISTRATION_ERROR = (
+    "Şirket başvurusu bu bilgilerle tamamlanamadı. "
+    "Lütfen bilgilerinizi kontrol edip yeniden deneyin."
+)
 
 
 class CompanyRegistrationForm(UserCreationForm):
@@ -111,7 +115,7 @@ class CompanyRegistrationForm(UserCreationForm):
     def clean_email(self):
         email = User.objects.normalize_email(self.cleaned_data["email"].strip()).lower()
         if User.objects.filter(email__iexact=email).exists():
-            raise ValidationError("Bu e-posta adresiyle daha önce bir hesap oluşturulmuş.")
+            raise ValidationError(COMPANY_REGISTRATION_ERROR)
         return email
 
     @transaction.atomic
@@ -387,4 +391,3 @@ class CompanyReapplicationForm(forms.Form):
         self.company_cache = membership.company
 
         return cleaned_data
-

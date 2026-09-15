@@ -21,6 +21,12 @@ class CompanyReapplicationTests(TestCase):
     def setUp(self):
         self.password = "StrongPass2026!"
 
+        self.admin = User.objects.create_user(
+            username="reapplication-admin",
+            email="reapplication-admin@example.com",
+            user_type=User.UserType.ADMIN,
+        )
+
         self.user = User.objects.create_user(
             username="rejected-company-owner",
             email="rejected@example.com",
@@ -328,6 +334,7 @@ class CompanyReapplicationTests(TestCase):
             decide_company_application(
                 self.company.pk,
                 Company.ApprovalStatus.APPROVED,
+                actor=self.admin,
             )
         )
 

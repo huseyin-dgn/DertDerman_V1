@@ -213,8 +213,8 @@ class NotificationCenterTests(TestCase):
         self.assertEqual(Notification.objects.filter(company=company, notification_type='APPLICATION').count(), 2)
         notice = Notification.objects.get(company=company, recipient_user=self.admin)
         self.assertEqual(notice.target_url, reverse('adminx:company_application_detail', args=[company.pk]))
-        decide_company_application(company.pk, 'APPROVED')
-        decide_company_application(company.pk, 'APPROVED')
+        decide_company_application(company.pk, 'APPROVED', actor=self.admin)
+        decide_company_application(company.pk, 'APPROVED', actor=self.admin)
         owner = company.memberships.get(role='OWNER').user
         self.assertEqual(company_notifications(company, owner).filter(kind='ADMIN').count(), 1)
         self.assertIn('onaylandı', company_notifications(company, owner).get().title)

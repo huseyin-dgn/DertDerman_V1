@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth.views import LoginView
 from django.core.exceptions import PermissionDenied
+from django.db import IntegrityError
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils.decorators import method_decorator
@@ -20,6 +21,7 @@ from core.rate_limit import (
 from .forms import (
     CompanyAuthenticationForm,
     CompanyReapplicationForm,
+    COMPANY_REGISTRATION_ERROR,
     CompanyRegistrationForm,
 )
 from .services import (
@@ -82,13 +84,19 @@ def company_register(request):
 
     form = CompanyRegistrationForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
-        form.save()
-        messages.success(
-            request,
-            "Şirket başvurunuz alındı. Yönetim onayından sonra kurumsal hesabınız aktif olacaktır.",
-            extra_tags="company-application",
-        )
-        return redirect("company_auth:login")
+        try:
+            form.save()
+        except IntegrityError:
+            # clean_email() is only an advisory check. The database constraint is
+            # authoritative when another registration wins the race.
+            form.add_error("email", COMPANY_REGISTRATION_ERROR)
+        else:
+            messages.success(
+                request,
+                "Şirket başvurunuz alındı. Yönetim onayından sonra kurumsal hesabınız aktif olacaktır.",
+                extra_tags="company-application",
+            )
+            return redirect("company_auth:login")
     return render(request, "companies/company_register.html", {"form": form})
 
 

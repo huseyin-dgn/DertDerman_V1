@@ -2,7 +2,23 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.utils import timezone
 
+from accounts.models import User
+
 from .models import Company, CompanyCategory, CompanyMembership
+
+
+def _is_current_active_admin(actor):
+    return bool(
+        actor is not None
+        and getattr(actor, "is_authenticated", False)
+        and getattr(actor, "pk", None)
+        and User.objects.filter(
+            pk=actor.pk,
+            is_active=True,
+            is_permanently_closed=False,
+            user_type=User.UserType.ADMIN,
+        ).exists()
+    )
 
 
 def active_company_memberships_for(user):
@@ -60,6 +76,11 @@ def decide_company_application(
             "Geçersiz şirket başvurusu kararı."
         )
 
+    if not _is_current_active_admin(actor):
+        raise ValidationError(
+            "Şirket başvurusu kararı için geçerli yönetici gereklidir."
+        )
+
     company = Company.objects.select_for_update().get(
         pk=company_id
     )
@@ -75,16 +96,6 @@ def decide_company_application(
     rejection_reason = (rejection_reason or "").strip()
 
     if target_status == Company.ApprovalStatus.REJECTED:
-        if not (
-            actor is not None
-            and getattr(actor, "is_authenticated", False)
-            and actor.is_active
-            and actor.user_type == "ADMIN"
-        ):
-            raise ValidationError(
-                "Şirket başvurusu kararı için geçerli yönetici gereklidir."
-            )
-
         if not rejection_reason:
             raise ValidationError(
                 "Şirket başvurusu reddedilirken neden belirtilmelidir."
@@ -105,8 +116,11 @@ def decide_company_application(
         owner_membership = (
             memberships.filter(
                 role=CompanyMembership.Role.OWNER,
-                user__user_type="COMPANY",
+                user__user_type=User.UserType.COMPANY,
+                user__is_active=True,
+                user__is_permanently_closed=False,
             )
+            .select_related("user")
             .order_by("pk")
             .first()
         )
@@ -125,12 +139,6 @@ def decide_company_application(
         if not owner_membership.is_active:
             owner_membership.is_active = True
             owner_membership.save(
-                update_fields=["is_active"]
-            )
-
-        if not owner_membership.user.is_active:
-            owner_membership.user.is_active = True
-            owner_membership.user.save(
                 update_fields=["is_active"]
             )
 
@@ -160,22 +168,32 @@ def decide_company_application(
         ]
     )
 
-    if target_status == Company.ApprovalStatus.REJECTED:
-        from adminx.models import AdminAuditLog
+    from adminx.models import AdminAuditLog
 
-        AdminAuditLog.objects.create(
-            actor=actor,
-            action=AdminAuditLog.Action.REJECT,
-            target_type="company_application",
-            target_id=str(company.pk),
-            target_label=company.name,
-            description="Şirket başvurusu reddedildi.",
-            metadata={
-                "previous_status": Company.ApprovalStatus.PENDING,
-                "new_status": Company.ApprovalStatus.REJECTED,
-                "rejection_reason": rejection_reason,
-            },
-        )
+    audit_metadata = {
+        "previous_status": Company.ApprovalStatus.PENDING,
+        "new_status": target_status,
+    }
+    if target_status == Company.ApprovalStatus.REJECTED:
+        audit_metadata["rejection_reason"] = rejection_reason
+
+    AdminAuditLog.objects.create(
+        actor=actor,
+        action=(
+            AdminAuditLog.Action.PUBLISH
+            if target_status == Company.ApprovalStatus.APPROVED
+            else AdminAuditLog.Action.REJECT
+        ),
+        target_type="company_application",
+        target_id=str(company.pk),
+        target_label=company.name,
+        description=(
+            "Şirket başvurusu onaylandı."
+            if target_status == Company.ApprovalStatus.APPROVED
+            else "Şirket başvurusu reddedildi."
+        ),
+        metadata=audit_metadata,
+    )
 
     return company, True
 
@@ -213,13 +231,15 @@ def resubmit_company_application(
             company=company,
             user=user,
             role=CompanyMembership.Role.OWNER,
+            user__is_active=True,
+            user__is_permanently_closed=False,
+            user__user_type=User.UserType.COMPANY,
         )
         .first()
     )
 
     if (
         membership is None
-        or user.user_type != "COMPANY"
     ):
         raise ValidationError(
             "Geçerli şirket yetkilisi bulunamadı."

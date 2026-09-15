@@ -1,15 +1,32 @@
 import logging
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
 from blog.models import Post
+from accounts.models import User
 from companies.models import Company, CompanyNotification
 
 from .models import AdminAuditLog
 
 
 logger = logging.getLogger(__name__)
+
+
+def _require_current_admin(actor):
+    if not (
+        actor is not None
+        and getattr(actor, "is_authenticated", False)
+        and getattr(actor, "pk", None)
+        and User.objects.filter(
+            pk=actor.pk,
+            is_active=True,
+            is_permanently_closed=False,
+            user_type=User.UserType.ADMIN,
+        ).exists()
+    ):
+        raise ValidationError("Bu yönetim işlemi için geçerli yönetici gereklidir.")
 
 
 def _get_client_ip(request):
@@ -77,6 +94,8 @@ def archive_post(*, pk, actor):
 
 @transaction.atomic
 def archive_company(*, pk, actor):
+    _require_current_admin(actor)
+
     company = get_object_or_404(
         Company.objects.select_for_update(),
         pk=pk,
@@ -97,6 +116,19 @@ def archive_company(*, pk, actor):
         company=company,
         kind=CompanyNotification.Kind.ADMIN,
         title="Şirket arşivlendi.",
+    )
+
+    AdminAuditLog.objects.create(
+        actor=actor,
+        action=AdminAuditLog.Action.ARCHIVE,
+        target_type="company",
+        target_id=str(company.pk),
+        target_label=company.name,
+        description="Şirket arşivlendi.",
+        metadata={
+            "previous_is_active": company.is_active,
+            "archived_at": now.isoformat(),
+        },
     )
 
     transaction.on_commit(
