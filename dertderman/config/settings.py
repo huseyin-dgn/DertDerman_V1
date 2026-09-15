@@ -348,8 +348,9 @@ SITE_BASE_URL = (
 
 
 # Password-reset links are valid for 5 minutes by default.
-PASSWORD_RESET_TIMEOUT = int(
-    os.getenv("PASSWORD_RESET_TIMEOUT", "300")
+PASSWORD_RESET_TIMEOUT = _positive_env_int(
+    "PASSWORD_RESET_TIMEOUT",
+    default=300,
 )
 
 
@@ -364,8 +365,9 @@ EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS = _positive_env_int(
 )
 
 # Authenticated email-change links are valid for 10 minutes by default.
-EMAIL_CHANGE_TIMEOUT = int(
-    os.getenv("EMAIL_CHANGE_TIMEOUT", "600")
+EMAIL_CHANGE_TIMEOUT = _positive_env_int(
+    "EMAIL_CHANGE_TIMEOUT",
+    default=600,
 )
 
 

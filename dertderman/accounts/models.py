@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.db.models.functions import Lower
 from django.utils import timezone
 from uuid import uuid4
 
@@ -75,5 +76,23 @@ class User(AbstractUser):
         default=dict,
         blank=True,
     )
+
+    class Meta(AbstractUser.Meta):
+        constraints = (
+            models.UniqueConstraint(
+                Lower("email"),
+                name="accounts_user_email_ci_uq",
+            ),
+        )
+
+    @property
+    def can_perform_user_mutations(self):
+        return bool(
+            self.user_type == self.UserType.USER
+            and self.is_active
+            and not self.is_permanently_closed
+            and not self.is_currently_suspended
+        )
+
     def __str__(self):
         return self.username

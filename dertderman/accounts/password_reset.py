@@ -83,8 +83,7 @@ def _is_password_reset_eligible(user):
     return bool(
         user
         and user.pk
-        and user.user_type == User.UserType.USER
-        and user.is_active
+        and user.can_perform_user_mutations
         and user.is_verified
         and _normalized_email(user.email)
     )
@@ -94,15 +93,17 @@ def _eligible_user(email: str) -> User | None:
     normalized = _normalized_email(email)
     if not normalized:
         return None
-    return (
+    user = (
         User.objects.filter(
             email__iexact=normalized,
             user_type=User.UserType.USER,
             is_active=True,
             is_verified=True,
+            is_permanently_closed=False,
         )
         .first()
     )
+    return user if _is_password_reset_eligible(user) else None
 
 
 def _last_login_state(last_login):

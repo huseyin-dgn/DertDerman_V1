@@ -75,10 +75,8 @@ def _is_email_verification_eligible(user: User | None) -> bool:
     return bool(
         user
         and user.pk
-        and user.user_type == User.UserType.USER
-        and user.is_active
+        and user.can_perform_user_mutations
         and not user.is_verified
-        and not user.is_permanently_closed
         and normalize_email_verification_address(user.email)
     )
 
@@ -150,11 +148,8 @@ def make_email_verification_token(user: User, *, issued_at=None) -> str:
     if not user.pk:
         raise ValueError("User must be saved before creating a verification token.")
 
-    if user.user_type != User.UserType.USER:
-        raise ValueError("Email verification token is only valid for USER accounts.")
-
-    if user.is_verified:
-        raise ValueError("Verified users do not need a verification token.")
+    if not _is_email_verification_eligible(user):
+        raise ValueError("User is not eligible for email verification.")
 
     value = f"{user.pk}:{_verification_state_digest(user)}"
     if issued_at is None:
@@ -213,6 +208,7 @@ def resolve_email_verification_token(
         pk=user_id,
         user_type=User.UserType.USER,
         is_active=True,
+        is_permanently_closed=False,
     )
 
     if for_update:
@@ -220,7 +216,7 @@ def resolve_email_verification_token(
 
     user = queryset.first()
 
-    if not user or user.is_verified:
+    if not _is_email_verification_eligible(user):
         return None
 
     expected = f"{user.pk}:{_verification_state_digest(user)}"
@@ -438,11 +434,8 @@ def render_email_verification_outbox(outbox):
 
 
 def send_verification_email(user: User):
-    if user.user_type != User.UserType.USER:
-        raise ValueError("Verification email is only valid for USER accounts.")
-
-    if user.is_verified:
-        raise ValueError("Verified users do not need a verification email.")
+    if not _is_email_verification_eligible(user):
+        raise ValueError("User is not eligible for email verification.")
 
     payload = _render_email_verification_payload(user)
 

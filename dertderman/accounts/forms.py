@@ -1,4 +1,5 @@
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
+from django.contrib.auth.hashers import check_password as check_password_hash
 from django.core.exceptions import ValidationError
 from django.forms import ModelForm
 from django import forms
@@ -40,7 +41,7 @@ class UserAuthenticationForm(AuthenticationForm):
         if username and password:
             candidate = (
                 User.objects
-                .filter(username__iexact=username)
+                .filter(username=username)
                 .only(
                     "pk",
                     "password",
@@ -52,7 +53,7 @@ class UserAuthenticationForm(AuthenticationForm):
             if (
                 candidate
                 and candidate.is_permanently_closed
-                and candidate.check_password(password)
+                and check_password_hash(password, candidate.password)
             ):
                 raise ValidationError(
                     PERMANENTLY_CLOSED_LOGIN_ERROR,
@@ -106,19 +107,10 @@ class RegisterForm(UserCreationForm):
         existing = (
             User.objects
             .filter(email__iexact=normalized)
-            .only(
-                "pk",
-                "is_permanently_closed",
-            )
-            .first()
+            .exists()
         )
 
         if existing:
-            if existing.is_permanently_closed:
-                raise forms.ValidationError(
-                    "Bu e-posta adresiyle yeni hesap oluşturulamaz."
-                )
-
             raise forms.ValidationError(
                 "Bu e-posta adresi zaten kullanımda."
             )

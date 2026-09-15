@@ -75,10 +75,8 @@ def make_email_change_token(user: User, new_email: str) -> str:
         raise ValueError("User must be saved before creating an email-change token.")
 
     if (
-        user.user_type != User.UserType.USER
-        or not user.is_active
+        not user.can_perform_user_mutations
         or not user.is_verified
-        or user.is_permanently_closed
     ):
         raise ValueError("User is not eligible for email change.")
 
@@ -140,6 +138,9 @@ def resolve_email_change_token(
 
     user = queryset.first()
     if user is None:
+        return None
+
+    if not user.can_perform_user_mutations:
         return None
 
     current_email = normalize_email(user.email)

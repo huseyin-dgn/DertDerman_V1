@@ -882,6 +882,16 @@ def user_suspend(request, pk):
         user_type=User.UserType.USER,
     )
 
+    if account.is_permanently_closed:
+        messages.error(
+            request,
+            "Kalıcı olarak kapatılmış bir hesap askıya alınamaz.",
+        )
+        return redirect(
+            "adminx:user_detail",
+            pk=account.pk,
+        )
+
     violations = UserViolation.objects.filter(user=account)
 
     violation_count = violations.count()
@@ -985,6 +995,16 @@ def user_unsuspend(request, pk):
         pk=pk,
         user_type=User.UserType.USER,
     )
+
+    if account.is_permanently_closed:
+        messages.error(
+            request,
+            "Kalıcı olarak kapatılmış bir hesabın durumu değiştirilemez.",
+        )
+        return redirect(
+            "adminx:user_detail",
+            pk=account.pk,
+        )
 
     if not account.is_suspended:
         messages.info(

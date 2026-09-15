@@ -31,8 +31,10 @@ class SettingsProfileTests(SimpleTestCase):
         "DJANGO_TRUST_X_FORWARDED_PROTO",
         "EMAIL_PROVIDER",
         "EMAIL_SENDING_ENABLED",
+        "EMAIL_CHANGE_TIMEOUT",
         "EMAIL_VERIFICATION_TIMEOUT",
         "EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS",
+        "PASSWORD_RESET_TIMEOUT",
         "RESEND_API_KEY",
         "RESEND_TIMEOUT_SECONDS",
         "RESEND_WEBHOOK_MAX_BODY_BYTES",
@@ -281,6 +283,20 @@ print(json.dumps({
                     result,
                     "EMAIL_VERIFICATION_TIMEOUT",
                 )
+
+    def test_account_security_timeouts_must_be_positive_integers(self):
+        for setting_name in ("PASSWORD_RESET_TIMEOUT", "EMAIL_CHANGE_TIMEOUT"):
+            for invalid_value in ("0", "-1", "1.5", "invalid"):
+                with self.subTest(
+                    setting_name=setting_name,
+                    invalid_value=invalid_value,
+                ):
+                    env = {
+                        **self.production_env,
+                        setting_name: invalid_value,
+                    }
+                    result = self.run_settings("import config.settings", env=env)
+                    self.assert_configuration_error(result, setting_name)
 
     def test_email_verification_resend_cooldown_must_be_a_positive_integer(self):
         for invalid_value in ("0", "-1", "1.5", "invalid"):

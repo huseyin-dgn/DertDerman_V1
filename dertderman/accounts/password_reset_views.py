@@ -1,8 +1,10 @@
 from django import forms
 from django.contrib.auth.views import (
+    INTERNAL_RESET_SESSION_TOKEN,
     PasswordResetCompleteView as DjangoPasswordResetCompleteView,
     PasswordResetConfirmView as DjangoPasswordResetConfirmView,
 )
+from django.db import transaction
 from django.urls import reverse_lazy
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
@@ -20,6 +22,7 @@ from .password_reset import (
     password_reset_token_generator,
     request_password_reset,
 )
+from .models import User
 
 
 GENERIC_RESET_MESSAGE = (
@@ -116,6 +119,22 @@ class SecurePasswordResetConfirmView(
         "accounts:password_reset_complete"
     )
     post_reset_login = False
+
+    def form_valid(self, form):
+        with transaction.atomic():
+            user = (
+                User.objects
+                .select_for_update()
+                .filter(pk=self.user.pk)
+                .first()
+            )
+            token = self.request.session.get(INTERNAL_RESET_SESSION_TOKEN)
+            if not self.token_generator.check_token(user, token):
+                self.validlink = False
+                return self.render_to_response(self.get_context_data())
+
+            form.user = user
+            return super().form_valid(form)
 
 
 @method_decorator(

@@ -7,6 +7,7 @@ from django.contrib.auth.views import (
     LogoutView,
     PasswordChangeView,
 )
+from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.http import HttpResponse
@@ -21,7 +22,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST, require_http_methods
 from django.views.generic.edit import FormView
 
-from core.decorators import role_required
+from core.decorators import no_referrer, role_required
 from core.rate_limit import (
     clear_rate_limit,
     client_ip,
@@ -65,12 +66,18 @@ LOGIN_IP_LIMIT = 20
 LOGIN_WINDOW_SECONDS = 15 * 60
 REGISTER_IP_LIMIT = 10
 REGISTER_WINDOW_SECONDS = 60 * 60
+PASSWORD_CHANGE_ATTEMPT_LIMIT = 5
+PASSWORD_CHANGE_ATTEMPT_WINDOW_SECONDS = 15 * 60
 EMAIL_VERIFICATION_RESEND_IDENTITY_LIMIT = 5
 EMAIL_VERIFICATION_RESEND_IP_LIMIT = 20
 EMAIL_VERIFICATION_RESEND_WINDOW_SECONDS = 15 * 60
 EMAIL_VERIFICATION_RESEND_MESSAGE = (
     "Eğer bu adres doğrulanmamış uygun bir hesaba aitse yeni doğrulama "
     "bağlantısı gönderilecektir."
+)
+PASSWORD_CHANGE_RATE_LIMIT_MESSAGE = (
+    "Çok fazla mevcut şifre denemesi yapıldı. "
+    "Lütfen kısa bir süre sonra tekrar deneyin."
 )
 PENDING_EMAIL_VERIFICATION_USER_ID_SESSION_KEY = (
     "pending_email_verification_user_id"
@@ -246,6 +253,7 @@ def email_verification_resend_current(request):
 
 
 @never_cache
+@no_referrer
 @require_http_methods(["GET", "POST"])
 def email_verification_confirm(request, token):
     if request.method == "GET":
@@ -594,25 +602,30 @@ def profile(request):
 )
 def profile_edit(request):
     if request.method == "POST":
-        form = ProfileUpdateForm(
-            request.POST,
-            instance=request.user,
-        )
+        with transaction.atomic():
+            account = User.objects.select_for_update().get(pk=request.user.pk)
+            if not account.can_perform_user_mutations:
+                raise PermissionDenied
 
-        if form.is_valid():
-            form.save()
-
-            messages.success(
-                request,
-                (
-                    "Profil bilgileriniz "
-                    "güncellendi."
-                ),
+            form = ProfileUpdateForm(
+                request.POST,
+                instance=account,
             )
 
-            return redirect(
-                "accounts:profile"
-            )
+            if form.is_valid():
+                form.save()
+
+                messages.success(
+                    request,
+                    (
+                        "Profil bilgileriniz "
+                        "güncellendi."
+                    ),
+                )
+
+                return redirect(
+                    "accounts:profile"
+                )
 
     else:
         form = ProfileUpdateForm(
@@ -645,12 +658,63 @@ class SecurePasswordChangeView(
         "accounts:profile"
     )
 
+    def _attempt_identifier(self):
+        return self.request.user.pk
+
+    def post(self, request, *args, **kwargs):
+        status = rate_limit_status(
+            scope="password-change-current-password",
+            identifier=self._attempt_identifier(),
+            limit=PASSWORD_CHANGE_ATTEMPT_LIMIT,
+            window_seconds=PASSWORD_CHANGE_ATTEMPT_WINDOW_SECONDS,
+        )
+        if not status.allowed:
+            form = self.get_form()
+            form.add_error(None, PASSWORD_CHANGE_RATE_LIMIT_MESSAGE)
+            response = super().form_invalid(form)
+            response.status_code = 429
+            response["Retry-After"] = str(
+                PASSWORD_CHANGE_ATTEMPT_WINDOW_SECONDS
+            )
+            return response
+        return super().post(request, *args, **kwargs)
+
+    def form_invalid(self, form):
+        if "old_password" in form.errors:
+            consume_rate_limit(
+                scope="password-change-current-password",
+                identifier=self._attempt_identifier(),
+                limit=PASSWORD_CHANGE_ATTEMPT_LIMIT,
+                window_seconds=PASSWORD_CHANGE_ATTEMPT_WINDOW_SECONDS,
+            )
+        return super().form_invalid(form)
+
     def form_valid(
         self,
         form,
     ):
-        response = super().form_valid(
-            form
+        with transaction.atomic():
+            account = User.objects.select_for_update().get(
+                pk=self.request.user.pk
+            )
+            if not account.can_perform_user_mutations:
+                raise PermissionDenied
+
+            if not account.check_password(form.cleaned_data["old_password"]):
+                form.add_error(
+                    "old_password",
+                    "Mevcut şifreniz doğru değil.",
+                )
+                return self.form_invalid(form)
+
+            form.user = account
+            response = super().form_valid(
+                form
+            )
+
+        clear_rate_limit(
+            scope="password-change-current-password",
+            identifier=self._attempt_identifier(),
         )
 
         messages.success(

@@ -9,8 +9,12 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.http import require_http_methods
 from django.views.generic import FormView, TemplateView
 
-from core.decorators import role_required
-from core.rate_limit import consume_rate_limit
+from core.decorators import no_referrer, role_required
+from core.rate_limit import (
+    clear_rate_limit,
+    consume_rate_limit,
+    rate_limit_status,
+)
 from notifications.email_service import EmailServiceError
 
 from .email_change import (
@@ -26,8 +30,14 @@ logger = logging.getLogger(__name__)
 
 EMAIL_CHANGE_REQUEST_LIMIT = 3
 EMAIL_CHANGE_REQUEST_WINDOW_SECONDS = 60 * 60
+EMAIL_CHANGE_PASSWORD_ATTEMPT_LIMIT = 5
+EMAIL_CHANGE_PASSWORD_ATTEMPT_WINDOW_SECONDS = 15 * 60
 EMAIL_CHANGE_RATE_LIMIT_MESSAGE = (
     "Kısa süre içinde çok fazla e-posta değişikliği istediniz. Lütfen daha sonra tekrar deneyin."
+)
+EMAIL_CHANGE_PASSWORD_RATE_LIMIT_MESSAGE = (
+    "Çok fazla mevcut şifre denemesi yapıldı. "
+    "Lütfen kısa bir süre sonra tekrar deneyin."
 )
 
 
@@ -116,7 +126,43 @@ class EmailChangeRequestView(FormView):
         kwargs["user"] = self.request.user
         return kwargs
 
+    def _password_attempt_identifier(self):
+        return self.request.user.pk
+
+    def post(self, request, *args, **kwargs):
+        status = rate_limit_status(
+            scope="email-change-current-password",
+            identifier=self._password_attempt_identifier(),
+            limit=EMAIL_CHANGE_PASSWORD_ATTEMPT_LIMIT,
+            window_seconds=EMAIL_CHANGE_PASSWORD_ATTEMPT_WINDOW_SECONDS,
+        )
+        if not status.allowed:
+            form = self.get_form()
+            form.add_error(None, EMAIL_CHANGE_PASSWORD_RATE_LIMIT_MESSAGE)
+            response = super().form_invalid(form)
+            response.status_code = 429
+            response["Retry-After"] = str(
+                EMAIL_CHANGE_PASSWORD_ATTEMPT_WINDOW_SECONDS
+            )
+            return response
+        return super().post(request, *args, **kwargs)
+
+    def form_invalid(self, form):
+        if "current_password" in form.errors:
+            consume_rate_limit(
+                scope="email-change-current-password",
+                identifier=self._password_attempt_identifier(),
+                limit=EMAIL_CHANGE_PASSWORD_ATTEMPT_LIMIT,
+                window_seconds=EMAIL_CHANGE_PASSWORD_ATTEMPT_WINDOW_SECONDS,
+            )
+        return super().form_invalid(form)
+
     def form_valid(self, form):
+        clear_rate_limit(
+            scope="email-change-current-password",
+            identifier=self._password_attempt_identifier(),
+        )
+
         decision = consume_rate_limit(
             scope="email-change-user",
             identifier=self.request.user.pk,
@@ -169,6 +215,7 @@ class EmailChangePendingView(TemplateView):
 
 
 @role_required(User.UserType.USER)
+@no_referrer
 @require_http_methods(["GET", "POST"])
 def email_change_confirm(request, token):
     resolved = resolve_email_change_token(token)
@@ -214,6 +261,7 @@ def email_change_confirm(request, token):
         request,
         "E-posta adresiniz başarıyla değiştirildi.",
     )
+    request.session.cycle_key()
     return redirect("accounts:email_change_complete")
 
 
