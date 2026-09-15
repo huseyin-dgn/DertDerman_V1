@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import timedelta
 
+from django.db import transaction
 from django.utils import timezone
 
 from core.models import AbuseAttempt
@@ -359,6 +360,7 @@ def check_user_report_allowed(
     )
 
 
+@transaction.atomic
 def apply_false_report_penalties(
     violation,
 ):
@@ -382,7 +384,8 @@ def apply_false_report_penalties(
     ):
         return None
 
-    user = violation.user
+    user_model = violation._meta.get_field("user").remote_field.model
+    user = user_model.objects.select_for_update().get(pk=violation.user_id)
     now = violation.created_at or timezone.now()
 
     full_block = active_full_block(

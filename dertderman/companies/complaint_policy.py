@@ -23,6 +23,7 @@ def company_can_interact_with_complaint(complaint):
         complaint.status == Complaint.Status.PUBLISHED
         and complaint.withdrawn_at is None
         and not complaint.removed_for_violation
+        and complaint.violation_removed_at is None
     )
 
 
@@ -35,6 +36,7 @@ def company_complaint_has_public_page(complaint):
         complaint.status in COMPANY_PUBLIC_COMPLAINT_STATUSES
         and complaint.withdrawn_at is None
         and not complaint.removed_for_violation
+        and complaint.violation_removed_at is None
     )
 
 
@@ -56,6 +58,7 @@ def company_interaction_lock_reason(complaint):
     if (
         complaint.status == Complaint.Status.REMOVED
         or complaint.removed_for_violation
+        or complaint.violation_removed_at is not None
     ):
         return (
             "Bu şikayet moderasyon nedeniyle yayından "

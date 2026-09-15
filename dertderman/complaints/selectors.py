@@ -14,27 +14,38 @@ from companies.models import (
 from .models import Complaint
 
 
+def public_complaint_filter():
+    """Single source of truth for records that may be exposed publicly."""
+    return Q(
+        status__in=(
+            Complaint.Status.PUBLISHED,
+            Complaint.Status.RESOLVED,
+        ),
+        withdrawn_at__isnull=True,
+        removed_for_violation=False,
+        violation_removed_at__isnull=True,
+        company__is_active=True,
+        company__approval_status=Company.ApprovalStatus.APPROVED,
+        company__archived_at__isnull=True,
+    )
+
+
+def public_complaint_records():
+    return Complaint.objects.filter(public_complaint_filter())
+
+
+def public_complaints_for_update():
+    """Lockable public queryset without aggregates that PostgreSQL rejects."""
+    return (
+        public_complaint_records()
+        .select_for_update(of=("self",))
+        .select_related("company", "user")
+    )
+
+
 def public_complaints():
     return (
-        Complaint.objects
-        .filter(
-            status__in=(
-                Complaint.Status.PUBLISHED,
-                Complaint.Status.RESOLVED,
-            ),
-
-            withdrawn_at__isnull=True,
-
-            removed_for_violation=False,
-
-            company__is_active=True,
-
-            company__approval_status=(
-                Company.ApprovalStatus.APPROVED
-            ),
-
-            company__archived_at__isnull=True,
-        )
+        public_complaint_records()
         .select_related(
             "company",
             "company__category",

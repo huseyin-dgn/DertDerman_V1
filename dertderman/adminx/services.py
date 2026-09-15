@@ -1,5 +1,5 @@
 import logging
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -12,6 +12,30 @@ from .models import AdminAuditLog
 
 
 logger = logging.getLogger(__name__)
+
+
+def lock_current_admin(actor):
+    """Lock and return the database-current active ADMIN actor."""
+    if not (
+        actor is not None
+        and getattr(actor, "is_authenticated", False)
+        and getattr(actor, "pk", None)
+    ):
+        raise PermissionDenied
+
+    current = (
+        User.objects.select_for_update()
+        .filter(
+            pk=actor.pk,
+            is_active=True,
+            is_permanently_closed=False,
+            user_type=User.UserType.ADMIN,
+        )
+        .first()
+    )
+    if current is None:
+        raise PermissionDenied
+    return current
 
 
 def _require_current_admin(actor):

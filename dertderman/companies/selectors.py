@@ -30,6 +30,8 @@ def public_company_performance(company):
             company=company,
             status__in=(Complaint.Status.PUBLISHED, Complaint.Status.RESOLVED),
             withdrawn_at__isnull=True,
+            removed_for_violation=False,
+            violation_removed_at__isnull=True,
         )
         .annotate(
             first_response_at=Subquery(

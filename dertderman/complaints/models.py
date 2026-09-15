@@ -517,6 +517,21 @@ class ContentReport(models.Model):
         ]
 
         constraints = [
+            models.CheckConstraint(
+                condition=(
+                    models.Q(
+                        target_type="COMPLAINT",
+                        complaint__isnull=False,
+                        comment__isnull=True,
+                    )
+                    | models.Q(
+                        target_type="COMMENT",
+                        complaint__isnull=True,
+                        comment__isnull=False,
+                    )
+                ),
+                name="content_report_target_ck",
+            ),
             models.UniqueConstraint(
                 fields=(
                     "reporter",
@@ -1125,4 +1140,3 @@ class ReportRestriction(models.Model):
             f"@{self.user.username} - "
             f"{self.get_kind_display()}"
         )
-

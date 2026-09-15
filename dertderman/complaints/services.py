@@ -1,5 +1,6 @@
 from uuid import uuid4
 
+from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.utils import timezone
 
@@ -18,12 +19,48 @@ class ComplaintEditRateLimited(Exception):
         super().__init__("Complaint edit rate limit exceeded.")
 
 
+def _locked_actor(actor, *, allowed_roles):
+    if (
+        not getattr(actor, "is_authenticated", False)
+        or not getattr(actor, "pk", None)
+        or getattr(actor, "user_type", None) not in allowed_roles
+    ):
+        raise PermissionDenied
+
+    locked = actor.__class__.objects.select_for_update().get(pk=actor.pk)
+    if (
+        locked.user_type not in allowed_roles
+        or not locked.is_active
+        or locked.is_permanently_closed
+        or (
+            locked.user_type == "USER"
+            and not locked.can_perform_user_mutations
+        )
+    ):
+        raise PermissionDenied
+    return locked
+
+
 @transaction.atomic
 def edit_complaint(*, complaint, form, actor):
+    actor = _locked_actor(actor, allowed_roles={"USER"})
     locked = Complaint.objects.select_for_update().get(
         pk=complaint.pk,
         user=actor,
     )
+
+    # The form is validated before this lock is acquired. If moderation or
+    # another lifecycle action committed in that window, this stale edit must
+    # not overwrite the newer decision. A complaint that was already public
+    # when the request loaded remains intentionally editable and is re-pended.
+    if (
+        locked.status != complaint.status
+        or locked.updated_at != complaint.updated_at
+        or locked.withdrawn_at != complaint.withdrawn_at
+        or locked.removed_for_violation != complaint.removed_for_violation
+        or locked.violation_removed_at != complaint.violation_removed_at
+    ):
+        raise ComplaintStateConflict
 
     if (
         locked.withdrawn_at
@@ -46,19 +83,47 @@ def edit_complaint(*, complaint, form, actor):
             rate_limit.retry_after
         )
 
-    edited = form.save(commit=False)
-    edited.pk = locked.pk
-    edited.user = locked.user
+    selected_company = form.cleaned_data["company"]
+    if selected_company.pk != locked.company_id:
+        from companies.models import Company
+
+        selected_company = (
+            Company.objects.select_for_update()
+            .filter(
+                pk=selected_company.pk,
+                is_active=True,
+                approval_status=Company.ApprovalStatus.APPROVED,
+                archived_at__isnull=True,
+            )
+            .first()
+        )
+        if selected_company is None:
+            raise ComplaintStateConflict
+
+    for field in ("company", "category", "title", "description"):
+        setattr(
+            locked,
+            field,
+            selected_company if field == "company" else form.cleaned_data[field],
+        )
 
     if locked.status in (
         Complaint.Status.PUBLISHED,
         Complaint.Status.REJECTED,
     ):
-        edited.status = Complaint.Status.PENDING
-    else:
-        edited.status = locked.status
+        locked.status = Complaint.Status.PENDING
 
-    edited.save()
+    locked.save(
+        update_fields=(
+            "company",
+            "category",
+            "title",
+            "description",
+            "status",
+            "updated_at",
+        )
+    )
+    edited = locked
 
     occurred_at = timezone.now()
 
@@ -98,6 +163,7 @@ def edit_complaint(*, complaint, form, actor):
 
 @transaction.atomic
 def withdraw_complaint(*, complaint, actor):
+    actor = _locked_actor(actor, allowed_roles={"USER"})
     locked = Complaint.objects.select_for_update().get(
         pk=complaint.pk,
         user=actor,
@@ -105,6 +171,16 @@ def withdraw_complaint(*, complaint, actor):
 
     if locked.withdrawn_at:
         return locked
+
+    if (
+        locked.status not in (
+            Complaint.Status.PENDING,
+            Complaint.Status.PUBLISHED,
+        )
+        or locked.removed_for_violation
+        or locked.violation_removed_at is not None
+    ):
+        raise ComplaintStateConflict
 
     occurred_at = timezone.now()
 
@@ -156,16 +232,22 @@ def resolve_complaint(
     actor,
     owner_id=None,
 ):
+    actor = _locked_actor(actor, allowed_roles={"USER", "ADMIN"})
+
     queryset = (
         Complaint.objects
-        .select_for_update()
+        .select_for_update(of=("self",))
         .select_related(
             "company",
             "user",
         )
     )
 
-    if owner_id is not None:
+    if actor.user_type == "USER":
+        if owner_id is not None and owner_id != actor.pk:
+            raise PermissionDenied
+        queryset = queryset.filter(user=actor)
+    elif owner_id is not None:
         queryset = queryset.filter(
             user_id=owner_id
         )

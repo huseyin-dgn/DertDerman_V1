@@ -36,6 +36,20 @@ def record_complaint_notification(
 ):
     from notifications.services import complaint_event
 
+    # PENDING/REJECTED content must never enter a company inbox. The owner
+    # notification is still delivered when a caller explicitly requests it.
+    if complaint.status not in COMPANY_VISIBLE_COMPLAINT_STATUSES:
+        if notify_user:
+            complaint_event(
+                complaint,
+                kind,
+                event_key or (
+                    f"complaint:{complaint.pk}:{kind}:"
+                    f"{complaint.updated_at.isoformat()}"
+                ),
+            )
+        return None
+
     # Her durum geçişi için deterministik bir bildirim anahtarı oluşturulur.
     event_key = event_key or (
         f"complaint:{complaint.pk}:{kind}:"
@@ -152,10 +166,7 @@ def notify_company_of_complaint(
             Complaint.Status.REMOVED:
                 CompanyNotification.Kind.REMOVED,
 
-        }.get(
-            instance.status,
-            CompanyNotification.Kind.ADMIN,
-        )
+        }.get(instance.status)
 
     elif previous and any(
         previous[field] != getattr(instance, field)

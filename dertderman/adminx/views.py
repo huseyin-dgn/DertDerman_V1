@@ -10,7 +10,14 @@ from django.views.decorators.http import require_POST, require_safe
 from accounts.models import User
 from blog.models import Post
 from companies.models import Company, CompanyNotification
-from complaints.models import Complaint, ContentReport, CompanyReport, UserReport, UserViolation
+from complaints.models import (
+    CompanyReport,
+    Complaint,
+    ComplaintComment,
+    ContentReport,
+    UserReport,
+    UserViolation,
+)
 from complaints.reporting_policy import apply_false_report_penalties
 from core.models import ContactRequest
 from core.pagination import PREVIEW_SIZE, paginate
@@ -21,7 +28,7 @@ from .decorators import admin_required
 from .filters import ComplaintFilters, EventFilters, list_context
 from .forms import ContactStatusForm
 from .models import AdminAuditLog
-from .services import record_admin_audit
+from .services import lock_current_admin, record_admin_audit
 
 
 @admin_required
@@ -360,6 +367,8 @@ def complaint_detail(request, pk):
 
 @transaction.atomic
 def _moderate(request, pk, target_status):
+    lock_current_admin(request.user)
+
     complaint_before = get_object_or_404(
         Complaint.objects.only(
             "pk",
@@ -374,6 +383,9 @@ def _moderate(request, pk, target_status):
     changed = Complaint.objects.filter(
         pk=pk,
         status=Complaint.Status.PENDING,
+        withdrawn_at__isnull=True,
+        removed_for_violation=False,
+        violation_removed_at__isnull=True,
     ).update(
         status=target_status,
         updated_at=timezone.now(),
@@ -494,6 +506,7 @@ def complaint_reject(request, pk):
 
 @admin_required
 @require_POST
+@transaction.atomic
 def complaint_resolve(request, pk):
     complaint = get_object_or_404(
         Complaint.objects.only(
@@ -658,14 +671,12 @@ def report_detail(request, pk):
 @require_POST
 @transaction.atomic
 def report_status(request, pk):
+    lock_current_admin(request.user)
+
     report = get_object_or_404(
-        ContentReport.objects.select_for_update().select_related(
-            "reporter",
-            "complaint",
-            "complaint__user",
-            "comment",
-            "comment__author_user",
-        ),
+        # Lock only the report row. PostgreSQL rejects FOR UPDATE against the
+        # nullable outer joins produced by select_related() for both targets.
+        ContentReport.objects.select_for_update(),
         pk=pk,
     )
 
@@ -717,6 +728,7 @@ def report_status(request, pk):
         )
 
     complaint_to_remove = None
+    comment_to_remove = None
 
     if (
         new_status == ContentReport.Status.RESOLVED
@@ -724,8 +736,18 @@ def report_status(request, pk):
         and report.complaint_id
     ):
         complaint_to_remove = get_object_or_404(
-            Complaint.objects.select_for_update(),
+            Complaint.objects.select_for_update(of=("self",)),
             pk=report.complaint_id,
+        )
+
+    if (
+        new_status == ContentReport.Status.RESOLVED
+        and report.target_type == ContentReport.TargetType.COMMENT
+        and report.comment_id
+    ):
+        comment_to_remove = get_object_or_404(
+            ComplaintComment.objects.select_for_update(of=("self",)),
+            pk=report.comment_id,
         )
 
     # Aynı durum tekrar gönderildiyse normalde işlem yapma.
@@ -734,8 +756,16 @@ def report_status(request, pk):
     if previous_status == new_status:
         needs_violation_removal = (
             new_status == ContentReport.Status.RESOLVED
-            and complaint_to_remove is not None
-            and not complaint_to_remove.removed_for_violation
+            and (
+                (
+                    complaint_to_remove is not None
+                    and not complaint_to_remove.removed_for_violation
+                )
+                or (
+                    comment_to_remove is not None
+                    and comment_to_remove.is_active
+                )
+            )
         )
 
         if not needs_violation_removal:
@@ -794,17 +824,17 @@ def report_status(request, pk):
             report.target_type == ContentReport.TargetType.COMPLAINT
             and report.complaint_id
         ):
-            violation_user = report.complaint.user
+            violation_user = complaint_to_remove.user
             source_type = UserViolation.SourceType.COMPLAINT
-            complaint_for_violation = report.complaint
+            complaint_for_violation = complaint_to_remove
 
         elif (
             report.target_type == ContentReport.TargetType.COMMENT
-            and report.comment_id
+            and comment_to_remove is not None
         ):
-            violation_user = report.comment.author_user
+            violation_user = comment_to_remove.author_user
             source_type = UserViolation.SourceType.COMMENT
-            comment_for_violation = report.comment
+            comment_for_violation = comment_to_remove
 
         if violation_user and source_type:
             violation, violation_created = (
@@ -906,6 +936,7 @@ def report_status(request, pk):
 
 
     complaint_removed = False
+    comment_removed = False
 
     # ---------------------------------------------------------
     # ŞİKAYET İHLAL NEDENİYLE KALDIRMA
@@ -953,6 +984,11 @@ def report_status(request, pk):
             request=request,
         )
 
+    if comment_to_remove is not None and comment_to_remove.is_active:
+        comment_to_remove.is_active = False
+        comment_to_remove.save(update_fields=("is_active", "updated_at"))
+        comment_removed = True
+
 
     if report.target_type == ContentReport.TargetType.COMPLAINT:
         target_label = (
@@ -984,6 +1020,7 @@ def report_status(request, pk):
             "report_target_type": report.target_type,
             "report_reason": report.reason,
             "complaint_removed": complaint_removed,
+            "comment_removed": comment_removed,
             "user_violation_id": (
                 violation.pk
                 if violation
@@ -1017,9 +1054,9 @@ def report_status(request, pk):
                 "ihlal nedeniyle kaldırıldı."
             )
 
-        elif report.target_type == ContentReport.TargetType.COMMENT:
+        elif comment_removed:
             message = (
-                "Rapor sonuçlandırıldı ve kullanıcı için "
+                "Rapor sonuçlandırıldı, yorum kaldırıldı ve kullanıcı için "
                 "doğrulanmış ihlal kaydı oluşturuldu."
             )
 
@@ -1123,8 +1160,10 @@ def company_report_detail(request, pk):
 @require_POST
 @transaction.atomic
 def company_report_status(request, pk):
+    lock_current_admin(request.user)
+
     report = get_object_or_404(
-        CompanyReport.objects.select_for_update().select_related(
+        CompanyReport.objects.select_for_update(of=("self",)).select_related(
             "reporter",
             "company",
         ),
@@ -1179,10 +1218,11 @@ def company_report_status(request, pk):
     created = False
 
     if new_status == CompanyReport.Status.ABUSIVE:
+        reporter = report.reporter
         violation, created = UserViolation.objects.get_or_create(
             company_report=report,
             defaults={
-                "user": report.reporter,
+                "user": reporter,
                 "source_type": UserViolation.SourceType.FALSE_REPORT,
                 "reason": "FALSE_REPORT",
                 "description": (
@@ -1317,8 +1357,10 @@ def user_report_detail(request, pk):
 @require_POST
 @transaction.atomic
 def user_report_status(request, pk):
+    lock_current_admin(request.user)
+
     report = get_object_or_404(
-        UserReport.objects.select_for_update().select_related(
+        UserReport.objects.select_for_update(of=("self",)).select_related(
             "reporter",
             "reported_user",
         ),
@@ -1383,10 +1425,11 @@ def user_report_status(request, pk):
     violation_created = False
 
     if new_status == UserReport.Status.RESOLVED:
+        violation_user = report.reported_user
         violation, violation_created = UserViolation.objects.get_or_create(
             user_report=report,
             defaults={
-                "user": report.reported_user,
+                "user": violation_user,
                 "source_type": UserViolation.SourceType.USER_REPORT,
                 "reason": report.reason,
                 "description": (
@@ -1398,10 +1441,11 @@ def user_report_status(request, pk):
         )
 
     elif new_status == UserReport.Status.ABUSIVE:
+        violation_user = report.reporter
         violation, violation_created = UserViolation.objects.get_or_create(
             user_report=report,
             defaults={
-                "user": report.reporter,
+                "user": violation_user,
                 "source_type": UserViolation.SourceType.FALSE_REPORT,
                 "reason": "FALSE_REPORT",
                 "description": (

@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.core.exceptions import (
+    PermissionDenied,
     ValidationError,
 )
 from django.db import (
@@ -129,6 +130,8 @@ def public_company_list(
                     complaints__withdrawn_at__isnull=True,
 
                     complaints__removed_for_violation=False,
+
+                    complaints__violation_removed_at__isnull=True,
                 ),
 
                 distinct=True,
@@ -279,6 +282,8 @@ def public_company_detail(
 
             complaint__removed_for_violation=False,
 
+            complaint__violation_removed_at__isnull=True,
+
             is_active=True,
         )
         .select_related(
@@ -411,18 +416,27 @@ def _format_response_time(
     User.UserType.USER
 )
 @require_POST
+@transaction.atomic
 def public_company_report(
     request,
     slug,
 ):
+    actor = User.objects.select_for_update().get(pk=request.user.pk)
+    if not actor.can_perform_user_mutations:
+        raise PermissionDenied
+
     company = get_object_or_404(
-        public_companies(),
+        Company.objects.select_for_update().filter(
+            is_active=True,
+            approval_status=Company.ApprovalStatus.APPROVED,
+            archived_at__isnull=True,
+        ),
         slug=slug,
     )
 
     policy = (
         check_general_reporting_allowed(
-            user=request.user,
+            user=actor,
             request=request,
         )
     )
@@ -442,7 +456,7 @@ def public_company_report(
     if (
         CompanyReport.objects
         .filter(
-            reporter=request.user,
+            reporter=actor,
             company=company,
         )
         .exists()
@@ -485,7 +499,7 @@ def public_company_report(
     )
 
     report.reporter = (
-        request.user
+        actor
     )
 
     report.company = company

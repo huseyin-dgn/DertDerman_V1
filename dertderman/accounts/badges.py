@@ -43,7 +43,14 @@ def resolve_badges_for_users(user_ids):
         return {}
     facts = {user_id: {"public": 0, "resolved": 0, "comments": 0, "reactions": 0, "received": 0, "joined": None} for user_id in user_ids}
     public_rows = Complaint.objects.filter(
-        user_id__in=user_ids, status__in=PUBLIC_STATUSES, withdrawn_at__isnull=True,
+        user_id__in=user_ids,
+        status__in=PUBLIC_STATUSES,
+        withdrawn_at__isnull=True,
+        removed_for_violation=False,
+        violation_removed_at__isnull=True,
+        company__is_active=True,
+        company__approval_status="APPROVED",
+        company__archived_at__isnull=True,
     ).values("user_id").annotate(
         public=Count("pk", distinct=True),
         resolved=Count("pk", filter=Q(status=Complaint.Status.RESOLVED), distinct=True),
@@ -58,6 +65,11 @@ def resolve_badges_for_users(user_ids):
     contribution_filter = {
         "complaint__status__in": PUBLIC_STATUSES,
         "complaint__withdrawn_at__isnull": True,
+        "complaint__removed_for_violation": False,
+        "complaint__violation_removed_at__isnull": True,
+        "complaint__company__is_active": True,
+        "complaint__company__approval_status": "APPROVED",
+        "complaint__company__archived_at__isnull": True,
     }
     for row in ComplaintComment.objects.filter(
         author_user_id__in=user_ids, is_active=True, **contribution_filter,

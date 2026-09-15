@@ -445,7 +445,13 @@ def public_profile(
 
             complaint__removed_for_violation=False,
 
+            complaint__violation_removed_at__isnull=True,
+
             complaint__company__is_active=True,
+
+            complaint__company__approval_status="APPROVED",
+
+            complaint__company__archived_at__isnull=True,
         )
         .count()
     )
@@ -466,7 +472,13 @@ def public_profile(
 
             complaint__removed_for_violation=False,
 
+            complaint__violation_removed_at__isnull=True,
+
             complaint__company__is_active=True,
+
+            complaint__company__approval_status="APPROVED",
+
+            complaint__company__archived_at__isnull=True,
         )
         .count()
     )

@@ -61,6 +61,11 @@ def company_badge_facts(company_ids):
         company_id__in=company_ids,
         status__in=(Complaint.Status.PUBLISHED, Complaint.Status.RESOLVED),
         withdrawn_at__isnull=True,
+        removed_for_violation=False,
+        violation_removed_at__isnull=True,
+        company__is_active=True,
+        company__approval_status=Company.ApprovalStatus.APPROVED,
+        company__archived_at__isnull=True,
     ).annotate(
         first_response_at=Subquery(first_response.values("created_at")[:1], output_field=DateTimeField()),
         published_at=Coalesce(

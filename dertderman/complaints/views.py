@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 from django.contrib import messages
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import IntegrityError, transaction
 from django.db.models import (
     Case,
@@ -21,6 +21,7 @@ from django.shortcuts import (
 )
 from django.utils import timezone
 from django.views.decorators.http import (
+    require_http_methods,
     require_POST,
     require_safe,
 )
@@ -55,7 +56,10 @@ from .reporting_policy import (
     check_general_reporting_allowed,
     check_user_report_allowed,
 )
-from .selectors import public_complaints
+from .selectors import (
+    public_complaints,
+    public_complaints_for_update,
+)
 from .services import (
     ComplaintStateConflict,
     resolve_complaint,
@@ -85,6 +89,16 @@ def _suspended_response(request):
         )
 
     return None
+
+
+def _locked_request_user(request):
+    user = User.objects.select_for_update().get(pk=request.user.pk)
+    if (
+        user.user_type != User.UserType.USER
+        or not user.can_perform_user_mutations
+    ):
+        raise PermissionDenied
+    return user
 
 
 @require_safe
@@ -516,6 +530,7 @@ def public_complaint_detail(
     User.UserType.USER
 )
 @require_POST
+@transaction.atomic
 def complaint_like_toggle(
     request,
     pk,
@@ -529,22 +544,26 @@ def complaint_like_toggle(
     if blocked:
         return blocked
 
+    actor = _locked_request_user(request)
     complaint = get_object_or_404(
-        public_complaints(),
+        public_complaints_for_update(),
         pk=pk,
     )
 
-    with transaction.atomic():
-        like, created = (
-            ComplaintLike.objects
-            .get_or_create(
-                complaint=complaint,
-                user=request.user,
-            )
-        )
+    like = ComplaintLike.objects.filter(
+        complaint=complaint,
+        user=actor,
+    ).first()
 
-        if not created:
-            like.delete()
+    if like is None:
+        ComplaintLike.objects.create(
+            complaint=complaint,
+            user=actor,
+        )
+        created = True
+    else:
+        like.delete()
+        created = False
 
     if created:
         from notifications.services import (
@@ -553,12 +572,12 @@ def complaint_like_toggle(
 
         complaint_social_event(
             complaint=complaint,
-            actor=request.user,
+            actor=actor,
             kind="LIKE",
             event_key=(
                 f"social:like:"
                 f"{complaint.pk}:"
-                f"{request.user.pk}"
+                f"{actor.pk}"
             ),
         )
 
@@ -572,6 +591,7 @@ def complaint_like_toggle(
     User.UserType.USER
 )
 @require_POST
+@transaction.atomic
 def complaint_react(
     request,
     pk,
@@ -585,8 +605,9 @@ def complaint_react(
     if blocked:
         return blocked
 
+    actor = _locked_request_user(request)
     complaint = get_object_or_404(
-        public_complaints(),
+        public_complaints_for_update(),
         pk=pk,
     )
 
@@ -617,7 +638,7 @@ def complaint_react(
             .select_for_update()
             .filter(
                 complaint=complaint,
-                user=request.user,
+                user=actor,
             )
             .first()
         )
@@ -650,7 +671,7 @@ def complaint_react(
                 ComplaintReaction.objects
                 .create(
                     complaint=complaint,
-                    user=request.user,
+                    user=actor,
                     reaction_type=(
                         reaction_type
                     ),
@@ -666,12 +687,12 @@ def complaint_react(
 
         complaint_social_event(
             complaint=complaint,
-            actor=request.user,
+            actor=actor,
             kind="REACTION",
             event_key=(
                 f"social:reaction:"
                 f"{complaint.pk}:"
-                f"{request.user.pk}"
+                f"{actor.pk}"
             ),
         )
 
@@ -685,6 +706,7 @@ def complaint_react(
     User.UserType.USER
 )
 @require_POST
+@transaction.atomic
 def complaint_comment_create(
     request,
     pk,
@@ -698,8 +720,9 @@ def complaint_comment_create(
     if blocked:
         return blocked
 
+    actor = _locked_request_user(request)
     complaint = get_object_or_404(
-        public_complaints(),
+        public_complaints_for_update(),
         pk=pk,
     )
 
@@ -725,7 +748,7 @@ def complaint_comment_create(
 
     comment.complaint = complaint
     comment.author_user = (
-        request.user
+        actor
     )
 
     comment.save()
@@ -736,7 +759,7 @@ def complaint_comment_create(
 
     complaint_social_event(
         complaint=complaint,
-        actor=request.user,
+        actor=actor,
         kind="COMMENT",
         event_key=(
             f"social:comment:"
@@ -759,6 +782,7 @@ def complaint_comment_create(
     User.UserType.USER
 )
 @require_POST
+@transaction.atomic
 def complaint_comment_delete(
     request,
     pk,
@@ -773,16 +797,17 @@ def complaint_comment_delete(
     if blocked:
         return blocked
 
+    actor = _locked_request_user(request)
     complaint = get_object_or_404(
-        public_complaints(),
+        public_complaints_for_update(),
         pk=pk,
     )
 
     comment = get_object_or_404(
-        ComplaintComment,
+        ComplaintComment.objects.select_for_update(),
         pk=comment_pk,
         complaint=complaint,
-        author_user=request.user,
+        author_user=actor,
         is_active=True,
     )
 
@@ -810,6 +835,7 @@ def complaint_comment_delete(
     User.UserType.USER
 )
 @require_POST
+@transaction.atomic
 def complaint_report(
     request,
     pk,
@@ -823,9 +849,10 @@ def complaint_report(
     if blocked:
         return blocked
 
+    actor = _locked_request_user(request)
     reporting_policy = (
         check_general_reporting_allowed(
-            user=request.user,
+            user=actor,
             request=request,
         )
     )
@@ -842,7 +869,7 @@ def complaint_report(
         )
 
     complaint = get_object_or_404(
-        public_complaints(),
+        public_complaints_for_update(),
         pk=pk,
     )
 
@@ -850,7 +877,7 @@ def complaint_report(
     # raporlayamaz.
     if (
         complaint.user_id
-        == request.user.pk
+        == actor.pk
     ):
         messages.warning(
             request,
@@ -870,7 +897,7 @@ def complaint_report(
     if (
         ContentReport.objects
         .filter(
-            reporter=request.user,
+            reporter=actor,
             complaint=complaint,
         )
         .exists()
@@ -912,7 +939,7 @@ def complaint_report(
     )
 
     report.reporter = (
-        request.user
+        actor
     )
 
     report.target_type = (
@@ -978,6 +1005,7 @@ def complaint_report(
     User.UserType.USER
 )
 @require_POST
+@transaction.atomic
 def comment_report(
     request,
     pk,
@@ -992,9 +1020,10 @@ def comment_report(
     if blocked:
         return blocked
 
+    actor = _locked_request_user(request)
     reporting_policy = (
         check_general_reporting_allowed(
-            user=request.user,
+            user=actor,
             request=request,
         )
     )
@@ -1011,12 +1040,12 @@ def comment_report(
         )
 
     complaint = get_object_or_404(
-        public_complaints(),
+        public_complaints_for_update(),
         pk=pk,
     )
 
     comment = get_object_or_404(
-        ComplaintComment,
+        ComplaintComment.objects.select_for_update(),
         pk=comment_pk,
         complaint=complaint,
         is_active=True,
@@ -1024,7 +1053,7 @@ def comment_report(
 
     if (
         comment.author_user_id
-        == request.user.pk
+        == actor.pk
     ):
         messages.warning(
             request,
@@ -1042,7 +1071,7 @@ def comment_report(
     if (
         ContentReport.objects
         .filter(
-            reporter=request.user,
+            reporter=actor,
             comment=comment,
         )
         .exists()
@@ -1084,7 +1113,7 @@ def comment_report(
     )
 
     report.reporter = (
-        request.user
+        actor
     )
 
     report.target_type = (
@@ -1150,6 +1179,7 @@ def comment_report(
     User.UserType.USER
 )
 @require_POST
+@transaction.atomic
 def user_report(
     request,
     user_pk,
@@ -1163,9 +1193,10 @@ def user_report(
     if blocked:
         return blocked
 
+    actor = _locked_request_user(request)
     reporting_policy = (
         check_user_report_allowed(
-            user=request.user,
+            user=actor,
             request=request,
         )
     )
@@ -1188,7 +1219,7 @@ def user_report(
                     flat=True,
                 )
                 .first()
-                or request.user.username
+                or actor.username
             ),
         )
 
@@ -1198,17 +1229,19 @@ def user_report(
             "username",
             "user_type",
             "is_active",
+            "is_permanently_closed",
         ),
         pk=user_pk,
         user_type=(
             User.UserType.USER
         ),
         is_active=True,
+        is_permanently_closed=False,
     )
 
     if (
         reported_user.pk
-        == request.user.pk
+        == actor.pk
     ):
         messages.warning(
             request,
@@ -1228,7 +1261,7 @@ def user_report(
     if (
         UserReport.objects
         .filter(
-            reporter=request.user,
+            reporter=actor,
             reported_user=(
                 reported_user
             ),
@@ -1276,7 +1309,7 @@ def user_report(
     )
 
     report.reporter = (
-        request.user
+        actor
     )
 
     report.reported_user = (
@@ -1578,6 +1611,7 @@ def complaint_detail(
 @role_required(
     User.UserType.USER
 )
+@require_http_methods(["GET", "HEAD", "POST"])
 def complaint_edit(
     request,
     pk,
@@ -1639,6 +1673,16 @@ def complaint_edit(
                     complaint=complaint,
                     form=form,
                     actor=request.user,
+                )
+            except ComplaintStateConflict:
+                return render(
+                    request,
+                    "complaints/complaint_edit.html",
+                    {
+                        "complaint": complaint,
+                        "edit_blocked": True,
+                    },
+                    status=409,
                 )
             except ComplaintEditRateLimited as error:
                 form.add_error(
@@ -1718,15 +1762,21 @@ def complaint_withdraw(
         withdraw_complaint,
     )
 
-    withdraw_complaint(
-        complaint=complaint,
-        actor=request.user,
-    )
-
-    messages.success(
-        request,
-        "Şikayetiniz geri çekildi.",
-    )
+    try:
+        withdraw_complaint(
+            complaint=complaint,
+            actor=request.user,
+        )
+    except ComplaintStateConflict:
+        messages.warning(
+            request,
+            "Bu şikayet artık geri çekilemez.",
+        )
+    else:
+        messages.success(
+            request,
+            "Şikayetiniz geri çekildi.",
+        )
 
     return redirect(
         "complaints:detail",
@@ -1794,6 +1844,7 @@ def complaint_resolve(
 @role_required(
     User.UserType.USER
 )
+@require_http_methods(["GET", "HEAD", "POST"])
 @transaction.atomic
 def complaint_create(
     request
@@ -1843,6 +1894,46 @@ def complaint_create(
                 )
             )
 
+            if (
+                locked_user.user_type != User.UserType.USER
+                or not locked_user.can_perform_user_mutations
+            ):
+                raise PermissionDenied
+
+            # A restriction may have been created after the request's initial
+            # policy check. Re-evaluate it while the user row is locked.
+            complaint_policy = check_complaint_creation_allowed(
+                user=locked_user,
+                request=request,
+            )
+            if not complaint_policy.allowed:
+                messages.error(request, complaint_policy.message)
+                return redirect("dashboard:home")
+
+            from companies.models import Company
+
+            selected_company = (
+                Company.objects.select_for_update()
+                .filter(
+                    pk=form.cleaned_data["company"].pk,
+                    is_active=True,
+                    approval_status=Company.ApprovalStatus.APPROVED,
+                    archived_at__isnull=True,
+                )
+                .first()
+            )
+            if selected_company is None:
+                form.add_error(
+                    "company",
+                    "Seçilen şirket artık şikayet kabul etmiyor.",
+                )
+                return render(
+                    request,
+                    "complaints/complaint_create.html",
+                    {"form": form},
+                    status=409,
+                )
+
             # ----------------------------------------------
             # ANTI-ABUSE KONTROLÜ
             # ----------------------------------------------
@@ -1852,11 +1943,7 @@ def complaint_create(
                     request=request,
                     user=locked_user,
 
-                    company=(
-                        form.cleaned_data[
-                            "company"
-                        ]
-                    ),
+                    company=selected_company,
 
                     title=(
                         form.cleaned_data[
@@ -1907,6 +1994,8 @@ def complaint_create(
             complaint.user = (
                 locked_user
             )
+
+            complaint.company = selected_company
 
             complaint.status = (
                 Complaint.Status.PENDING

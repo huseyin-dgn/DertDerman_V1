@@ -8,7 +8,7 @@ from django.views.decorators.http import require_http_methods, require_safe
 from django.views.decorators.cache import never_cache
 from companies.models import CompanyCategory
 from complaints.models import Complaint
-from complaints.selectors import public_complaints
+from complaints.selectors import public_complaint_records, public_complaints
 from blog.selectors import published_posts
 from .presentation import HERO_BRAND_MESSAGES
 from .forms import ContactRequestForm
@@ -22,11 +22,14 @@ def home(request):
 
     from companies.selectors import public_companies
     popular_companies = public_companies().order_by("name", "pk")[:6]
-    counts = Complaint.objects.aggregate(
-        total_complaints=Count("pk"),
-        published=Count("pk", filter=Q(status=Complaint.Status.PUBLISHED, company__is_active=True, withdrawn_at__isnull=True)),
-        resolved=Count("pk", filter=Q(status=Complaint.Status.RESOLVED, withdrawn_at__isnull=True)),
+    public_counts = public_complaint_records().aggregate(
+        published=Count("pk", filter=Q(status=Complaint.Status.PUBLISHED)),
+        resolved=Count("pk", filter=Q(status=Complaint.Status.RESOLVED)),
     )
+    counts = {
+        "total_complaints": Complaint.objects.count(),
+        **public_counts,
+    }
     context = {
         "hero_brand_messages": HERO_BRAND_MESSAGES,
         "stats": {
@@ -165,4 +168,3 @@ def for_companies(request):
         request,
         "core/for_companies.html",
     )
-

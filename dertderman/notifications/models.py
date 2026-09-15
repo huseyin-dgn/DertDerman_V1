@@ -177,7 +177,11 @@ class Notification(models.Model):
                 complaint is not None
                 and complaint.status in ("PUBLISHED", "RESOLVED")
                 and complaint.withdrawn_at is None
+                and not complaint.removed_for_violation
+                and complaint.violation_removed_at is None
                 and complaint.company.is_active
+                and complaint.company.approval_status == "APPROVED"
+                and complaint.company.archived_at is None
             ):
                 return reverse(
                     'complaints:public_detail',
