@@ -16,21 +16,54 @@ from .webhook_service import ResendWebhookPayloadError, process_resend_webhook
 logger = logging.getLogger(__name__)
 
 
+def _resend_webhook_max_body_bytes():
+    value = getattr(settings, "RESEND_WEBHOOK_MAX_BODY_BYTES", 131072)
+    if isinstance(value, bool):
+        raise ResendWebhookConfigurationError(
+            "RESEND_WEBHOOK_MAX_BODY_BYTES must be a positive integer."
+        )
+    try:
+        value = int(value)
+    except (TypeError, ValueError):
+        raise ResendWebhookConfigurationError(
+            "RESEND_WEBHOOK_MAX_BODY_BYTES must be a positive integer."
+        ) from None
+    if value <= 0:
+        raise ResendWebhookConfigurationError(
+            "RESEND_WEBHOOK_MAX_BODY_BYTES must be a positive integer."
+        )
+    return value
+
+
 @csrf_exempt
 @never_cache
 @require_POST
 def resend_webhook(request):
     """Public callback; CSRF yerine provider imzası zorunludur."""
-    max_bytes = int(getattr(settings, "RESEND_WEBHOOK_MAX_BODY_BYTES", 131072))
+    try:
+        max_bytes = _resend_webhook_max_body_bytes()
+    except ResendWebhookConfigurationError as exc:
+        logger.error(
+            "Resend webhook config error: exception_type=%s",
+            exc.__class__.__name__,
+        )
+        return HttpResponse(status=503)
+
     content_length = request.META.get("CONTENT_LENGTH")
     if content_length:
         try:
-            if int(content_length) > max_bytes:
+            content_length = int(content_length)
+            if content_length < 0:
+                return HttpResponse(status=400)
+            if content_length > max_bytes:
                 return HttpResponse(status=413)
         except (TypeError, ValueError):
             return HttpResponse(status=400)
 
-    raw_body = request.body
+    try:
+        raw_body = request.read(max_bytes + 1)
+    except OSError:
+        return HttpResponse(status=400)
     if len(raw_body) > max_bytes:
         return HttpResponse(status=413)
 
@@ -56,4 +89,4 @@ def resend_webhook(request):
         logger.error("Resend webhook processing failed: exception_type=%s", exc.__class__.__name__)
         return HttpResponse(status=500)
 
-    return HttpResponse(status=204)
+    return HttpResponse(status=200)

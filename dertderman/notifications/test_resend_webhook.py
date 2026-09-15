@@ -1,11 +1,16 @@
 from datetime import datetime, timedelta, timezone as dt_timezone
 from unittest.mock import Mock, patch
 
-from django.test import TestCase, override_settings
+from django.db import transaction
+from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
 
 from .models import EmailDelivery, EmailWebhookEvent
-from .webhook_security import ResendWebhookConfigurationError, ResendWebhookVerificationError
+from .webhook_security import (
+    ResendWebhookConfigurationError,
+    ResendWebhookVerificationError,
+    verify_resend_webhook,
+)
 from .webhook_service import (
     ResendWebhookIntegrityError,
     ResendWebhookPayloadError,
@@ -52,7 +57,7 @@ class ResendWebhookTests(TestCase):
 
     def test_delivered_updates_status_and_minimal_audit(self):
         r = self.post_verified("msg_delivered", self.payload())
-        self.assertEqual(r.status_code, 204)
+        self.assertEqual(r.status_code, 200)
         self.delivery.refresh_from_db()
         self.assertEqual(self.delivery.provider_status, EmailDelivery.ProviderStatus.DELIVERED)
         event = EmailWebhookEvent.objects.get(event_id="msg_delivered")
@@ -71,16 +76,90 @@ class ResendWebhookTests(TestCase):
             self.payload(email_id=provider_message_id),
         )
 
-        self.assertEqual(response.status_code, 204)
+        self.assertEqual(response.status_code, 200)
         event = EmailWebhookEvent.objects.get(event_id="msg_capacity_id")
         self.assertEqual(event.provider_message_id, provider_message_id)
         self.assertEqual(event.delivery_id, self.delivery.pk)
 
     def test_duplicate_svix_id_is_idempotent(self):
         payload = self.payload()
-        self.assertEqual(self.post_verified("msg_dup", payload).status_code, 204)
-        self.assertEqual(self.post_verified("msg_dup", payload).status_code, 204)
+        self.assertEqual(self.post_verified("msg_dup", payload).status_code, 200)
+        self.assertEqual(self.post_verified("msg_dup", payload).status_code, 200)
         self.assertEqual(EmailWebhookEvent.objects.filter(event_id="msg_dup").count(), 1)
+
+    def test_conflicting_duplicate_event_id_raises_integrity_alarm(self):
+        event, created = process_resend_webhook(
+            event_id="msg_conflicting_duplicate",
+            payload=self.payload(),
+        )
+        self.assertTrue(created)
+        original_metadata = (
+            event.event_type,
+            event.provider_message_id,
+            event.event_created_at,
+            event.delivery_id,
+            event.processing_result,
+        )
+        conflicting_payloads = (
+            self.payload("email.bounced"),
+            self.payload(email_id="private-conflicting-provider-id"),
+            self.payload(created_at="2026-09-13T12:00:01Z"),
+        )
+
+        with transaction.atomic():
+            for payload in conflicting_payloads:
+                with self.subTest(conflict=payload), self.assertRaises(
+                    ResendWebhookIntegrityError
+                ) as captured:
+                    process_resend_webhook(
+                        event_id="msg_conflicting_duplicate",
+                        payload=payload,
+                    )
+                self.assertNotIn(
+                    "private-conflicting-provider-id",
+                    str(captured.exception),
+                )
+
+            # The caller's transaction remains usable after every alarm.
+            self.assertEqual(EmailWebhookEvent.objects.count(), 1)
+            event.refresh_from_db()
+
+        self.assertEqual(
+            (
+                event.event_type,
+                event.provider_message_id,
+                event.event_created_at,
+                event.delivery_id,
+                event.processing_result,
+            ),
+            original_metadata,
+        )
+
+    def test_conflicting_duplicate_returns_retryable_500_without_private_data(self):
+        event_id = "msg_conflicting_duplicate_http"
+        self.assertEqual(
+            self.post_verified(event_id, self.payload()).status_code,
+            200,
+        )
+        private_provider_id = "private-conflicting-http-provider-id"
+
+        with self.assertLogs(
+            "notifications.webhook_views",
+            level="ERROR",
+        ) as captured:
+            response = self.post_verified(
+                event_id,
+                self.payload(email_id=private_provider_id),
+            )
+
+        self.assertEqual(response.status_code, 500)
+        self.assertNotIn(private_provider_id, response.content.decode())
+        self.assertNotIn(private_provider_id, " ".join(captured.output))
+        event = EmailWebhookEvent.objects.get(event_id=event_id)
+        self.assertEqual(
+            event.provider_message_id,
+            self.delivery.provider_message_id,
+        )
 
     def test_invalid_signature_is_rejected(self):
         with patch("notifications.webhook_views.verify_resend_webhook", side_effect=ResendWebhookVerificationError("invalid")):
@@ -88,6 +167,25 @@ class ResendWebhookTests(TestCase):
                                  HTTP_SVIX_ID="msg_bad", HTTP_SVIX_TIMESTAMP="1", HTTP_SVIX_SIGNATURE="v1,bad")
         self.assertEqual(r.status_code, 400)
         self.assertFalse(EmailWebhookEvent.objects.filter(event_id="msg_bad").exists())
+
+    def test_missing_signature_headers_are_rejected(self):
+        response = self.client.post(
+            self.url,
+            data=b"{}",
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_invalid_utf8_is_rejected_before_sdk_verification(self):
+        with patch("notifications.webhook_security._load_resend") as load_resend:
+            with self.assertRaises(ResendWebhookVerificationError):
+                verify_resend_webhook(
+                    raw_body=b"\xff",
+                    svix_id="msg_invalid_utf8",
+                    svix_timestamp="1",
+                    svix_signature="v1,test",
+                )
+        load_resend.assert_not_called()
 
     def test_missing_server_config_returns_503(self):
         with patch("notifications.webhook_views.verify_resend_webhook", side_effect=ResendWebhookConfigurationError("missing")):
@@ -99,6 +197,22 @@ class ResendWebhookTests(TestCase):
         payload = {"type": "email.bounced", "created_at": "2026-09-13T12:00:00Z", "data": {}}
         r = self.post_verified("msg_missing", payload)
         self.assertEqual(r.status_code, 400)
+
+    def test_malformed_verified_payload_types_are_400(self):
+        invalid_payloads = (
+            [],
+            {"type": 123, "data": {}},
+            {"type": "email.opened", "data": []},
+            {"type": "email.opened", "data": None},
+        )
+        for index, payload in enumerate(invalid_payloads):
+            event_id = f"msg_malformed_verified_{index}"
+            with self.subTest(payload=payload):
+                response = self.post_verified(event_id, payload)
+                self.assertEqual(response.status_code, 400)
+                self.assertFalse(
+                    EmailWebhookEvent.objects.filter(event_id=event_id).exists()
+                )
 
     def test_invalid_provider_message_ids_are_400_without_audit_rows(self):
         private_value = "private-provider-id\nsecret"
@@ -180,7 +294,7 @@ class ResendWebhookTests(TestCase):
             self.payload("email.delivered", created_at="2026-09-13T12:00:00"),
         )
 
-        self.assertEqual(response.status_code, 204)
+        self.assertEqual(response.status_code, 200)
         self.delivery.refresh_from_db()
         self.assertEqual(
             self.delivery.provider_status_at,
@@ -192,7 +306,7 @@ class ResendWebhookTests(TestCase):
 
         response = self.post_verified("msg_untracked", payload)
 
-        self.assertEqual(response.status_code, 204)
+        self.assertEqual(response.status_code, 200)
         self.delivery.refresh_from_db()
         self.assertEqual(self.delivery.provider_status, "")
         self.assertIsNone(self.delivery.provider_status_at)
@@ -212,10 +326,49 @@ class ResendWebhookTests(TestCase):
         self.assertEqual(self.delivery.provider_status, EmailDelivery.ProviderStatus.DELIVERED)
         self.assertEqual(self.delivery.provider_status_at, newer)
 
+    def test_equal_timestamp_does_not_regress_delivered_to_delayed(self):
+        created_at = "2026-09-13T12:05:00Z"
+        self.assertEqual(
+            self.post_verified(
+                "msg_equal_delivered",
+                self.payload("email.delivered", created_at),
+            ).status_code,
+            200,
+        )
+        self.assertEqual(
+            self.post_verified(
+                "msg_equal_delayed",
+                self.payload("email.delivery_delayed", created_at),
+            ).status_code,
+            200,
+        )
+
+        self.delivery.refresh_from_db()
+        self.assertEqual(
+            self.delivery.provider_status,
+            EmailDelivery.ProviderStatus.DELIVERED,
+        )
+
+    def test_later_timestamp_preserves_legitimate_lower_precedence_update(self):
+        self.post_verified(
+            "msg_earlier_delivered",
+            self.payload("email.delivered", "2026-09-13T12:05:00Z"),
+        )
+        self.post_verified(
+            "msg_later_delayed",
+            self.payload("email.delivery_delayed", "2026-09-13T12:06:00Z"),
+        )
+
+        self.delivery.refresh_from_db()
+        self.assertEqual(
+            self.delivery.provider_status,
+            EmailDelivery.ProviderStatus.DELAYED,
+        )
+
     def test_unmatched_can_be_reconciled_later(self):
         unknown_id = "email_race_123"
         r = self.post_verified("msg_race", self.payload("email.bounced", email_id=unknown_id))
-        self.assertEqual(r.status_code, 204)
+        self.assertEqual(r.status_code, 200)
         event = EmailWebhookEvent.objects.get(event_id="msg_race")
         self.assertEqual(event.processing_result, EmailWebhookEvent.ProcessingResult.UNMATCHED)
         late = EmailDelivery.objects.create(
@@ -228,13 +381,47 @@ class ResendWebhookTests(TestCase):
         self.assertEqual(event.delivery_id, late.pk)
         self.assertEqual(late.provider_status, EmailDelivery.ProviderStatus.BOUNCED)
 
+    def test_reconciliation_uses_equal_timestamp_precedence_and_is_idempotent(self):
+        unknown_id = "email_equal_timestamp_reconciliation"
+        created_at = "2026-09-13T12:00:00Z"
+        self.post_verified(
+            "msg_reconcile_delivered",
+            self.payload("email.delivered", created_at, unknown_id),
+        )
+        self.post_verified(
+            "msg_reconcile_delayed",
+            self.payload("email.delivery_delayed", created_at, unknown_id),
+        )
+        late = EmailDelivery.objects.create(
+            provider="resend",
+            idempotency_key="dertderman/test-stage8-equal-reconciliation",
+            recipient_hash="b" * 64,
+            status=EmailDelivery.Status.SENT,
+            provider_message_id=unknown_id,
+            attempt_count=1,
+        )
+
+        self.assertEqual(reconcile_unmatched_resend_events(unknown_id), 2)
+        self.assertEqual(reconcile_unmatched_resend_events(unknown_id), 0)
+        late.refresh_from_db()
+        self.assertEqual(
+            late.provider_status,
+            EmailDelivery.ProviderStatus.DELIVERED,
+        )
+        self.assertFalse(
+            EmailWebhookEvent.objects.filter(
+                provider_message_id=unknown_id,
+                processing_result=EmailWebhookEvent.ProcessingResult.UNMATCHED,
+            ).exists()
+        )
+
     def test_resend_webhook_does_not_match_other_provider_with_same_id(self):
         self.delivery.provider = "other-provider"
         self.delivery.save(update_fields=["provider"])
 
         response = self.post_verified("msg_wrong_provider", self.payload())
 
-        self.assertEqual(response.status_code, 204)
+        self.assertEqual(response.status_code, 200)
         self.delivery.refresh_from_db()
         event = EmailWebhookEvent.objects.get(event_id="msg_wrong_provider")
         self.assertEqual(self.delivery.provider_status, "")
@@ -277,4 +464,35 @@ class ResendWebhookTests(TestCase):
             r = self.client.post(self.url, data=b'12345', content_type="application/json",
                                  HTTP_SVIX_ID="msg_large", HTTP_SVIX_TIMESTAMP="1", HTTP_SVIX_SIGNATURE="v1,x")
         self.assertEqual(r.status_code, 413)
+        verify.assert_not_called()
+
+    @override_settings(RESEND_WEBHOOK_MAX_BODY_BYTES=4)
+    def test_oversized_actual_body_without_content_length_is_413(self):
+        request = RequestFactory().post(
+            self.url,
+            data=b"12345",
+            content_type="application/json",
+        )
+        request.META.pop("CONTENT_LENGTH", None)
+        request.read = Mock(wraps=request.read)
+
+        with patch("notifications.webhook_views.verify_resend_webhook") as verify:
+            from .webhook_views import resend_webhook
+
+            response = resend_webhook(request)
+
+        self.assertEqual(response.status_code, 413)
+        request.read.assert_called_once_with(5)
+        verify.assert_not_called()
+
+    @override_settings(RESEND_WEBHOOK_MAX_BODY_BYTES="invalid")
+    def test_invalid_runtime_body_limit_returns_503_before_verify(self):
+        with patch("notifications.webhook_views.verify_resend_webhook") as verify:
+            response = self.client.post(
+                self.url,
+                data=b"{}",
+                content_type="application/json",
+            )
+
+        self.assertEqual(response.status_code, 503)
         verify.assert_not_called()

@@ -287,20 +287,38 @@ else:
 # Mail transport configuration. Business rules and token generation do not
 # belong here; these values only configure the provider-neutral email service.
 EMAIL_PROVIDER = (os.getenv("EMAIL_PROVIDER", "resend") or "resend").strip().lower()
-EMAIL_SENDING_ENABLED = _env_bool("EMAIL_SENDING_ENABLED", default=False)
+EMAIL_SENDING_ENABLED = _strict_env_bool("EMAIL_SENDING_ENABLED", default=False)
 TRANSACTIONAL_EMAILS_ENABLED = _env_bool(
     "TRANSACTIONAL_EMAILS_ENABLED",
     default=True,
 )
 RESEND_API_KEY = os.getenv("RESEND_API_KEY", "").strip()
 RESEND_WEBHOOK_SECRET = os.getenv("RESEND_WEBHOOK_SECRET", "").strip()
-RESEND_WEBHOOK_MAX_BODY_BYTES = int(
-    os.getenv("RESEND_WEBHOOK_MAX_BODY_BYTES", "131072")
+RESEND_WEBHOOK_MAX_BODY_BYTES = _positive_env_int(
+    "RESEND_WEBHOOK_MAX_BODY_BYTES",
+    default=131072,
 )
 RESEND_TIMEOUT_SECONDS = _positive_env_int(
     "RESEND_TIMEOUT_SECONDS",
     default=30,
 )
+
+if IS_PRODUCTION and EMAIL_SENDING_ENABLED:
+    if EMAIL_PROVIDER != "resend":
+        raise ImproperlyConfigured(
+            "EMAIL_PROVIDER must be 'resend' when email sending is enabled "
+            "in production."
+        )
+    if not RESEND_API_KEY:
+        raise ImproperlyConfigured(
+            "RESEND_API_KEY is required when email sending is enabled in "
+            "production."
+        )
+    if not RESEND_WEBHOOK_SECRET:
+        raise ImproperlyConfigured(
+            "RESEND_WEBHOOK_SECRET is required when email sending is enabled "
+            "in production."
+        )
 
 DEFAULT_FROM_EMAIL = os.getenv(
     "DEFAULT_FROM_EMAIL",

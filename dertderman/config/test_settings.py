@@ -29,9 +29,14 @@ class SettingsProfileTests(SimpleTestCase):
         "DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS",
         "DJANGO_SECURE_HSTS_PRELOAD",
         "DJANGO_TRUST_X_FORWARDED_PROTO",
+        "EMAIL_PROVIDER",
+        "EMAIL_SENDING_ENABLED",
         "EMAIL_VERIFICATION_TIMEOUT",
         "EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS",
+        "RESEND_API_KEY",
         "RESEND_TIMEOUT_SECONDS",
+        "RESEND_WEBHOOK_MAX_BODY_BYTES",
+        "RESEND_WEBHOOK_SECRET",
         "SITE_BASE_URL",
     }
 
@@ -192,6 +197,77 @@ print(json.dumps({
                 }
                 result = self.run_settings("import config.settings", env=env)
                 self.assert_configuration_error(result, "RESEND_TIMEOUT_SECONDS")
+
+    def test_resend_webhook_body_limit_must_be_a_positive_integer(self):
+        for invalid_value in ("0", "-1", "1.5", "invalid"):
+            with self.subTest(invalid_value=invalid_value):
+                env = {
+                    **self.production_env,
+                    "RESEND_WEBHOOK_MAX_BODY_BYTES": invalid_value,
+                }
+                result = self.run_settings("import config.settings", env=env)
+                self.assert_configuration_error(
+                    result,
+                    "RESEND_WEBHOOK_MAX_BODY_BYTES",
+                )
+
+    def test_email_sending_enabled_must_be_a_boolean(self):
+        env = {
+            **self.production_env,
+            "EMAIL_SENDING_ENABLED": "sometimes",
+        }
+        result = self.run_settings("import config.settings", env=env)
+        self.assert_configuration_error(result, "EMAIL_SENDING_ENABLED")
+
+    def test_enabled_production_resend_requires_transport_and_webhook_secrets(self):
+        configured_env = {
+            **self.production_env,
+            "EMAIL_PROVIDER": "resend",
+            "EMAIL_SENDING_ENABLED": "True",
+            "RESEND_API_KEY": "re_settings_test_only",
+            "RESEND_WEBHOOK_SECRET": "whsec_settings_test_only",
+        }
+        valid_result = self.run_settings(
+            "import config.settings",
+            env=configured_env,
+        )
+        self.assertEqual(valid_result.returncode, 0, valid_result.stderr)
+
+        for missing_setting in ("RESEND_API_KEY", "RESEND_WEBHOOK_SECRET"):
+            with self.subTest(missing_setting=missing_setting):
+                result = self.run_settings(
+                    "import config.settings",
+                    env=configured_env,
+                    omitted={missing_setting},
+                )
+                self.assert_configuration_error(result, missing_setting)
+
+    def test_enabled_production_email_rejects_unsupported_provider(self):
+        env = {
+            **self.production_env,
+            "EMAIL_PROVIDER": "unsupported",
+            "EMAIL_SENDING_ENABLED": "True",
+            "RESEND_API_KEY": "re_settings_test_only",
+            "RESEND_WEBHOOK_SECRET": "whsec_settings_test_only",
+        }
+        result = self.run_settings("import config.settings", env=env)
+        self.assert_configuration_error(result, "EMAIL_PROVIDER")
+
+    def test_disabled_production_email_does_not_require_resend_secrets(self):
+        env = {
+            **self.production_env,
+            "EMAIL_PROVIDER": "resend",
+            "EMAIL_SENDING_ENABLED": "False",
+        }
+        result = self.run_settings(
+            "from config import settings; "
+            "assert settings.EMAIL_SENDING_ENABLED is False; "
+            "assert settings.RESEND_API_KEY == ''; "
+            "assert settings.RESEND_WEBHOOK_SECRET == ''",
+            env=env,
+            omitted={"RESEND_API_KEY", "RESEND_WEBHOOK_SECRET"},
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_email_verification_timeout_must_be_a_positive_integer(self):
         for invalid_value in ("0", "-1", "1.5", "invalid"):

@@ -29,6 +29,18 @@ _PROVIDER_STATUS_BY_EVENT = {
     "email.suppressed": EmailDelivery.ProviderStatus.SUPPRESSED,
 }
 
+# Equal provider timestamps need a deterministic tie-breaker. This ordering is
+# used only for equal timestamps; every legitimate later event still wins.
+_PROVIDER_STATUS_PRECEDENCE = {
+    EmailDelivery.ProviderStatus.SENT: 10,
+    EmailDelivery.ProviderStatus.DELAYED: 20,
+    EmailDelivery.ProviderStatus.DELIVERED: 30,
+    EmailDelivery.ProviderStatus.FAILED: 40,
+    EmailDelivery.ProviderStatus.SUPPRESSED: 50,
+    EmailDelivery.ProviderStatus.BOUNCED: 60,
+    EmailDelivery.ProviderStatus.COMPLAINED: 70,
+}
+
 
 def _event_time(value, *, required=False):
     if not isinstance(value, str) or not value.strip():
@@ -52,10 +64,13 @@ def _event_time(value, *, required=False):
 def _extract(payload):
     if not isinstance(payload, dict):
         raise ResendWebhookPayloadError("Payload must be an object.")
-    event_type = str(payload.get("type") or "").strip()
+    raw_event_type = payload.get("type")
+    if not isinstance(raw_event_type, str):
+        raise ResendWebhookPayloadError("Invalid event type.")
+    event_type = raw_event_type.strip()
     if not event_type or len(event_type) > 64:
         raise ResendWebhookPayloadError("Invalid event type.")
-    data = payload.get("data") or {}
+    data = payload.get("data", {})
     if not isinstance(data, dict):
         raise ResendWebhookPayloadError("Invalid event data.")
     if "email_id" in data:
@@ -96,10 +111,42 @@ def _apply_status(delivery, provider_status, event_created_at):
     current_at = delivery.provider_status_at
     if current_at is not None and event_created_at < current_at:
         return False
+    if current_at is not None and event_created_at == current_at:
+        current_precedence = _PROVIDER_STATUS_PRECEDENCE.get(
+            delivery.provider_status,
+            0,
+        )
+        incoming_precedence = _PROVIDER_STATUS_PRECEDENCE[provider_status]
+        if incoming_precedence <= current_precedence:
+            return False
     delivery.provider_status = provider_status
     delivery.provider_status_at = event_created_at
     delivery.save(update_fields=["provider_status", "provider_status_at", "updated_at"])
     return True
+
+
+def _assert_duplicate_consistency(
+    existing,
+    *,
+    event_type,
+    message_id,
+    provider_status,
+    event_created_at,
+):
+    metadata_matches = (
+        existing.provider == "resend"
+        and existing.event_type == event_type
+        and existing.provider_message_id == message_id
+    )
+    if provider_status is not None:
+        metadata_matches = (
+            metadata_matches
+            and existing.event_created_at == event_created_at
+        )
+    if not metadata_matches:
+        raise ResendWebhookIntegrityError(
+            "Webhook event identity conflicts with stored metadata."
+        )
 
 
 @transaction.atomic
@@ -113,6 +160,13 @@ def process_resend_webhook(*, event_id: str, payload: dict):
     existing = (EmailWebhookEvent.objects.select_for_update()
                 .filter(event_id=event_id).first())
     if existing is not None:
+        _assert_duplicate_consistency(
+            existing,
+            event_type=event_type,
+            message_id=message_id,
+            provider_status=provider_status,
+            event_created_at=event_created_at,
+        )
         if (existing.processing_result == EmailWebhookEvent.ProcessingResult.UNMATCHED
                 and existing.provider_message_id):
             delivery = _match_delivery(existing.provider_message_id)
