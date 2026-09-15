@@ -314,18 +314,18 @@ DertDerman firma hesabınızı ücretsiz oluşturun, müşteri şikayetlerini ta
                     </ul>
 
 
-                    <a
-                        class="fc-button fc-button-primary fc-button-full"
-                        href="{% url 'core:contact' %}"
-                    >
-                        Pro'ya Geç
-                        <span>→</span>
-                    </a>
+<a
+    class="fc-button fc-button-primary fc-button-full"
+    href="{% url 'company_auth:login' %}?next={% url 'companies:plan' %}"
+>
+    Pro'ya Geç
+    <span>→</span>
+</a>
 
-                    <small class="fc-plan-notice">
-                        Ödeme altyapısı aktif edildiğinde bu buton
-                        doğrudan satın alma ekranına bağlanacaktır.
-                    </small>
+<small class="fc-plan-notice">
+    Pro paketini satın almak için firma hesabınıza giriş yapın.
+    Firma hesabınız yoksa ücretsiz olarak oluşturabilirsiniz.
+</small>
 
                 </article>
 

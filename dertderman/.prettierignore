@@ -35,3 +35,4 @@ templates/components/category_icon.html
 templates/home.html
 templates/blog/post_list.html
 templates/accounts/password_reset_request.html
+templates/core/for_companies.html

@@ -14,6 +14,7 @@ urlpatterns = [
     path("panel/", include("dashboard.urls")),
     path("webhooks/", include("notifications.webhook_urls")),
     path("bildirimler/", include("notifications.urls")),
+    path("sirket-panel/paket/odeme/", include("payments.urls")),
     path("sirket-panel/", include("companies.urls")),
     path("sirketler/", include("companies.public_urls")),
     path("yonetim/", include("adminx.urls")),

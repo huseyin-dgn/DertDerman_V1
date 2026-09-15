@@ -1,0 +1,219 @@
+{% extends 'companies/panel/base.html' %}
+{% load static %}
+
+{% block title %}Pro Ödeme{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/payment.css' %}?v=1">
+{% endblock %}
+
+{% block panel_content %}
+
+<a class="cp-back" href="{% url 'companies:plan' %}">
+  ← Paketlere dön
+</a>
+
+<header class="cp-page-heading dd-payment-heading">
+  <div>
+    <p class="cp-kicker">
+      DERTDERMAN PRO / ÖDEME
+    </p>
+
+    <h1>
+      Pro'ya geçmeden önce
+      <span>planınızı doğrulayın.</span>
+    </h1>
+
+    <p>
+      {{ company.name }} için seçtiğiniz DertDerman Pro
+      dönemini kontrol edin. Ödeme sağlayıcısı aktif edildiğinde
+      güvenli ödeme adımı bu ekran üzerinden başlatılacaktır.
+    </p>
+  </div>
+
+  <span class="dd-payment-status">
+    Sağlayıcı bekleniyor
+  </span>
+</header>
+
+
+<div class="dd-payment-layout">
+
+  <section class="cp-card dd-payment-main" aria-labelledby="payment-plan-title">
+
+    <div class="dd-payment-section-head">
+      <div>
+        <p class="cp-kicker">
+          FATURALANDIRMA DÖNEMİ
+        </p>
+
+        <h2 id="payment-plan-title">
+          DertDerman Pro
+        </h2>
+      </div>
+
+      <span class="dd-payment-plan-mark">
+        PRO
+      </span>
+    </div>
+
+
+    <div class="dd-payment-cycle-grid" aria-label="Faturalandırma dönemi">
+
+      <a
+        href="?period=monthly"
+        class="dd-payment-cycle{% if selected_billing == 'monthly' %} is-selected{% endif %}"
+        {% if selected_billing == 'monthly' %}aria-current="true"{% endif %}
+      >
+        <span>Aylık</span>
+        <strong>₺49,90</strong>
+        <small>Her ay</small>
+      </a>
+
+      <a
+        href="?period=yearly"
+        class="dd-payment-cycle{% if selected_billing == 'yearly' %} is-selected{% endif %}"
+        {% if selected_billing == 'yearly' %}aria-current="true"{% endif %}
+      >
+        <span>
+          Yıllık
+          <em>2 ay ücretsiz</em>
+        </span>
+        <strong>₺499,90</strong>
+        <small>Her yıl</small>
+      </a>
+
+    </div>
+
+
+    <div class="dd-payment-benefits">
+      <h3>Pro ile açılacak özellikler</h3>
+
+      <ul>
+        <li><span>✓</span> Şikayetlere kurumsal yanıt verme</li>
+        <li><span>✓</span> Ekip içi dahili notlar</li>
+        <li><span>✓</span> Gelişmiş firma istatistikleri</li>
+        <li><span>✓</span> Pro firma rozeti</li>
+        <li><span>✓</span> Öncelikli destek</li>
+      </ul>
+    </div>
+
+
+    <div class="dd-payment-provider">
+      <div class="dd-payment-provider-icon" aria-hidden="true">
+        ✓
+      </div>
+
+      <div>
+        <strong>Güvenli ödeme altyapısı</strong>
+        <p>
+          DertDerman şu anda bu ekranda kart veya banka bilgisi
+          toplamıyor. Ödeme sağlayıcısı kesinleştiğinde ödeme
+          sağlayıcısının güvenli akışı buraya bağlanacaktır.
+        </p>
+      </div>
+    </div>
+
+  </section>
+
+
+  <aside class="cp-card dd-payment-summary" aria-labelledby="payment-summary-title">
+
+    <p class="cp-kicker">
+      SİPARİŞ ÖZETİ
+    </p>
+
+    <h2 id="payment-summary-title">
+      {{ company.name }}
+    </h2>
+
+    <dl class="dd-payment-summary-list">
+      <div>
+        <dt>Paket</dt>
+        <dd>DertDerman Pro</dd>
+      </div>
+
+      <div>
+        <dt>Dönem</dt>
+        <dd>{{ payment_option.label }}</dd>
+      </div>
+
+      <div>
+        <dt>Plan tutarı</dt>
+        <dd>₺{{ payment_option.price }}</dd>
+      </div>
+    </dl>
+
+    <div class="dd-payment-total">
+      <span>Ödenecek tutar</span>
+      <strong>
+        ₺{{ payment_option.price }}
+        <small>{{ payment_option.suffix }}</small>
+      </strong>
+    </div>
+
+    <button
+      type="button"
+      class="cp-button dd-payment-submit"
+      disabled
+      aria-disabled="true"
+    >
+      Ödeme altyapısı hazırlanıyor
+    </button>
+
+    <p class="dd-payment-submit-note">
+      Bu buton şu anda ödeme başlatmaz ve Pro paketini
+      etkinleştirmez.
+    </p>
+
+    <div class="dd-payment-flow">
+      <span>1</span>
+      <p>
+        <strong>Plan seçimi</strong>
+        <small>Aylık veya yıllık dönem.</small>
+      </p>
+
+      <span>2</span>
+      <p>
+        <strong>Güvenli ödeme</strong>
+        <small>Onaylı sağlayıcı üzerinden.</small>
+      </p>
+
+      <span>3</span>
+      <p>
+        <strong>Doğrulama</strong>
+        <small>Ödeme sonucu sunucu tarafında doğrulanır.</small>
+      </p>
+
+      <span>4</span>
+      <p>
+        <strong>Pro aktivasyonu</strong>
+        <small>Doğrulamadan sonra özellikler açılır.</small>
+      </p>
+    </div>
+
+  </aside>
+
+</div>
+
+
+<section class="cp-card dd-payment-note">
+  <div>
+    <p class="cp-kicker">
+      ÖDEME GÜVENLİĞİ
+    </p>
+
+    <h2>
+      Pro yetkisi yalnızca doğrulanmış ödeme ile açılacak.
+    </h2>
+
+    <p>
+      Tarayıcıdaki başarı sayfası tek başına paket aktivasyonu
+      için yeterli olmayacak. Gerçek entegrasyonda ödeme sonucu
+      sağlayıcı tarafından doğrulandıktan sonra Pro hakkı
+      etkinleştirilecek.
+    </p>
+  </div>
+</section>
+
+{% endblock %}

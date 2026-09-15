@@ -285,16 +285,15 @@
 
     {% else %}
 
-      <span
-        class="cp-button cp-button--disabled"
-        aria-disabled="true"
+      <a
+        href="{% url 'payments:checkout' %}"
+        class="cp-button"
       >
         Pro'ya Yükselt
-      </span>
+      </a>
 
       <small class="cp-plan-coming-soon">
-        Online satın alma adımı ödeme ekranı
-        tamamlandığında aktif olacaktır.
+        Planınızı ödeme ekranında doğrulayabilirsiniz.
       </small>
 
     {% endif %}
