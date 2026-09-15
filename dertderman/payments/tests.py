@@ -163,3 +163,17 @@ class PaymentPreviewTests(TestCase):
             "Pro'ya Yükselt",
         )
 
+
+    def test_authenticated_company_login_honors_plan_next(self):
+        response = self.client.get(
+            reverse("company_auth:login"),
+            {
+                "next": reverse("companies:plan"),
+            },
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("companies:plan"),
+            fetch_redirect_response=False,
+        )
