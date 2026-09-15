@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone as dt_timezone
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from django.test import TestCase, override_settings
 from django.urls import reverse
@@ -7,10 +7,12 @@ from django.urls import reverse
 from .models import EmailDelivery, EmailWebhookEvent
 from .webhook_security import ResendWebhookConfigurationError, ResendWebhookVerificationError
 from .webhook_service import (
+    ResendWebhookIntegrityError,
     ResendWebhookPayloadError,
     process_resend_webhook,
     reconcile_unmatched_resend_events,
 )
+from .provider_identifiers import PROVIDER_MESSAGE_ID_MAX_LENGTH
 
 
 @override_settings(RESEND_WEBHOOK_SECRET="whsec_test_only", RESEND_WEBHOOK_MAX_BODY_BYTES=131072)
@@ -59,6 +61,21 @@ class ResendWebhookTests(TestCase):
         self.assertNotIn("private-person@example.com", stored)
         self.assertNotIn("PRIVATE SUBJECT", stored)
 
+    def test_capacity_length_id_matches_and_is_stored_exactly(self):
+        provider_message_id = "x" * PROVIDER_MESSAGE_ID_MAX_LENGTH
+        self.delivery.provider_message_id = provider_message_id
+        self.delivery.save(update_fields=["provider_message_id"])
+
+        response = self.post_verified(
+            "msg_capacity_id",
+            self.payload(email_id=provider_message_id),
+        )
+
+        self.assertEqual(response.status_code, 204)
+        event = EmailWebhookEvent.objects.get(event_id="msg_capacity_id")
+        self.assertEqual(event.provider_message_id, provider_message_id)
+        self.assertEqual(event.delivery_id, self.delivery.pk)
+
     def test_duplicate_svix_id_is_idempotent(self):
         payload = self.payload()
         self.assertEqual(self.post_verified("msg_dup", payload).status_code, 204)
@@ -82,6 +99,43 @@ class ResendWebhookTests(TestCase):
         payload = {"type": "email.bounced", "created_at": "2026-09-13T12:00:00Z", "data": {}}
         r = self.post_verified("msg_missing", payload)
         self.assertEqual(r.status_code, 400)
+
+    def test_invalid_provider_message_ids_are_400_without_audit_rows(self):
+        private_value = "private-provider-id\nsecret"
+        invalid_values = (
+            None,
+            123,
+            "",
+            "   ",
+            " id",
+            "id ",
+            "id value",
+            "id  value",
+            private_value,
+            "x" * (PROVIDER_MESSAGE_ID_MAX_LENGTH + 1),
+        )
+
+        for index, provider_message_id in enumerate(invalid_values):
+            with self.subTest(value_type=type(provider_message_id).__name__):
+                payload = self.payload()
+                payload["data"]["email_id"] = provider_message_id
+                event_id = f"msg_invalid_provider_id_{index}"
+
+                response = self.post_verified(event_id, payload)
+
+                self.assertEqual(response.status_code, 400)
+                self.assertFalse(
+                    EmailWebhookEvent.objects.filter(event_id=event_id).exists()
+                )
+
+        with self.assertRaises(ResendWebhookPayloadError) as context:
+            payload = self.payload()
+            payload["data"]["email_id"] = private_value
+            process_resend_webhook(
+                event_id="msg_private_invalid_provider_id",
+                payload=payload,
+            )
+        self.assertNotIn(private_value, str(context.exception))
 
     def _assert_invalid_tracked_created_at(self, event_id, payload):
         baseline = datetime(2026, 9, 13, 11, 0, tzinfo=dt_timezone.utc)
@@ -173,6 +227,46 @@ class ResendWebhookTests(TestCase):
         event.refresh_from_db(); late.refresh_from_db()
         self.assertEqual(event.delivery_id, late.pk)
         self.assertEqual(late.provider_status, EmailDelivery.ProviderStatus.BOUNCED)
+
+    def test_resend_webhook_does_not_match_other_provider_with_same_id(self):
+        self.delivery.provider = "other-provider"
+        self.delivery.save(update_fields=["provider"])
+
+        response = self.post_verified("msg_wrong_provider", self.payload())
+
+        self.assertEqual(response.status_code, 204)
+        self.delivery.refresh_from_db()
+        event = EmailWebhookEvent.objects.get(event_id="msg_wrong_provider")
+        self.assertEqual(self.delivery.provider_status, "")
+        self.assertEqual(
+            event.processing_result,
+            EmailWebhookEvent.ProcessingResult.UNMATCHED,
+        )
+        self.assertIsNone(event.delivery_id)
+
+    def test_delivery_lookup_raises_integrity_alarm_instead_of_choosing_first(self):
+        locked_deliveries = Mock()
+        locked_deliveries.get.side_effect = EmailDelivery.MultipleObjectsReturned
+
+        with patch(
+            "notifications.webhook_service.EmailDelivery.objects.select_for_update",
+            return_value=locked_deliveries,
+        ):
+            with self.assertRaises(ResendWebhookIntegrityError):
+                process_resend_webhook(
+                    event_id="msg_duplicate_delivery_integrity",
+                    payload=self.payload(),
+                )
+
+        locked_deliveries.get.assert_called_once_with(
+            provider="resend",
+            provider_message_id=self.delivery.provider_message_id,
+        )
+        self.assertFalse(
+            EmailWebhookEvent.objects.filter(
+                event_id="msg_duplicate_delivery_integrity"
+            ).exists()
+        )
 
     def test_get_is_405(self):
         self.assertEqual(self.client.get(self.url).status_code, 405)

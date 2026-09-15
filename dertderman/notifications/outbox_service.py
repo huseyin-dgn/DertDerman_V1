@@ -11,7 +11,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.mail.message import sanitize_address
 from django.core.validators import validate_email
-from django.db import connection, transaction
+from django.db import IntegrityError, connection, transaction
 from django.db.models import Q
 from django.template import TemplateDoesNotExist, TemplateSyntaxError
 from django.template.loader import get_template
@@ -33,6 +33,9 @@ from .email_service import (
 )
 from .email_template_manifest import required_email_template_names
 from .models import EmailDelivery, EmailOutbox
+from .provider_identifiers import (
+    validate_provider_message_id,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -62,12 +65,16 @@ class OutboxConfigurationError(OutboxError):
 OUTBOX_UNSUPPORTED_TEMPLATE_VERSION = "OUTBOX_UNSUPPORTED_TEMPLATE_VERSION"
 OUTBOX_INVALID_RECIPE = "OUTBOX_INVALID_RECIPE"
 OUTBOX_PROVIDER_MISMATCH = "OUTBOX_PROVIDER_MISMATCH"
+OUTBOX_PROVIDER_MESSAGE_OWNERSHIP_CONFLICT = (
+    "OUTBOX_PROVIDER_MESSAGE_OWNERSHIP_CONFLICT"
+)
 OUTBOX_RENDER_RETRY_EXHAUSTED = "OUTBOX_RENDER_RETRY_EXHAUSTED"
 _PERMANENT_ITEM_ERROR_CODES = frozenset(
     {
         OUTBOX_UNSUPPORTED_TEMPLATE_VERSION,
         OUTBOX_INVALID_RECIPE,
         OUTBOX_PROVIDER_MISMATCH,
+        OUTBOX_PROVIDER_MESSAGE_OWNERSHIP_CONFLICT,
     }
 )
 
@@ -140,7 +147,7 @@ def _validate_outbox_provider(provider_name) -> None:
     configured_provider = (
         getattr(settings, "EMAIL_PROVIDER", "resend") or ""
     ).strip().lower()
-    if (provider_name or "").strip().lower() != configured_provider:
+    if provider_name != configured_provider:
         raise OutboxPermanentItemError(OUTBOX_PROVIDER_MISMATCH)
 
 
@@ -784,22 +791,35 @@ def _finalize_failure(*, outbox_id, claim_token, error, now):
 
 
 def _finalize_success(*, outbox_id, claim_token, provider_message_id, now):
+    provider_message_id = validate_provider_message_id(provider_message_id)
     with transaction.atomic():
         outbox = _load_owned_outbox(outbox_id, claim_token, now)
         delivery = EmailDelivery.objects.select_for_update().get(outbox=outbox)
         delivery.status = EmailDelivery.Status.SENT
-        delivery.provider_message_id = str(provider_message_id)[:255]
+        delivery.provider_message_id = provider_message_id
         delivery.last_error_type = ""
         delivery.sent_at = now
-        delivery.save(
-            update_fields=[
-                "status",
-                "provider_message_id",
-                "last_error_type",
-                "sent_at",
-                "updated_at",
-            ]
-        )
+        try:
+            delivery.save(
+                update_fields=[
+                    "status",
+                    "provider_message_id",
+                    "last_error_type",
+                    "sent_at",
+                    "updated_at",
+                ]
+            )
+        except IntegrityError:
+            logger.error(
+                "Email provider message ownership conflict: "
+                "outbox_id=%s delivery_id=%s error_code=%s",
+                outbox_id,
+                delivery.pk,
+                OUTBOX_PROVIDER_MESSAGE_OWNERSHIP_CONFLICT,
+            )
+            raise OutboxPermanentItemError(
+                OUTBOX_PROVIDER_MESSAGE_OWNERSHIP_CONFLICT
+            ) from None
         _set_terminal(
             outbox,
             status=EmailOutbox.Status.SENT,
@@ -810,7 +830,7 @@ def _finalize_success(*, outbox_id, claim_token, provider_message_id, now):
     try:
         from .webhook_service import reconcile_unmatched_resend_events
 
-        reconcile_unmatched_resend_events(str(provider_message_id))
+        reconcile_unmatched_resend_events(provider_message_id)
     except Exception as exc:
         logger.warning(
             "Email webhook reconciliation failed: outbox_id=%s exception_type=%s",
@@ -820,7 +840,7 @@ def _finalize_success(*, outbox_id, claim_token, provider_message_id, now):
 
 
 def _send_with_provider(outbox, payload):
-    if (outbox.provider or "").strip().lower() != "resend":
+    if outbox.provider != "resend":
         raise OutboxPermanentItemError(OUTBOX_PROVIDER_MISMATCH)
     try:
         provider = ResendProvider(
@@ -921,6 +941,6 @@ def send_outbox_email(*, outbox_id, claim_token, payload, now=None):
     return EmailSendResult(
         provider=outbox.provider,
         status="sent",
-        provider_message_id=str(provider_message_id),
+        provider_message_id=provider_message_id,
         idempotency_key=outbox.provider_idempotency_key,
     )

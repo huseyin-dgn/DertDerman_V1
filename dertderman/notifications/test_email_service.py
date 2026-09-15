@@ -16,6 +16,7 @@ from notifications.email_service import (
     build_provider_idempotency_key,
     send_email,
 )
+from notifications.provider_identifiers import PROVIDER_MESSAGE_ID_MAX_LENGTH
 
 
 class EmailServiceTests(TestCase):
@@ -417,6 +418,65 @@ class ResendProviderTests(SimpleTestCase):
                 ResendProvider(api_key="re_test_only").send(**self.send_kwargs)
 
         self.assertEqual(context.exception.code, "provider_invalid_response")
+        self.assertTrue(context.exception.retryable)
+        self.assertTrue(context.exception.outcome_unknown)
+
+    @patch("notifications.email_providers.resend._load_resend")
+    def test_valid_provider_message_id_is_returned_exactly(self, load_resend):
+        provider_message_id = "X" * PROVIDER_MESSAGE_ID_MAX_LENGTH
+        load_resend.return_value = SimpleNamespace(
+            api_key=None,
+            default_http_client=None,
+            Emails=SimpleNamespace(
+                send=Mock(return_value={"id": provider_message_id})
+            ),
+            RequestsClient=Mock(return_value=object()),
+        )
+
+        result = ResendProvider(api_key="re_test_only").send(**self.send_kwargs)
+
+        self.assertEqual(result, provider_message_id)
+
+    def test_invalid_provider_message_ids_use_ambiguous_response_error(self):
+        private_value = "private-provider-id\nsecret"
+        invalid_values = (
+            None,
+            123,
+            object(),
+            "",
+            "   ",
+            " id",
+            "id ",
+            "id value",
+            "id  value",
+            private_value,
+            "x" * (PROVIDER_MESSAGE_ID_MAX_LENGTH + 1),
+        )
+
+        for provider_message_id in invalid_values:
+            with self.subTest(value_type=type(provider_message_id).__name__):
+                fake_resend = SimpleNamespace(
+                    api_key=None,
+                    default_http_client=None,
+                    Emails=SimpleNamespace(
+                        send=Mock(return_value={"id": provider_message_id})
+                    ),
+                    RequestsClient=Mock(return_value=object()),
+                )
+                with patch(
+                    "notifications.email_providers.resend._load_resend",
+                    return_value=fake_resend,
+                ):
+                    with self.assertRaises(ResendDeliveryError) as context:
+                        ResendProvider(api_key="re_test_only").send(
+                            **self.send_kwargs
+                        )
+
+                error = context.exception
+                self.assertEqual(error.code, "provider_invalid_response")
+                self.assertTrue(error.retryable)
+                self.assertTrue(error.outcome_unknown)
+                self.assertNotIn(private_value, str(error))
 
     def test_logs_exclude_provider_payload_and_message_content(self):
         sensitive_values = (

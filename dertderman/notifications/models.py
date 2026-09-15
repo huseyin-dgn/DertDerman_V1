@@ -5,6 +5,8 @@ from django.db import models
 from django.db.models import Q
 from django.urls import reverse
 
+from .provider_identifiers import PROVIDER_MESSAGE_ID_MAX_LENGTH
+
 
 class Notification(models.Model):
     class Scope(models.TextChoices):
@@ -472,7 +474,7 @@ class EmailDelivery(models.Model):
     )
 
     provider_message_id = models.CharField(
-        max_length=255,
+        max_length=PROVIDER_MESSAGE_ID_MAX_LENGTH,
         blank=True,
         default="",
         db_index=True,
@@ -522,6 +524,13 @@ class EmailDelivery(models.Model):
                 name="email_delivery_status",
             )
         ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["provider", "provider_message_id"],
+                condition=~Q(provider_message_id=""),
+                name="email_delivery_provider_msg_uq",
+            )
+        ]
 
 
 class EmailWebhookEvent(models.Model):
@@ -536,7 +545,10 @@ class EmailWebhookEvent(models.Model):
     event_id = models.CharField(max_length=255, unique=True)
     event_type = models.CharField(max_length=64, db_index=True)
     provider_message_id = models.CharField(
-        max_length=255, blank=True, default="", db_index=True
+        max_length=PROVIDER_MESSAGE_ID_MAX_LENGTH,
+        blank=True,
+        default="",
+        db_index=True,
     )
     delivery = models.ForeignKey(
         EmailDelivery,

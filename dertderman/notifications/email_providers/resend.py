@@ -4,6 +4,11 @@ import threading
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 
+from ..provider_identifiers import (
+    ProviderMessageIdValidationError,
+    validate_provider_message_id,
+)
+
 
 logger = logging.getLogger(__name__)
 _SDK_SEND_LOCK = threading.Lock()
@@ -292,12 +297,12 @@ class ResendProvider:
             else getattr(response, "id", None)
         )
 
-        if not provider_message_id:
+        try:
+            return validate_provider_message_id(provider_message_id)
+        except ProviderMessageIdValidationError as exc:
             raise ResendDeliveryError(
-                "Resend response did not include a message id.",
+                "Resend response included an invalid message id.",
                 code="provider_invalid_response",
                 retryable=True,
                 outcome_unknown=True,
-            )
-
-        return str(provider_message_id)
+            ) from exc

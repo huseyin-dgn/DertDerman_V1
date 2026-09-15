@@ -5,8 +5,14 @@ from hashlib import sha256
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
+from django.db import IntegrityError, transaction
 from django.db.models import F
 from django.utils import timezone
+
+from .provider_identifiers import (
+    ProviderMessageOwnershipError,
+    validate_provider_message_id,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -22,6 +28,12 @@ class EmailConfigurationError(EmailServiceError):
 
 class EmailDeliveryError(EmailServiceError):
     """Raised when the configured provider cannot deliver a message."""
+
+
+class EmailDeliveryOutcomeUnknownError(EmailDeliveryError):
+    """Raised when the provider may have accepted the message."""
+
+    code = "provider_outcome_unknown"
 
 
 @dataclass(frozen=True)
@@ -216,13 +228,13 @@ def _mark_failed(delivery, error_type: str) -> None:
     )
 
 
-def _mark_sent(delivery, provider_message_id: str) -> None:
+def _quarantine_outcome_unknown(delivery) -> None:
     from .models import EmailDelivery
 
-    delivery.status = EmailDelivery.Status.SENT
-    delivery.provider_message_id = (provider_message_id or "")[:255]
-    delivery.last_error_type = ""
-    delivery.sent_at = timezone.now()
+    delivery.status = EmailDelivery.Status.PENDING
+    delivery.provider_message_id = ""
+    delivery.last_error_type = EmailDeliveryOutcomeUnknownError.code
+    delivery.sent_at = None
     delivery.save(
         update_fields=[
             "status",
@@ -232,6 +244,36 @@ def _mark_sent(delivery, provider_message_id: str) -> None:
             "updated_at",
         ]
     )
+
+
+def _mark_sent(delivery, provider_message_id: str) -> None:
+    from .models import EmailDelivery
+
+    provider_message_id = validate_provider_message_id(provider_message_id)
+    delivery.status = EmailDelivery.Status.SENT
+    delivery.provider_message_id = provider_message_id
+    delivery.last_error_type = ""
+    delivery.sent_at = timezone.now()
+    try:
+        with transaction.atomic():
+            delivery.save(
+                update_fields=[
+                    "status",
+                    "provider_message_id",
+                    "last_error_type",
+                    "sent_at",
+                    "updated_at",
+                ]
+            )
+    except IntegrityError:
+        error = ProviderMessageOwnershipError()
+        logger.error(
+            "Email provider message ownership conflict: "
+            "delivery_id=%s error_code=%s",
+            delivery.pk,
+            error.code,
+        )
+        raise error from None
 
     try:
         from .webhook_service import reconcile_unmatched_resend_events
@@ -341,8 +383,15 @@ def send_email(
         except ResendConfigurationError as exc:
             raise EmailConfigurationError("Resend is not configured.") from exc
         except ResendDeliveryError as exc:
+            if exc.outcome_unknown:
+                _quarantine_outcome_unknown(delivery)
+                raise EmailDeliveryOutcomeUnknownError(
+                    "Email provider outcome is unknown."
+                ) from None
             raise EmailDeliveryError("Email provider delivery failed.") from exc
 
+    except EmailDeliveryOutcomeUnknownError:
+        raise
     except EmailServiceError as exc:
         _mark_failed(delivery, exc.__class__.__name__)
         raise

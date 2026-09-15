@@ -5,10 +5,18 @@ from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
 from .models import EmailDelivery, EmailWebhookEvent
+from .provider_identifiers import (
+    ProviderMessageIdValidationError,
+    validate_provider_message_id,
+)
 
 
 class ResendWebhookPayloadError(ValueError):
     """Doğrulanmış event yapısal olarak kullanılamadığında oluşur."""
+
+
+class ResendWebhookIntegrityError(RuntimeError):
+    """Raised when delivery ownership invariants are violated."""
 
 
 _PROVIDER_STATUS_BY_EVENT = {
@@ -50,9 +58,15 @@ def _extract(payload):
     data = payload.get("data") or {}
     if not isinstance(data, dict):
         raise ResendWebhookPayloadError("Invalid event data.")
-    message_id = str(data.get("email_id") or "").strip()
-    if len(message_id) > 255:
-        raise ResendWebhookPayloadError("Invalid provider message id.")
+    if "email_id" in data:
+        try:
+            message_id = validate_provider_message_id(data["email_id"])
+        except ProviderMessageIdValidationError as exc:
+            raise ResendWebhookPayloadError(
+                "Invalid provider message id."
+            ) from exc
+    else:
+        message_id = ""
     provider_status = _PROVIDER_STATUS_BY_EVENT.get(event_type)
     if provider_status and not message_id:
         raise ResendWebhookPayloadError("Tracked email event is missing email_id.")
@@ -64,11 +78,18 @@ def _extract(payload):
 
 
 def _match_delivery(message_id):
-    if not message_id:
+    message_id = validate_provider_message_id(message_id)
+    try:
+        return EmailDelivery.objects.select_for_update().get(
+            provider="resend",
+            provider_message_id=message_id,
+        )
+    except EmailDelivery.DoesNotExist:
         return None
-    return (EmailDelivery.objects.select_for_update()
-            .filter(provider="resend", provider_message_id=message_id)
-            .order_by("pk").first())
+    except EmailDelivery.MultipleObjectsReturned as exc:
+        raise ResendWebhookIntegrityError(
+            "Provider message ownership is not unique."
+        ) from exc
 
 
 def _apply_status(delivery, provider_status, event_created_at):
@@ -127,9 +148,7 @@ def process_resend_webhook(*, event_id: str, payload: dict):
 
 @transaction.atomic
 def reconcile_unmatched_resend_events(provider_message_id: str) -> int:
-    provider_message_id = (provider_message_id or "").strip()
-    if not provider_message_id:
-        return 0
+    provider_message_id = validate_provider_message_id(provider_message_id)
     delivery = _match_delivery(provider_message_id)
     if delivery is None:
         return 0

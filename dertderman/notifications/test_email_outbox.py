@@ -16,6 +16,7 @@ from .models import EmailDelivery, EmailOutbox, Notification
 from .outbox_service import (
     EmailPayload,
     OUTBOX_INVALID_RECIPE,
+    OUTBOX_PROVIDER_MESSAGE_OWNERSHIP_CONFLICT,
     OUTBOX_PROVIDER_MISMATCH,
     OUTBOX_UNSUPPORTED_TEMPLATE_VERSION,
     OutboxClaimLost,
@@ -26,6 +27,10 @@ from .outbox_service import (
     mark_email_outbox_permanent_failure,
     release_email_outbox_claim,
     send_outbox_email,
+)
+from .provider_identifiers import (
+    PROVIDER_MESSAGE_ID_MAX_LENGTH,
+    ProviderMessageIdValidationError,
 )
 
 
@@ -249,6 +254,7 @@ class EmailOutboxTests(TransactionTestCase):
         self.assertIsNotNone(outbox.completed_at)
         self.assertIsNone(outbox.claim_token)
         self.assertEqual(delivery.status, EmailDelivery.Status.SENT)
+        self.assertEqual(delivery.provider, "resend")
         self.assertEqual(delivery.provider_message_id, "provider-new-delivery")
         self.assertEqual(outbox.attempt_count, 1)
         self.assertEqual(delivery.attempt_count, 1)
@@ -258,6 +264,204 @@ class EmailOutboxTests(TransactionTestCase):
             23 * 60 * 60,
             delta=1,
         )
+
+    @patch("notifications.outbox_service._send_with_provider")
+    def test_noncanonical_stored_provider_fails_before_delivery(self, provider_send):
+        for stored_provider in (
+            "RESEND",
+            "Resend",
+            " resend",
+            "resend ",
+            " RESEND ",
+        ):
+            with self.subTest(stored_provider=stored_provider):
+                outbox = self.make_outbox(provider=stored_provider)
+                claim = self.claim_one(outbox)
+
+                with self.assertRaises(OutboxPermanentItemError) as context:
+                    send_outbox_email(
+                        outbox_id=outbox.pk,
+                        claim_token=claim.claim_token,
+                        payload=self.payload(),
+                    )
+
+                outbox.refresh_from_db()
+                self.assertEqual(context.exception.code, OUTBOX_PROVIDER_MISMATCH)
+                self.assertEqual(outbox.provider, stored_provider)
+                self.assertFalse(
+                    EmailDelivery.objects.filter(outbox=outbox).exists()
+                )
+                self.assertFalse(
+                    EmailDelivery.objects.filter(provider=stored_provider).exists()
+                )
+
+        provider_send.assert_not_called()
+
+    @patch("notifications.outbox_service._send_with_provider")
+    def test_outbox_stores_capacity_length_provider_id_exactly(
+        self,
+        provider_send,
+    ):
+        provider_message_id = "x" * PROVIDER_MESSAGE_ID_MAX_LENGTH
+        provider_send.return_value = provider_message_id
+        outbox = self.make_outbox()
+        claim = self.claim_one(outbox)
+
+        result = send_outbox_email(
+            outbox_id=outbox.pk,
+            claim_token=claim.claim_token,
+            payload=self.payload(),
+        )
+
+        outbox.refresh_from_db()
+        delivery = EmailDelivery.objects.get(outbox=outbox)
+        self.assertEqual(result.provider_message_id, provider_message_id)
+        self.assertEqual(delivery.provider_message_id, provider_message_id)
+        self.assertEqual(delivery.provider, "resend")
+        self.assertEqual(outbox.status, EmailOutbox.Status.SENT)
+
+    def test_finalize_rejects_overlong_id_before_writing_success(self):
+        outbox = self.make_outbox()
+        claim = self.claim_one(outbox)
+        delivery = EmailDelivery.objects.create(
+            outbox=outbox,
+            notification=outbox.notification,
+            provider="resend",
+            idempotency_key=outbox.provider_idempotency_key,
+            recipient_hash=outbox.recipient_hash,
+            status=EmailDelivery.Status.PENDING,
+            attempt_count=1,
+        )
+
+        with self.assertRaises(ProviderMessageIdValidationError):
+            _finalize_success(
+                outbox_id=outbox.pk,
+                claim_token=claim.claim_token,
+                provider_message_id=(
+                    "x" * (PROVIDER_MESSAGE_ID_MAX_LENGTH + 1)
+                ),
+                now=timezone.now(),
+            )
+
+        outbox.refresh_from_db()
+        delivery.refresh_from_db()
+        self.assertEqual(outbox.status, EmailOutbox.Status.PROCESSING)
+        self.assertEqual(delivery.status, EmailDelivery.Status.PENDING)
+        self.assertEqual(delivery.provider_message_id, "")
+        self.assertIsNone(delivery.sent_at)
+
+    @patch("notifications.outbox_service._send_with_provider")
+    def test_provider_message_collision_rolls_back_finalization(
+        self,
+        provider_send,
+    ):
+        provider_message_id = "shared-provider-message"
+        owner = EmailDelivery.objects.create(
+            provider="resend",
+            idempotency_key="stage6b1:provider-message-owner",
+            recipient_hash="b" * 64,
+            status=EmailDelivery.Status.SENT,
+            provider_message_id=provider_message_id,
+            attempt_count=1,
+            sent_at=timezone.now(),
+        )
+        provider_send.return_value = provider_message_id
+        outbox = self.make_outbox()
+        claim = self.claim_one(outbox)
+
+        with self.assertLogs(
+            "notifications.outbox_service",
+            level="ERROR",
+        ) as captured:
+            with self.assertRaises(OutboxPermanentItemError) as context:
+                send_outbox_email(
+                    outbox_id=outbox.pk,
+                    claim_token=claim.claim_token,
+                    payload=self.payload(),
+                )
+
+        outbox.refresh_from_db()
+        delivery = EmailDelivery.objects.get(outbox=outbox)
+        owner.refresh_from_db()
+        self.assertEqual(outbox.status, EmailOutbox.Status.PROCESSING)
+        self.assertEqual(delivery.status, EmailDelivery.Status.PENDING)
+        self.assertEqual(delivery.provider_message_id, "")
+        self.assertIsNone(delivery.sent_at)
+        self.assertEqual(owner.provider_message_id, provider_message_id)
+        self.assertEqual(
+            context.exception.code,
+            OUTBOX_PROVIDER_MESSAGE_OWNERSHIP_CONFLICT,
+        )
+        self.assertNotIn(provider_message_id, " ".join(captured.output))
+
+    @patch("notifications.outbox_service._send_with_provider")
+    @patch("notifications.management.commands.process_email_outbox.render_outbox_email")
+    def test_worker_dead_letters_provider_message_collision_without_retry(
+        self,
+        render_outbox_email,
+        provider_send,
+    ):
+        provider_message_id = "private-worker-provider-message"
+        owner = EmailDelivery.objects.create(
+            provider="resend",
+            idempotency_key="stage6b1:worker-provider-message-owner",
+            recipient_hash="b" * 64,
+            status=EmailDelivery.Status.SENT,
+            provider_message_id=provider_message_id,
+            attempt_count=1,
+            sent_at=timezone.now(),
+        )
+        owner_state = (
+            owner.status,
+            owner.provider_message_id,
+            owner.attempt_count,
+            owner.sent_at,
+        )
+        provider_send.return_value = provider_message_id
+        render_outbox_email.return_value = self.payload()
+        outbox = self.make_outbox()
+
+        with self.assertLogs("notifications", level="WARNING") as captured:
+            call_command(
+                "process_email_outbox",
+                "--once",
+                "--batch-size=1",
+            )
+
+        outbox.refresh_from_db()
+        contender = EmailDelivery.objects.get(outbox=outbox)
+        owner.refresh_from_db()
+        self.assertEqual(outbox.status, EmailOutbox.Status.DEAD)
+        self.assertEqual(
+            outbox.last_error_code,
+            OUTBOX_PROVIDER_MESSAGE_OWNERSHIP_CONFLICT,
+        )
+        self.assertIsNotNone(outbox.completed_at)
+        self.assertIsNone(outbox.claim_token)
+        self.assertIsNone(outbox.claimed_at)
+        self.assertIsNone(outbox.lease_expires_at)
+        self.assertEqual(contender.status, EmailDelivery.Status.PENDING)
+        self.assertEqual(contender.provider_message_id, "")
+        self.assertIsNone(contender.sent_at)
+        self.assertEqual(
+            (
+                owner.status,
+                owner.provider_message_id,
+                owner.attempt_count,
+                owner.sent_at,
+            ),
+            owner_state,
+        )
+        provider_send.assert_called_once()
+        self.assertNotIn(provider_message_id, " ".join(captured.output))
+
+        call_command(
+            "process_email_outbox",
+            "--once",
+            "--batch-size=1",
+        )
+
+        provider_send.assert_called_once()
 
     @patch("notifications.outbox_service._send_with_provider")
     def test_sent_delivery_does_not_call_provider_again(self, provider_send):
@@ -971,9 +1175,12 @@ class EmailOutboxTests(TransactionTestCase):
         self.assertEqual(provider_send.call_count, 2)
 
     @patch("notifications.outbox_service._send_with_provider")
-    def test_stored_provider_mismatch_isolated_from_valid_item(self, provider_send):
+    def test_noncanonical_stored_provider_isolated_from_valid_item(
+        self,
+        provider_send,
+    ):
         provider_send.return_value = "valid-provider-message"
-        poison = self.make_outbox(provider="corrupt-provider")
+        poison = self.make_outbox(provider="RESEND")
         valid = self.make_outbox()
 
         call_command("process_email_outbox", once=True, batch_size=5)
@@ -987,7 +1194,14 @@ class EmailOutboxTests(TransactionTestCase):
         self.assertIsNone(poison.provider_retry_deadline_at)
         self.assertEqual(poison.payload_hash, "")
         self.assertFalse(EmailDelivery.objects.filter(outbox=poison).exists())
+        self.assertIsNone(poison.claim_token)
+        self.assertIsNone(poison.claimed_at)
+        self.assertIsNone(poison.lease_expires_at)
         self.assertEqual(valid.status, EmailOutbox.Status.SENT)
+        self.assertEqual(
+            EmailDelivery.objects.get(outbox=valid).provider,
+            "resend",
+        )
         self.assertEqual(provider_send.call_count, 1)
 
     def test_stale_claim_cannot_dead_letter_poison_item(self):
