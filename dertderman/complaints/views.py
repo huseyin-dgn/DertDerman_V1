@@ -16,6 +16,7 @@ from django.db.models import (
     Value,
     When,
 )
+
 from django.shortcuts import (
     get_object_or_404,
     redirect,
@@ -43,6 +44,7 @@ from .forms import (
     ComplaintCreateForm,
     ComplaintEditForm,
     ContentReportForm,
+    DermanCompanyResponseForm,
     DermanCreateForm,
     UserReportForm,
 )
@@ -411,6 +413,16 @@ def _public_detail_context(
             DermanCreateForm()
         )
 
+    derman_company_response_form = None
+
+    if (
+        derman_visibility
+        .can_company_respond
+    ):
+        derman_company_response_form = (
+            DermanCompanyResponseForm()
+        )
+
     # ---------------------------------------------------------
     # AYNI ŞİRKET HAKKINDAKİ DİĞER PUBLIC ŞİKAYETLER
     #
@@ -518,6 +530,9 @@ def _public_detail_context(
 
         "derman_create_form":
             derman_create_form,
+
+        "derman_company_response_form":
+            derman_company_response_form,
 
         "related_complaints":
             related_complaints,

@@ -476,3 +476,50 @@ class DermanCreateForm(
             )
 
         return body
+
+class DermanCompanyResponseForm(
+    forms.Form
+):
+    body = forms.CharField(
+        label="Resmi şirket yanıtı",
+        min_length=20,
+        max_length=3000,
+        strip=True,
+        widget=forms.Textarea(
+            attrs={
+                "rows": 6,
+                "maxlength": 3000,
+                "placeholder": (
+                    "Şirketinizin bu Derman "
+                    "hakkındaki resmi yanıtını yazın."
+                ),
+                "data-character-count": "",
+            }
+        ),
+        help_text=(
+            "En az 20, en fazla "
+            "3000 karakter."
+        ),
+    )
+
+    def clean_body(self):
+        body = (
+            self.cleaned_data.get(
+                "body"
+            )
+            or ""
+        ).strip()
+
+        if len(body) < 20:
+            raise forms.ValidationError(
+                "Şirket yanıtı en az "
+                "20 karakter olmalıdır."
+            )
+
+        if len(body) > 3000:
+            raise forms.ValidationError(
+                "Şirket yanıtı en fazla "
+                "3000 karakter olabilir."
+            )
+
+        return body

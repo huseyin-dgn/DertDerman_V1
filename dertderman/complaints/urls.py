@@ -22,8 +22,10 @@ from .derman_views import (
     derman_react,
     derman_withdraw,
 )
-
-
+from .derman_company_views import (
+    derman_company_response_create,
+    derman_company_response_update,
+)
 
 app_name = "complaints"
 
@@ -44,7 +46,29 @@ urlpatterns = [
     derman_create,
     name="derman_create",
 ),
+path(
+    (
+        "sikayetler/derman/"
+        "<int:derman_pk>/"
+        "sirket-cevabi/"
+    ),
+    derman_company_response_create,
+    name=(
+        "derman_company_response_create"
+    ),
+),
 
+path(
+    (
+        "sikayetler/derman/"
+        "<int:derman_pk>/"
+        "sirket-cevabi/duzenle/"
+    ),
+    derman_company_response_update,
+    name=(
+        "derman_company_response_update"
+    ),
+),
 path(
     (
         "sikayetler/<int:pk>/"

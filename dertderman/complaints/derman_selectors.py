@@ -9,7 +9,9 @@ from django.db.models import (
     Subquery,
     Value,
 )
-
+from companies.panel_permissions import (
+    PROFILE_ROLES,
+)
 from accounts.models import User
 from companies.plans import (
     company_has_active_pro,
@@ -17,9 +19,9 @@ from companies.plans import (
 from companies.services import (
     active_company_memberships_for,
 )
-
 from .models import (
     Complaint,
+    DermanCompanyResponse,
     DermanPost,
     DermanReaction,
 )
@@ -35,7 +37,6 @@ class DermanAccessLevel:
     COMPANY_PRO = "COMPANY_PRO"
     ADMIN = "ADMIN"
 
-
 @dataclass(frozen=True)
 class DermanVisibility:
     access_level: str
@@ -50,6 +51,7 @@ class DermanVisibility:
 
     dermans: object
 
+    can_company_respond: bool = False
 
 def published_derman_count(
     complaint,
@@ -102,12 +104,22 @@ def _complaint_is_public(
         .exists()
     )
 
-
 def published_derman_cards(
     *,
     complaint,
     viewer=None,
 ):
+    company_response = (
+        DermanCompanyResponse.objects
+        .filter(
+            derman_id=OuterRef("pk"),
+            company_id=complaint.company_id,
+        )
+        .order_by(
+            "-pk"
+        )
+    )
+
     queryset = (
         DermanPost.objects
         .filter(
@@ -124,6 +136,7 @@ def published_derman_cards(
             author_selected_avatar=F(
                 "author_user__selected_avatar"
             ),
+
             like_count=Count(
                 "reactions",
                 filter=Q(
@@ -133,6 +146,7 @@ def published_derman_cards(
                 ),
                 distinct=True,
             ),
+
             dislike_count=Count(
                 "reactions",
                 filter=Q(
@@ -141,6 +155,34 @@ def published_derman_cards(
                     )
                 ),
                 distinct=True,
+            ),
+
+            company_response_id=Subquery(
+                company_response
+                .values(
+                    "id"
+                )[:1]
+            ),
+
+            company_response_body=Subquery(
+                company_response
+                .values(
+                    "body"
+                )[:1]
+            ),
+
+            company_response_created_at=Subquery(
+                company_response
+                .values(
+                    "created_at"
+                )[:1]
+            ),
+
+            company_response_updated_at=Subquery(
+                company_response
+                .values(
+                    "updated_at"
+                )[:1]
             ),
         )
     )
@@ -203,19 +245,25 @@ def published_derman_cards(
             "body",
             "created_at",
             "published_at",
+
             "author_username",
             "author_first_name",
             "author_selected_avatar",
+
             "like_count",
             "dislike_count",
             "viewer_reaction",
+
+            "company_response_id",
+            "company_response_body",
+            "company_response_created_at",
+            "company_response_updated_at",
         )
         .order_by(
             "-published_at",
             "-id",
         )
     )
-
 
 def _user_can_create_derman(
     *,
@@ -376,7 +424,7 @@ def derman_visibility_for(
         )
 
     if role == User.UserType.COMPANY:
-        membership_exists = (
+        company_memberships = (
             active_company_memberships_for(
                 user
             )
@@ -385,6 +433,10 @@ def derman_visibility_for(
                     complaint.company_id
                 )
             )
+        )
+
+        membership_exists = (
+            company_memberships
             .exists()
         )
 
@@ -393,6 +445,17 @@ def derman_visibility_for(
             and company_has_active_pro(
                 complaint.company
             )
+        )
+
+        can_company_respond = (
+            has_pro_access
+            and complaint.status
+            == Complaint.Status.PUBLISHED
+            and company_memberships
+            .filter(
+                role__in=PROFILE_ROLES,
+            )
+            .exists()
         )
 
         if has_pro_access:
@@ -410,6 +473,9 @@ def derman_visibility_for(
                         complaint=complaint,
                     )
                 ),
+                can_company_respond=(
+                    can_company_respond
+                ),
             )
 
         return DermanVisibility(
@@ -422,16 +488,5 @@ def derman_visibility_for(
             can_create=False,
             can_react=False,
             dermans=_empty_dermans(),
+            can_company_respond=False,
         )
-
-    return DermanVisibility(
-        access_level=(
-            DermanAccessLevel.ANONYMOUS
-        ),
-        published_count=count,
-        can_view_content=False,
-        paywalled=False,
-        can_create=False,
-        can_react=False,
-        dermans=_empty_dermans(),
-    )
