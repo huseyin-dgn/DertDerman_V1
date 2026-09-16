@@ -1,5 +1,7 @@
 from datetime import timedelta
-
+from .derman_selectors import (
+    derman_visibility_for,
+)
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import IntegrityError, transaction
@@ -41,6 +43,7 @@ from .forms import (
     ComplaintCreateForm,
     ComplaintEditForm,
     ContentReportForm,
+    DermanCreateForm,
     UserReportForm,
 )
 from .models import (
@@ -238,7 +241,6 @@ def public_complaint_list(
         },
     )
 
-
 def _public_detail_context(
     request,
     complaint,
@@ -392,6 +394,24 @@ def _public_detail_context(
         )
 
     # ---------------------------------------------------------
+    # DERMAN OL GÖRÜNÜRLÜĞÜ
+    # ---------------------------------------------------------
+
+    derman_visibility = (
+        derman_visibility_for(
+            user=request.user,
+            complaint=complaint,
+        )
+    )
+
+    derman_create_form = None
+
+    if derman_visibility.can_create:
+        derman_create_form = (
+            DermanCreateForm()
+        )
+
+    # ---------------------------------------------------------
     # AYNI ŞİRKET HAKKINDAKİ DİĞER PUBLIC ŞİKAYETLER
     #
     # public_complaints() kullanıldığı için:
@@ -493,10 +513,15 @@ def _public_detail_context(
         "reaction_options":
             reaction_options,
 
+        "derman_visibility":
+            derman_visibility,
+
+        "derman_create_form":
+            derman_create_form,
+
         "related_complaints":
             related_complaints,
     }
-
 
 @require_safe
 def public_complaint_detail(
