@@ -1089,6 +1089,116 @@
                 {% endif %}
 
 
+            {% elif report.target_type == 'DERMAN' %}
+
+                {% if report.derman %}
+
+                    <div class="reported-content">
+
+                        <h3 class="reported-content-title">
+                            Derman #{{ report.derman.pk }}
+                        </h3>
+
+
+                        <p class="reported-content-body">
+                            {{ report.derman.body }}
+                        </p>
+
+
+                        <div class="reported-content-meta">
+
+                            <span>
+                                Yazan:
+                                <strong>@{{ report.derman.author_user.username }}</strong>
+                            </span>
+
+                            <span>•</span>
+
+                            <span>
+                                Durum:
+                                <strong>{{ report.derman.get_status_display }}</strong>
+                            </span>
+
+                            <span>•</span>
+
+                            <span>
+                                Yayın tarihi:
+                                <strong>
+                                    {% if report.derman.published_at %}
+                                        {{ report.derman.published_at|date:"d.m.Y H:i:s" }}
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </strong>
+                            </span>
+
+                            <span>•</span>
+
+                            <span>
+                                Şirket:
+                                <strong>{{ report.derman.complaint.company.name }}</strong>
+                            </span>
+
+                            <span>•</span>
+
+                            <span>
+                                Şikayet:
+                                <strong>
+                                    #{{ report.derman.complaint_id }} ·
+                                    {{ report.derman.complaint.title }}
+                                </strong>
+                            </span>
+
+                        </div>
+
+
+                        <div class="reported-content-actions">
+
+                            {% if derman_publicly_accessible %}
+
+                                <a
+                                    class="reported-content-link"
+                                    href="{% url 'complaints:public_detail' report.derman.complaint_id %}#derman-ol"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    Public Sayfayı Aç ↗
+                                </a>
+
+                            {% endif %}
+
+
+                            <a
+                                class="reported-content-link"
+                                href="{% url 'adminx:complaint_detail' report.derman.complaint_id %}"
+                            >
+                                Admin Şikayet Detayı →
+                            </a>
+
+                            <a
+                                class="reported-content-link"
+                                href="{% url 'adminx:derman_detail' report.derman.pk %}"
+                            >
+                                Admin Derman Detayı →
+                            </a>
+
+                        </div>
+
+                    </div>
+
+                {% else %}
+
+                    <div class="reported-content">
+
+                        <p class="reported-content-body">
+                            Raporlanan Derman artık mevcut değil.
+                        </p>
+
+                    </div>
+
+                {% endif %}
+
+
             {% else %}
 
                 <div class="reported-content">

@@ -269,6 +269,12 @@ def publish_derman(
         )
     )
 
+    from notifications.services import (
+        notify_derman_published,
+    )
+
+    notify_derman_published(derman)
+
     return (
         derman,
         notification,
@@ -323,5 +329,11 @@ def reject_derman(
             "moderation_note",
         )
     )
+
+    from notifications.services import (
+        notify_derman_rejected,
+    )
+
+    notify_derman_rejected(derman)
 
     return derman

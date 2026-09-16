@@ -111,6 +111,85 @@ def complaint_social_event(
     )
 
 
+def notify_derman_published(derman):
+    complaint = derman.complaint
+
+    author_notification = send(
+        recipient=derman.author_user,
+        scope=Notification.Scope.USER,
+        kind=Notification.Type.PUBLISHED,
+        event_key=f"derman:{derman.pk}:published:author",
+        title="Derman paylaşımınız yayınlandı",
+        message=(
+            "Derman paylaşımınız moderasyon incelemesinin ardından "
+            "yayınlandı. Şikayet sayfasından inceleyebilirsiniz."
+        ),
+        complaint=complaint,
+    )
+
+    owner_notification = None
+    if complaint.user_id != derman.author_user_id:
+        owner_notification = send(
+            recipient=complaint.user,
+            scope=Notification.Scope.USER,
+            kind=Notification.Type.PUBLISHED,
+            event_key=f"derman:{derman.pk}:published:complaint-owner",
+            title="Şikayetinize yeni bir Derman yayınlandı",
+            message=(
+                "Şikayetinize yeni bir topluluk çözümü eklendi. "
+                "Şikayet sayfasından inceleyebilirsiniz."
+            ),
+            complaint=complaint,
+        )
+
+    return author_notification, owner_notification
+
+
+def notify_derman_rejected(derman):
+    return send(
+        recipient=derman.author_user,
+        scope=Notification.Scope.USER,
+        kind=Notification.Type.REJECTED,
+        event_key=f"derman:{derman.pk}:rejected:author",
+        title="Derman paylaşımınız yayınlanmadı",
+        message=(
+            "Derman paylaşımınız moderasyon incelemesinin ardından "
+            "yayınlanmadı."
+        ),
+    )
+
+
+def notify_derman_removed(derman, report):
+    return send(
+        recipient=derman.author_user,
+        scope=Notification.Scope.USER,
+        kind=Notification.Type.REMOVED,
+        event_key=f"derman:{derman.pk}:removed:report:{report.pk}:author",
+        title="Derman paylaşımınız yayından kaldırıldı",
+        message=(
+            "Derman paylaşımınız topluluk kuralları ihlali nedeniyle "
+            "yayından kaldırıldı."
+        ),
+    )
+
+
+def notify_derman_company_response_created(response):
+    derman = response.derman
+
+    return send(
+        recipient=derman.author_user,
+        scope=Notification.Scope.USER,
+        kind=Notification.Type.COMPANY_RESPONDED,
+        event_key=f"derman-response:{response.pk}:created:author",
+        title="Derman paylaşımınıza şirket yanıt verdi",
+        message=(
+            "Şirket Derman paylaşımınıza resmi bir yanıt verdi. "
+            "Yanıtı şikayet sayfasından inceleyebilirsiniz."
+        ),
+        complaint=derman.complaint,
+    )
+
+
 def _violation_reason_label(complaint):
     reason_mapping = {
         "SPAM": "Spam / reklam",

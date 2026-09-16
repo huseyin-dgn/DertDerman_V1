@@ -484,6 +484,28 @@
                             {% endif %}
 
 
+                        {% elif report.target_type == "DERMAN" %}
+
+                            <strong>
+                                Derman Ol
+                            </strong>
+
+                            {% if report.derman %}
+
+                                <small>
+                                    #{{ report.derman.pk }} ·
+                                    {{ report.derman.body|truncatechars:70 }}
+                                </small>
+
+                            {% else %}
+
+                                <small>
+                                    İçerik artık mevcut değil.
+                                </small>
+
+                            {% endif %}
+
+
                         {% else %}
 
                             <strong>

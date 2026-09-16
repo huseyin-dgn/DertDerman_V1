@@ -311,6 +311,14 @@ def create_derman_company_response(
 
         raise
 
+    from notifications.services import (
+        notify_derman_company_response_created,
+    )
+
+    notify_derman_company_response_created(
+        response
+    )
+
     return response
 
 

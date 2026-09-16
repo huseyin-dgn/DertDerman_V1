@@ -324,20 +324,6 @@ def derman_report(
     pk,
     derman_pk,
 ):
-    """
-    Yayındaki bir Derman paylaşımını raporlar.
-
-    Güvenlik kuralları:
-    - yalnız USER,
-    - aktif ve mutation yapabilen hesap,
-    - parent complaint public olmalı,
-    - Derman exact complaint'e ait olmalı,
-    - Derman PUBLISHED olmalı,
-    - kullanıcı kendi Dermanını raporlayamaz,
-    - aynı kullanıcı aynı Dermanı yalnızca bir kez raporlayabilir,
-    - aktif reporting restriction varsa işlem engellenir.
-    """
-
     actor = _locked_derman_reporter(
         request
     )

@@ -27,6 +27,7 @@ from complaints.models import (
     UserViolation,
 )
 from complaints.reporting_policy import apply_false_report_penalties
+from complaints.selectors import public_complaint_filter
 from core.models import ContactRequest
 from core.pagination import PREVIEW_SIZE, paginate
 from notifications.selectors import inbox
@@ -880,6 +881,10 @@ def report_list(request):
             "complaint",
             "comment",
             "comment__author_user",
+            "derman",
+            "derman__author_user",
+            "derman__complaint",
+            "derman__complaint__company",
             "reviewed_by",
         )
         .all()
@@ -900,6 +905,7 @@ def report_list(request):
             Q(reporter__username__icontains=search)
             | Q(complaint__title__icontains=search)
             | Q(comment__body__icontains=search)
+            | Q(derman__body__icontains=search)
             | Q(description__icontains=search)
         )
 
@@ -937,9 +943,23 @@ def report_detail(request, pk):
             "complaint__company",
             "comment",
             "comment__author_user",
+            "derman",
+            "derman__author_user",
+            "derman__complaint",
+            "derman__complaint__company",
             "reviewed_by",
         ),
         pk=pk,
+    )
+
+    derman_publicly_accessible = bool(
+        report.derman_id
+        and report.derman.status == DermanPost.Status.PUBLISHED
+        and Complaint.objects.filter(
+            pk=report.derman.complaint_id,
+        )
+        .filter(public_complaint_filter())
+        .exists()
     )
 
     return render(
@@ -947,6 +967,7 @@ def report_detail(request, pk):
         "adminx/report_detail.html",
         {
             "report": report,
+            "derman_publicly_accessible": derman_publicly_accessible,
         },
     )
 
@@ -1012,6 +1033,7 @@ def report_status(request, pk):
 
     complaint_to_remove = None
     comment_to_remove = None
+    derman_to_remove = None
 
     if (
         new_status == ContentReport.Status.RESOLVED
@@ -1033,6 +1055,21 @@ def report_status(request, pk):
             pk=report.comment_id,
         )
 
+    if (
+        new_status == ContentReport.Status.RESOLVED
+        and report.target_type == ContentReport.TargetType.DERMAN
+        and report.derman_id
+    ):
+        derman_to_remove = get_object_or_404(
+            DermanPost.objects
+            .select_for_update(of=("self",))
+            .select_related(
+                "author_user",
+                "complaint",
+            ),
+            pk=report.derman_id,
+        )
+
     # Aynı durum tekrar gönderildiyse normalde işlem yapma.
     # Ancak eski bir RESOLVED raporda şikayet henüz kaldırılmadıysa
     # kaldırma işlemini tamamlamaya izin ver.
@@ -1047,6 +1084,10 @@ def report_status(request, pk):
                 or (
                     comment_to_remove is not None
                     and comment_to_remove.is_active
+                )
+                or (
+                    derman_to_remove is not None
+                    and derman_to_remove.status == DermanPost.Status.PUBLISHED
                 )
             )
         )
@@ -1102,6 +1143,7 @@ def report_status(request, pk):
         source_type = None
         complaint_for_violation = None
         comment_for_violation = None
+        derman_for_violation = None
 
         if (
             report.target_type == ContentReport.TargetType.COMPLAINT
@@ -1119,6 +1161,15 @@ def report_status(request, pk):
             source_type = UserViolation.SourceType.COMMENT
             comment_for_violation = comment_to_remove
 
+        elif (
+            report.target_type == ContentReport.TargetType.DERMAN
+            and derman_to_remove is not None
+            and derman_to_remove.status == DermanPost.Status.PUBLISHED
+        ):
+            violation_user = derman_to_remove.author_user
+            source_type = UserViolation.SourceType.DERMAN
+            derman_for_violation = derman_to_remove
+
         if violation_user and source_type:
             violation, violation_created = (
                 UserViolation.objects.get_or_create(
@@ -1133,6 +1184,7 @@ def report_status(request, pk):
                         ),
                         "complaint": complaint_for_violation,
                         "comment": comment_for_violation,
+                        "derman": derman_for_violation,
                         "confirmed_by": request.user,
                     },
                 )
@@ -1220,6 +1272,7 @@ def report_status(request, pk):
 
     complaint_removed = False
     comment_removed = False
+    derman_removed = False
 
     # ---------------------------------------------------------
     # ŞİKAYET İHLAL NEDENİYLE KALDIRMA
@@ -1272,6 +1325,52 @@ def report_status(request, pk):
         comment_to_remove.save(update_fields=("is_active", "updated_at"))
         comment_removed = True
 
+    if (
+        derman_to_remove is not None
+        and derman_to_remove.status == DermanPost.Status.PUBLISHED
+    ):
+        derman_previous_status = derman_to_remove.status
+        derman_to_remove.status = DermanPost.Status.REMOVED
+        derman_to_remove.removed_at = timezone.now()
+        derman_to_remove.removed_by = request.user
+        derman_to_remove.removal_reason = report.reason
+        derman_to_remove.removal_report = report
+        derman_to_remove.save(
+            update_fields=(
+                "status",
+                "removed_at",
+                "removed_by",
+                "removal_reason",
+                "removal_report",
+            )
+        )
+        derman_removed = True
+
+        record_admin_audit(
+            actor=request.user,
+            action=AdminAuditLog.Action.UPDATE,
+            target_type="derman_post",
+            target_id=derman_to_remove.pk,
+            target_label=f"Derman #{derman_to_remove.pk}",
+            description="Derman ihlal nedeniyle yayından kaldırıldı.",
+            metadata={
+                "derman_id": derman_to_remove.pk,
+                "complaint_id": derman_to_remove.complaint_id,
+                "previous_status": derman_previous_status,
+                "new_status": DermanPost.Status.REMOVED,
+                "content_report_id": report.pk,
+                "report_reason": report.reason,
+            },
+            request=request,
+        )
+
+        from notifications.services import notify_derman_removed
+
+        notify_derman_removed(
+            derman_to_remove,
+            report,
+        )
+
 
     if report.target_type == ContentReport.TargetType.COMPLAINT:
         target_label = (
@@ -1285,6 +1384,13 @@ def report_status(request, pk):
             f"Yorum #{report.comment_id}"
             if report.comment_id
             else f"Yorum raporu #{report.pk}"
+        )
+
+    elif report.target_type == ContentReport.TargetType.DERMAN:
+        target_label = (
+            f"Derman #{report.derman_id}"
+            if report.derman_id
+            else f"Derman raporu #{report.pk}"
         )
 
     else:
@@ -1304,6 +1410,8 @@ def report_status(request, pk):
             "report_reason": report.reason,
             "complaint_removed": complaint_removed,
             "comment_removed": comment_removed,
+            "derman_removed": derman_removed,
+            "derman_id": report.derman_id,
             "user_violation_id": (
                 violation.pk
                 if violation
@@ -1340,6 +1448,12 @@ def report_status(request, pk):
         elif comment_removed:
             message = (
                 "Rapor sonuçlandırıldı, yorum kaldırıldı ve kullanıcı için "
+                "doğrulanmış ihlal kaydı oluşturuldu."
+            )
+
+        elif derman_removed:
+            message = (
+                "Rapor sonuçlandırıldı, Derman kaldırıldı ve kullanıcı için "
                 "doğrulanmış ihlal kaydı oluşturuldu."
             )
 
