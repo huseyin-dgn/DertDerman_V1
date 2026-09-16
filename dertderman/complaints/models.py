@@ -394,10 +394,348 @@ class ComplaintComment(models.Model):
         super().save(*args, **kwargs)
 
 
+class DermanPost(models.Model):
+    class Status(models.TextChoices):
+        PENDING = "PENDING", "İnceleme bekliyor"
+        PUBLISHED = "PUBLISHED", "Yayında"
+        REJECTED = "REJECTED", "Reddedildi"
+        WITHDRAWN = "WITHDRAWN", "Geri çekildi"
+        REMOVED = "REMOVED", "İhlal nedeniyle kaldırıldı"
+
+    complaint = models.ForeignKey(
+        Complaint,
+        on_delete=models.CASCADE,
+        related_name="derman_posts",
+    )
+
+    author_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="derman_posts",
+    )
+
+    body = models.CharField(
+        max_length=2000,
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING,
+        db_index=True,
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    published_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        editable=False,
+    )
+
+    withdrawn_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        editable=False,
+    )
+
+    reviewed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="reviewed_derman_posts",
+    )
+
+    moderation_note = models.TextField(
+        max_length=1000,
+        blank=True,
+        default="",
+    )
+
+    removed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        editable=False,
+    )
+
+    removed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="removed_derman_posts",
+    )
+
+    removal_reason = models.CharField(
+        max_length=500,
+        blank=True,
+        default="",
+    )
+
+    removal_report = models.ForeignKey(
+        "ContentReport",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="removed_derman_posts",
+    )
+
+    class Meta:
+        ordering = (
+            "-created_at",
+            "-pk",
+        )
+
+        indexes = [
+            models.Index(
+                fields=(
+                    "complaint",
+                    "status",
+                    "-created_at",
+                ),
+                name="derman_compl_status",
+            ),
+            models.Index(
+                fields=(
+                    "status",
+                    "-created_at",
+                ),
+                name="derman_mod_status",
+            ),
+        ]
+
+        constraints = [
+            models.UniqueConstraint(
+                fields=(
+                    "complaint",
+                    "author_user",
+                ),
+                name="unique_derman_per_complaint_user",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(
+                    status__in=(
+                        "PENDING",
+                        "PUBLISHED",
+                        "REJECTED",
+                        "WITHDRAWN",
+                        "REMOVED",
+                    )
+                ),
+                name="derman_valid_status",
+            ),
+        ]
+
+    def clean(self):
+        super().clean()
+
+        self.body = (
+            self.body or ""
+        ).strip()
+
+        self.moderation_note = (
+            self.moderation_note or ""
+        ).strip()
+
+        self.removal_reason = (
+            self.removal_reason or ""
+        ).strip()
+
+        errors = {}
+
+        if len(self.body) < 20:
+            errors["body"] = (
+                "Derman Ol paylaşımı en az "
+                "20 karakter olmalıdır."
+            )
+
+        if len(self.body) > 2000:
+            errors["body"] = (
+                "Derman Ol paylaşımı en fazla "
+                "2000 karakter olabilir."
+            )
+
+        if errors:
+            raise ValidationError(errors)
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return (
+            f"Derman #{self.pk} - "
+            f"Şikayet #{self.complaint_id}"
+        )
+
+
+class DermanReaction(models.Model):
+    class Type(models.TextChoices):
+        LIKE = "LIKE", "Beğendim"
+        DISLIKE = "DISLIKE", "Beğenmedim"
+
+    derman = models.ForeignKey(
+        DermanPost,
+        on_delete=models.CASCADE,
+        related_name="reactions",
+    )
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="derman_reactions",
+    )
+
+    reaction_type = models.CharField(
+        max_length=10,
+        choices=Type.choices,
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True,
+    )
+
+    class Meta:
+        ordering = (
+            "-updated_at",
+            "-pk",
+        )
+
+        indexes = [
+            models.Index(
+                fields=(
+                    "derman",
+                    "reaction_type",
+                ),
+                name="derman_reaction_count",
+            ),
+        ]
+
+        constraints = [
+            models.UniqueConstraint(
+                fields=(
+                    "derman",
+                    "user",
+                ),
+                name="unique_derman_reaction",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(
+                    reaction_type__in=(
+                        "LIKE",
+                        "DISLIKE",
+                    )
+                ),
+                name="derman_reaction_valid_type",
+            ),
+        ]
+
+
+class DermanCompanyResponse(models.Model):
+    derman = models.ForeignKey(
+        DermanPost,
+        on_delete=models.CASCADE,
+        related_name="company_responses",
+    )
+
+    company = models.ForeignKey(
+        Company,
+        on_delete=models.CASCADE,
+        related_name="derman_responses",
+    )
+
+    author_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="derman_company_responses",
+    )
+
+    body = models.TextField(
+        max_length=3000,
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True,
+    )
+
+    class Meta:
+        ordering = (
+            "-created_at",
+            "-pk",
+        )
+
+        indexes = [
+            models.Index(
+                fields=(
+                    "company",
+                    "derman",
+                ),
+                name="derman_company_lookup",
+            ),
+        ]
+
+        constraints = [
+            models.UniqueConstraint(
+                fields=(
+                    "derman",
+                    "company",
+                ),
+                name="unique_derman_company_response",
+            ),
+        ]
+
+    def clean(self):
+        super().clean()
+
+        self.body = (
+            self.body or ""
+        ).strip()
+
+        errors = {}
+
+        if len(self.body) < 20:
+            errors["body"] = (
+                "Şirket yanıtı en az "
+                "20 karakter olmalıdır."
+            )
+
+        if (
+            self.derman_id
+            and self.company_id
+            and self.derman.complaint.company_id != self.company_id
+        ):
+            errors["company"] = (
+                "Derman Ol paylaşımı bu şirkete ait değildir."
+            )
+
+        if errors:
+            raise ValidationError(errors)
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
 class ContentReport(models.Model):
     class TargetType(models.TextChoices):
         COMPLAINT = "COMPLAINT", "Şikayet"
         COMMENT = "COMMENT", "Yorum"
+        DERMAN = "DERMAN", "Derman Ol"
 
     class Reason(models.TextChoices):
         SPAM = "SPAM", "Spam / reklam"
@@ -436,6 +774,13 @@ class ContentReport(models.Model):
 
     comment = models.ForeignKey(
         ComplaintComment,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="reports",
+    )
+    derman = models.ForeignKey(
+        DermanPost,
         on_delete=models.CASCADE,
         null=True,
         blank=True,
@@ -523,11 +868,19 @@ class ContentReport(models.Model):
                         target_type="COMPLAINT",
                         complaint__isnull=False,
                         comment__isnull=True,
+                        derman__isnull=True,
                     )
                     | models.Q(
                         target_type="COMMENT",
                         complaint__isnull=True,
                         comment__isnull=False,
+                        derman__isnull=True,
+                    )
+                    | models.Q(
+                        target_type="DERMAN",
+                        complaint__isnull=True,
+                        comment__isnull=True,
+                        derman__isnull=False,
                     )
                 ),
                 name="content_report_target_ck",
@@ -552,6 +905,16 @@ class ContentReport(models.Model):
                 ),
                 name="unique_user_comment_report",
             ),
+            models.UniqueConstraint(
+                fields=(
+                    "reporter",
+                    "derman",
+                ),
+                condition=models.Q(
+                    derman__isnull=False,
+                ),
+                name="unique_user_derman_report",
+            ),
         ]
 
     def clean(self):
@@ -570,6 +933,11 @@ class ContentReport(models.Model):
                     "Şikayet raporunda yorum seçilemez."
                 )
 
+            if self.derman:
+                errors["derman"] = (
+                    "Şikayet raporunda Derman Ol seçilemez."
+                )
+
         elif self.target_type == self.TargetType.COMMENT:
             if not self.comment:
                 errors["comment"] = (
@@ -581,11 +949,44 @@ class ContentReport(models.Model):
                     "Yorum raporunda şikayet seçilemez."
                 )
 
-        if self.description:
-            self.description = self.description.strip()
+            if self.derman:
+                errors["derman"] = (
+                    "Yorum raporunda Derman Ol seçilemez."
+                )
 
-        if self.admin_note:
-            self.admin_note = self.admin_note.strip()
+        elif self.target_type == self.TargetType.DERMAN:
+            if not self.derman:
+                errors["derman"] = (
+                    "Derman Ol raporu için "
+                    "Derman Ol paylaşımı seçilmelidir."
+                )
+
+            if self.complaint:
+                errors["complaint"] = (
+                    "Derman Ol raporunda şikayet seçilemez."
+                )
+
+            if self.comment:
+                errors["comment"] = (
+                    "Derman Ol raporunda yorum seçilemez."
+                )
+
+            if (
+                self.reporter_id
+                and self.derman_id
+                and self.derman.author_user_id == self.reporter_id
+            ):
+                errors["derman"] = (
+                    "Kullanıcı kendi Derman Ol paylaşımını raporlayamaz."
+                )
+
+        self.description = (
+            self.description or ""
+        ).strip()
+
+        self.admin_note = (
+            self.admin_note or ""
+        ).strip()
 
         if errors:
             raise ValidationError(errors)
@@ -595,11 +996,12 @@ class ContentReport(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        target = (
-            f"Şikayet #{self.complaint_id}"
-            if self.target_type == self.TargetType.COMPLAINT
-            else f"Yorum #{self.comment_id}"
-        )
+        if self.target_type == self.TargetType.COMPLAINT:
+            target = f"Şikayet #{self.complaint_id}"
+        elif self.target_type == self.TargetType.COMMENT:
+            target = f"Yorum #{self.comment_id}"
+        else:
+            target = f"Derman Ol #{self.derman_id}"
 
         return f"{target} - {self.get_reason_display()}"
 
@@ -854,6 +1256,7 @@ class UserViolation(models.Model):
     class SourceType(models.TextChoices):
         COMPLAINT = "COMPLAINT", "Şikayet"
         COMMENT = "COMMENT", "Yorum"
+        DERMAN = "DERMAN", "Derman Ol"
         USER_REPORT = "USER_REPORT", "Kullanıcı raporu"
 
         FALSE_REPORT = (
@@ -916,6 +1319,14 @@ class UserViolation(models.Model):
 
     comment = models.ForeignKey(
         ComplaintComment,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="user_violations",
+    )
+
+    derman = models.ForeignKey(
+        DermanPost,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -1016,6 +1427,22 @@ class UserViolation(models.Model):
             if not self.content_report:
                 errors["content_report"] = (
                     "Yorum ihlali için "
+                    "içerik raporu gereklidir."
+                )
+
+        elif (
+            self.source_type
+            == self.SourceType.DERMAN
+        ):
+            if not self.derman:
+                errors["derman"] = (
+                    "Derman Ol ihlali için "
+                    "Derman Ol kaydı gereklidir."
+                )
+
+            if not self.content_report:
+                errors["content_report"] = (
+                    "Derman Ol ihlali için "
                     "içerik raporu gereklidir."
                 )
 
