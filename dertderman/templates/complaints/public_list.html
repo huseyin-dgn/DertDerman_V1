@@ -1,19 +1,27 @@
 {% extends "base.html" %}
 {% load static %}
 
+
 {% block title %}
 Şikayetler | DertDerman
 {% endblock %}
 
+
 {% block body_class %}
 public-site public-index complaints-index
 {% endblock %}
+
 
 {% block extra_head %}
 
 <link
     rel="stylesheet"
     href="{% static 'css/category-system.css' %}"
+>
+
+<link
+    rel="stylesheet"
+    href="{% static 'css/derman-promo.css' %}?v=1"
 >
 
 <script
@@ -39,6 +47,7 @@ public-site public-index complaints-index
                 DD / DENEYİMLER
             </p>
 
+
             <header>
 
                 <p class="section-kicker">
@@ -48,6 +57,7 @@ public-site public-index complaints-index
                 <h1 id="public-complaints-title">
                     Şikayetler,
                     <br>
+
                     <span>
                         olduğu gibi.
                     </span>
@@ -74,6 +84,21 @@ public-site public-index complaints-index
                 </a>
 
             {% endif %}
+
+        </div>
+
+    </section>
+
+
+    {# ===================================================== #}
+    {# DERMAN OL TANITIMI                                    #}
+    {# ===================================================== #}
+
+    <section class="content-section derman-promo-list-section">
+
+        <div class="section-inner">
+
+            {% include 'components/derman_promo.html' with compact_derman_promo=True %}
 
         </div>
 
@@ -155,7 +180,9 @@ public-site public-index complaints-index
                                     {% endfor %}
 
                                 {% else %}
+
                                     Tüm kategoriler
+
                                 {% endif %}
 
                             </strong>
@@ -167,6 +194,7 @@ public-site public-index complaints-index
                             class="complaint-category-chevron"
                             aria-hidden="true"
                         >
+
                             <svg
                                 viewBox="0 0 24 24"
                                 fill="none"
@@ -180,6 +208,7 @@ public-site public-index complaints-index
                                     stroke-linejoin="round"
                                 />
                             </svg>
+
                         </span>
 
                     </button>

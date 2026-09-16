@@ -1,0 +1,779 @@
+/* =========================================================
+   DERTDERMAN ADMIN — DERMAN MODERATION
+   ========================================================= */
+
+.ad-derman-heading-stat {
+    display: grid;
+    justify-items: end;
+    gap: 2px;
+
+    min-width: 100px;
+    padding: 12px 16px;
+
+    border: 1px solid #dce5ee;
+    border-radius: 13px;
+
+    background: #fff;
+}
+
+.ad-derman-heading-stat span {
+    color: #7b8998;
+    font-size: .67rem;
+    font-weight: 800;
+}
+
+.ad-derman-heading-stat strong {
+    color: #184f82;
+    font-size: 1.35rem;
+}
+
+
+/* LIST */
+
+.ad-derman-board {
+    overflow: hidden;
+
+    border: 1px solid #dce5ee;
+    border-radius: 18px;
+
+    background: #fff;
+
+    box-shadow:
+        0 14px 38px rgba(25, 52, 78, .05);
+}
+
+.ad-derman-board__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+
+    padding: 20px 22px;
+
+    border-bottom: 1px solid #e9eef3;
+
+    background:
+        linear-gradient(
+            135deg,
+            #f7faff,
+            #fff
+        );
+}
+
+.ad-derman-board__eyebrow {
+    color: #1d6db6;
+
+    font-size: .62rem;
+    font-weight: 900;
+    letter-spacing: .12em;
+}
+
+.ad-derman-board__header h2 {
+    margin: 3px 0 0;
+
+    color: #17334d;
+    font-size: 1.08rem;
+}
+
+.ad-derman-board__header p {
+    margin: 0;
+
+    color: #8291a0;
+    font-size: .76rem;
+}
+
+.ad-derman-list {
+    display: grid;
+    gap: 12px;
+
+    padding: 18px;
+}
+
+.ad-derman-item {
+    overflow: hidden;
+
+    border: 1px solid #dfe7ee;
+    border-radius: 15px;
+
+    background: #fff;
+
+    transition:
+        border-color .17s ease,
+        transform .17s ease,
+        box-shadow .17s ease;
+}
+
+.ad-derman-item:hover {
+    border-color: #b9d3e9;
+
+    transform: translateY(-1px);
+
+    box-shadow:
+        0 10px 25px rgba(27, 64, 97, .055);
+}
+
+.ad-derman-item__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+
+    padding: 14px 17px;
+
+    border-bottom: 1px solid #edf1f5;
+
+    background: #fafcff;
+}
+
+.ad-derman-item__identity {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    flex-wrap: wrap;
+}
+
+.ad-derman-item__id {
+    color: #1766ad;
+
+    font-size: .72rem;
+    font-weight: 900;
+}
+
+.ad-derman-company {
+    padding: 4px 8px;
+
+    border-radius: 999px;
+
+    background: #eef6fd;
+    color: #476781;
+
+    font-size: .65rem;
+    font-weight: 800;
+}
+
+.ad-derman-item__content {
+    padding: 18px 17px;
+}
+
+.ad-derman-item__content p {
+    margin: 0;
+
+    color: #314a61;
+
+    font-size: .87rem;
+    line-height: 1.65;
+
+    overflow-wrap: anywhere;
+}
+
+.ad-derman-item__context {
+    display: grid;
+    grid-template-columns:
+        .7fr
+        1.6fr
+        .7fr;
+
+    gap: 10px;
+
+    padding: 0 17px 16px;
+}
+
+.ad-derman-item__context > div {
+    display: grid;
+    gap: 3px;
+
+    min-width: 0;
+
+    padding: 10px 11px;
+
+    border-radius: 10px;
+
+    background: #f7f9fb;
+}
+
+.ad-derman-item__context span {
+    color: #8a98a6;
+
+    font-size: .61rem;
+    font-weight: 800;
+}
+
+.ad-derman-item__context strong {
+    overflow: hidden;
+
+    color: #435c72;
+
+    font-size: .72rem;
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ad-derman-item__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+
+    padding: 12px 17px;
+
+    border-top: 1px solid #edf1f5;
+
+    background: #fbfcfd;
+}
+
+.ad-derman-item__footer > span {
+    color: #8593a1;
+
+    font-size: .68rem;
+}
+
+.ad-derman-review {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+
+    min-height: 34px;
+    padding: 0 12px;
+
+    border: 1px solid #bcd6ec;
+    border-radius: 9px;
+
+    background: #fff;
+    color: #1766ad;
+
+    font-size: .72rem;
+    font-weight: 850;
+
+    text-decoration: none;
+}
+
+.ad-derman-review:hover {
+    background: #edf6ff;
+}
+
+.ad-derman-pagination {
+    padding: 0 18px 18px;
+}
+
+
+/* EMPTY */
+
+.ad-derman-empty {
+    display: grid;
+    justify-items: center;
+
+    padding: 55px 25px;
+
+    text-align: center;
+}
+
+.ad-derman-empty > span {
+    display: grid;
+    place-items: center;
+
+    width: 48px;
+    height: 48px;
+
+    margin-bottom: 13px;
+
+    border-radius: 14px;
+
+    background: #eaf7f0;
+    color: #24815f;
+
+    font-weight: 900;
+}
+
+.ad-derman-empty h2 {
+    margin: 0;
+
+    color: #2a465f;
+    font-size: 1rem;
+}
+
+.ad-derman-empty p {
+    margin: 6px 0 17px;
+
+    color: #7a8c9d;
+    font-size: .78rem;
+}
+
+
+/* DETAIL */
+
+.ad-derman-detail-page {
+    display: grid;
+    gap: 18px;
+}
+
+.ad-derman-detail-hero {
+    padding: 24px 26px;
+
+    border: 1px solid #dce5ee;
+    border-radius: 18px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #f3f8fd,
+            #fff
+        );
+
+    box-shadow:
+        0 12px 32px rgba(24, 54, 82, .045);
+}
+
+.ad-derman-back {
+    display: inline-flex;
+
+    margin-bottom: 14px;
+
+    color: #61778b;
+
+    font-size: .71rem;
+    font-weight: 800;
+
+    text-decoration: none;
+}
+
+.ad-derman-back:hover {
+    color: #1766ad;
+}
+
+.ad-derman-detail-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.ad-derman-detail-title h1 {
+    margin: 0;
+
+    color: #17334d;
+    font-size: 1.75rem;
+}
+
+.ad-derman-detail-hero > div > p:last-child {
+    margin: 8px 0 0;
+
+    color: #708396;
+    font-size: .81rem;
+}
+
+.ad-derman-detail-grid {
+    display: grid;
+    grid-template-columns:
+        minmax(0, 1fr)
+        360px;
+
+    gap: 18px;
+
+    align-items: start;
+}
+
+.ad-derman-detail-main {
+    display: grid;
+    gap: 15px;
+}
+
+.ad-derman-panel {
+    overflow: hidden;
+
+    border: 1px solid #dfe7ee;
+    border-radius: 16px;
+
+    background: #fff;
+
+    box-shadow:
+        0 10px 28px rgba(25, 55, 84, .04);
+}
+
+.ad-derman-panel__heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+
+    padding: 16px 18px;
+
+    border-bottom: 1px solid #edf1f5;
+
+    background: #fafcff;
+}
+
+.ad-derman-panel__heading > div {
+    display: grid;
+    gap: 3px;
+}
+
+.ad-derman-panel__heading span {
+    color: #1766ad;
+
+    font-size: .59rem;
+    font-weight: 900;
+    letter-spacing: .1em;
+}
+
+.ad-derman-panel__heading h2 {
+    margin: 0;
+
+    color: #29465f;
+    font-size: .96rem;
+}
+
+.ad-derman-author {
+    padding: 5px 8px;
+
+    border-radius: 999px;
+
+    background: #edf5fc;
+    color: #496b86 !important;
+
+    letter-spacing: 0 !important;
+}
+
+.ad-derman-body {
+    position: relative;
+
+    padding: 24px 22px 26px 49px;
+}
+
+.ad-derman-body p {
+    margin: 0;
+
+    color: #334d64;
+
+    font-size: .91rem;
+    line-height: 1.75;
+
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.ad-derman-quote {
+    position: absolute;
+    top: 14px;
+    left: 20px;
+
+    color: #8dbce4;
+
+    font-family: Georgia, serif;
+    font-size: 2rem;
+}
+
+.ad-derman-context-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+    gap: 10px;
+
+    padding: 17px;
+}
+
+.ad-derman-context-grid article {
+    display: grid;
+    gap: 4px;
+
+    min-width: 0;
+
+    padding: 13px;
+
+    border: 1px solid #e7edf2;
+    border-radius: 11px;
+
+    background: #f9fbfc;
+}
+
+.ad-derman-context-grid span {
+    color: #8997a5;
+
+    font-size: .63rem;
+    font-weight: 800;
+}
+
+.ad-derman-context-grid strong,
+.ad-derman-context-grid a {
+    color: #3b566e;
+
+    font-size: .75rem;
+    font-weight: 800;
+
+    text-decoration: none;
+
+    overflow-wrap: anywhere;
+}
+
+.ad-derman-context-grid a:hover {
+    color: #1766ad;
+}
+
+.ad-derman-moderation-note {
+    margin: 0;
+    padding: 18px;
+
+    color: #425b70;
+
+    font-size: .82rem;
+    line-height: 1.6;
+
+    overflow-wrap: anywhere;
+}
+
+
+/* DECISION */
+
+.ad-derman-decision {
+    position: sticky;
+    top: 92px;
+
+    display: grid;
+    gap: 12px;
+}
+
+.ad-derman-decision__intro {
+    display: flex;
+    gap: 11px;
+
+    padding: 17px;
+
+    border: 1px solid #d5e4f1;
+    border-radius: 15px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #eef7ff,
+            #fff
+        );
+}
+
+.ad-derman-decision__icon {
+    display: grid;
+    place-items: center;
+
+    flex: 0 0 37px;
+
+    width: 37px;
+    height: 37px;
+
+    border-radius: 11px;
+
+    background: #1766ad;
+    color: #fff;
+
+    font-weight: 900;
+}
+
+.ad-derman-decision__intro > div > span {
+    color: #1766ad;
+
+    font-size: .57rem;
+    font-weight: 900;
+    letter-spacing: .1em;
+}
+
+.ad-derman-decision__intro h2 {
+    margin: 3px 0;
+
+    color: #24425c;
+    font-size: .96rem;
+}
+
+.ad-derman-decision__intro p {
+    margin: 0;
+
+    color: #718599;
+    font-size: .72rem;
+    line-height: 1.5;
+}
+
+.ad-derman-action-card {
+    display: grid;
+    gap: 14px;
+
+    padding: 17px;
+
+    border: 1px solid #dfe7ee;
+    border-radius: 15px;
+
+    background: #fff;
+}
+
+.ad-derman-action-card--publish {
+    border-top: 3px solid #2b9a72;
+}
+
+.ad-derman-action-card--reject {
+    border-top: 3px solid #d05a69;
+}
+
+.ad-derman-action-label {
+    color: #7b8d9e;
+
+    font-size: .57rem;
+    font-weight: 900;
+    letter-spacing: .1em;
+}
+
+.ad-derman-action-card h3 {
+    margin: 3px 0;
+
+    color: #29465f;
+    font-size: .91rem;
+}
+
+.ad-derman-action-card > div > p {
+    margin: 0;
+
+    color: #7b8d9e;
+    font-size: .7rem;
+    line-height: 1.45;
+}
+
+.ad-derman-action-card form {
+    display: grid;
+    gap: 10px;
+}
+
+.ad-derman-field {
+    display: grid;
+    gap: 6px;
+}
+
+.ad-derman-field > span {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+
+    color: #405a71;
+
+    font-size: .69rem;
+    font-weight: 850;
+}
+
+.ad-derman-field small {
+    color: #94a0ac;
+    font-size: .59rem;
+}
+
+.ad-derman-field textarea {
+    width: 100%;
+    min-height: 95px;
+
+    padding: 10px 11px;
+
+    border: 1px solid #cedbe6;
+    border-radius: 9px;
+
+    background: #fbfcfd;
+    color: #344e66;
+
+    font: inherit;
+    font-size: .73rem;
+    line-height: 1.5;
+
+    resize: vertical;
+}
+
+.ad-derman-field textarea:focus {
+    outline: none;
+
+    border-color: #70a8d6;
+
+    background: #fff;
+
+    box-shadow:
+        0 0 0 3px rgba(23, 102, 173, .08);
+}
+
+.ad-derman-action-button {
+    width: 100%;
+    justify-content: center;
+}
+
+.ad-derman-complete {
+    display: grid;
+    justify-items: center;
+
+    padding: 30px 20px;
+
+    border: 1px solid #dce6ee;
+    border-radius: 16px;
+
+    background: #fff;
+
+    text-align: center;
+}
+
+.ad-derman-complete__icon {
+    display: grid;
+    place-items: center;
+
+    width: 48px;
+    height: 48px;
+
+    margin-bottom: 12px;
+
+    border-radius: 14px;
+
+    background: #eaf7f0;
+    color: #237c5b;
+
+    font-weight: 900;
+}
+
+.ad-derman-complete h2 {
+    margin: 3px 0 5px;
+
+    color: #2a465f;
+}
+
+.ad-derman-complete > p:not(.ad-kicker) {
+    margin: 0;
+
+    color: #788a9b;
+
+    font-size: .76rem;
+}
+
+.ad-derman-complete small {
+    margin-top: 9px;
+
+    color: #9aa5af;
+}
+
+
+/* RESPONSIVE */
+
+@media (max-width: 1050px) {
+    .ad-derman-detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .ad-derman-decision {
+        position: static;
+    }
+}
+
+@media (max-width: 760px) {
+    .ad-derman-board__header,
+    .ad-derman-item__top,
+    .ad-derman-item__footer,
+    .ad-derman-panel__heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .ad-derman-item__context,
+    .ad-derman-context-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .ad-derman-heading-stat {
+        justify-items: start;
+    }
+}

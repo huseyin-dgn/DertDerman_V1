@@ -1,0 +1,2731 @@
+/* =========================================================
+   DERTDERMAN
+   Public Complaint Detail V3
+   ========================================================= */
+
+
+/* ---------------------------------------------------------
+   PAGE
+   --------------------------------------------------------- */
+
+.public-complaint-page {
+    background:
+        radial-gradient(
+            circle at 8% 10%,
+            rgba(55, 145, 228, .08),
+            transparent 26rem
+        ),
+        radial-gradient(
+            circle at 95% 28%,
+            rgba(126, 106, 234, .05),
+            transparent 28rem
+        ),
+        #f4f8fc;
+}
+
+
+.public-complaint-page .public-detail-v2 {
+    padding-top: 34px;
+    padding-bottom: 70px;
+}
+
+
+.public-complaint-page .public-detail-shell {
+    width: min(1180px, calc(100% - 36px));
+    margin-inline: auto;
+}
+
+
+/* ---------------------------------------------------------
+   HERO
+   --------------------------------------------------------- */
+
+.public-complaint-page .public-detail-hero {
+    position: relative;
+
+    display: grid;
+    grid-template-columns: 235px minmax(0, 1fr);
+    gap: 28px;
+
+    padding: 30px;
+
+    overflow: hidden;
+
+    border: 1px solid #d9e6f2;
+    border-radius: 24px;
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(236, 246, 255, .96) 0%,
+            rgba(255, 255, 255, .98) 52%,
+            rgba(246, 249, 255, 1) 100%
+        );
+
+    box-shadow:
+        0 22px 55px rgba(28, 61, 94, .07);
+}
+
+
+.public-complaint-page .public-detail-hero::after {
+    content: "";
+
+    position: absolute;
+    top: -95px;
+    right: -95px;
+
+    width: 240px;
+    height: 240px;
+
+    border-radius: 50%;
+
+    background:
+        radial-gradient(
+            circle,
+            rgba(32, 112, 189, .11),
+            transparent 68%
+        );
+
+    pointer-events: none;
+}
+
+
+/* ---------------------------------------------------------
+   COMPANY BOX
+   --------------------------------------------------------- */
+
+.public-complaint-page .public-detail-company {
+    position: relative;
+    z-index: 1;
+
+    align-self: stretch;
+
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+
+    gap: 16px;
+
+    padding: 20px;
+
+    border: 1px solid #dce8f3;
+    border-radius: 18px;
+
+    background: rgba(255, 255, 255, .75);
+}
+
+
+.public-complaint-page .public-detail-logo {
+    display: grid;
+    place-items: center;
+
+    width: 62px;
+    height: 62px;
+
+    overflow: hidden;
+
+    border: 1px solid #d4e3f1;
+    border-radius: 17px;
+
+    background: #f1f7fd;
+
+    box-shadow:
+        0 8px 22px rgba(33, 76, 115, .08);
+}
+
+
+.public-complaint-page .public-detail-logo img,
+.public-complaint-page .public-detail-logo-image {
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+}
+
+
+.public-complaint-page .public-detail-company > div {
+    display: grid;
+    gap: 10px;
+}
+
+
+.public-complaint-page .public-detail-company p {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+
+    margin: 0;
+
+    color: #193650;
+
+    font-size: .94rem;
+    font-weight: 850;
+}
+
+
+.public-complaint-page .verified-mark {
+    display: inline-grid;
+    place-items: center;
+
+    width: 19px;
+    height: 19px;
+
+    border-radius: 50%;
+
+    background: #e6f6ee;
+    color: #17845b;
+
+    font-size: .68rem;
+}
+
+
+.public-complaint-page .company-detail-cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-height: 36px;
+    padding: 0 13px;
+
+    border: 1px solid #bfd5ea;
+    border-radius: 9px;
+
+    background: #fff;
+
+    color: #1765b3;
+
+    font-size: .75rem;
+    font-weight: 850;
+
+    text-decoration: none;
+
+    transition:
+        background .18s ease,
+        border-color .18s ease,
+        transform .18s ease;
+}
+
+
+.public-complaint-page .company-detail-cta:hover {
+    border-color: #82b3dd;
+
+    background: #edf7ff;
+
+    transform: translateY(-1px);
+}
+
+
+/* ---------------------------------------------------------
+   COMPLAINT TITLE
+   --------------------------------------------------------- */
+
+.public-complaint-page .public-detail-title {
+    position: relative;
+    z-index: 1;
+
+    align-self: center;
+
+    min-width: 0;
+}
+
+
+.public-complaint-page .public-detail-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+
+    margin-bottom: 14px;
+}
+
+
+.public-complaint-page .complaint-category-chip {
+    display: inline-flex;
+    align-items: center;
+
+    min-height: 28px;
+    padding: 0 10px;
+
+    border: 1px solid #cadff2;
+    border-radius: 999px;
+
+    background: #edf7ff;
+    color: #1765b3;
+
+    font-size: .68rem;
+    font-weight: 850;
+}
+
+
+.public-complaint-page .community-chip {
+    min-height: 28px;
+
+    padding: 0 10px;
+
+    border-radius: 999px;
+
+    font-size: .68rem;
+    font-weight: 850;
+}
+
+
+.public-complaint-page .community-chip--response {
+    display: inline-flex;
+    align-items: center;
+
+    background: #e8f7ef;
+    color: #23775a;
+}
+
+
+.public-complaint-page .public-detail-title h1 {
+    max-width: 800px;
+
+    margin: 0;
+
+    color: #102a43;
+
+    font-size: clamp(1.75rem, 3vw, 2.55rem);
+    font-weight: 850;
+    line-height: 1.18;
+    letter-spacing: -.035em;
+}
+
+
+.public-complaint-page .public-detail-author {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    flex-wrap: wrap;
+
+    margin-top: 18px;
+
+    color: #71849a;
+
+    font-size: .8rem;
+}
+
+
+.public-complaint-page .public-detail-author a {
+    color: #315675;
+
+    font-weight: 800;
+    text-decoration: none;
+}
+
+
+.public-complaint-page .public-detail-author a:hover {
+    color: #1765b3;
+}
+
+
+/* ---------------------------------------------------------
+   COMPLAINT CONTENT GRID
+   --------------------------------------------------------- */
+
+.public-complaint-page .complaint-context-grid {
+    display: grid;
+    grid-template-columns:
+        minmax(0, 1.55fr)
+        minmax(280px, .65fr);
+
+    gap: 18px;
+
+    margin-top: 20px;
+}
+
+
+/* ---------------------------------------------------------
+   DESCRIPTION
+   --------------------------------------------------------- */
+
+.public-complaint-page .public-detail-card {
+    border: 1px solid #dde7f0;
+    border-radius: 19px;
+
+    background: #fff;
+
+    box-shadow:
+        0 12px 32px rgba(24, 55, 85, .045);
+}
+
+
+.public-complaint-page .complaint-description {
+    padding: 26px;
+}
+
+
+.public-complaint-page .complaint-description h2 {
+    position: relative;
+
+    margin: 0 0 18px;
+    padding-left: 16px;
+
+    color: #18364f;
+
+    font-size: .78rem;
+    font-weight: 900;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+}
+
+
+.public-complaint-page .complaint-description h2::before {
+    content: "";
+
+    position: absolute;
+    top: 50%;
+    left: 0;
+
+    width: 5px;
+    height: 22px;
+
+    border-radius: 99px;
+
+    background: #1765b3;
+
+    transform: translateY(-50%);
+}
+
+
+.public-complaint-page .complaint-description > p {
+    margin: 0;
+
+    color: #344d64;
+
+    font-size: .95rem;
+    line-height: 1.82;
+}
+
+
+.public-complaint-page .public-detail-dates {
+    display: grid;
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+    gap: 10px;
+
+    margin: 22px 0 0;
+    padding-top: 18px;
+
+    border-top: 1px solid #edf1f5;
+}
+
+
+.public-complaint-page .public-detail-dates > div {
+    padding: 12px;
+
+    border-radius: 11px;
+
+    background: #f7fafd;
+}
+
+
+.public-complaint-page .public-detail-dates dt {
+    margin-bottom: 4px;
+
+    color: #8798a9;
+
+    font-size: .68rem;
+    font-weight: 750;
+}
+
+
+.public-complaint-page .public-detail-dates dd {
+    margin: 0;
+
+    color: #365069;
+
+    font-size: .78rem;
+    font-weight: 800;
+}
+
+
+/* ---------------------------------------------------------
+   OTHER COMPLAINTS
+   --------------------------------------------------------- */
+
+.public-complaint-page .related-company-complaints {
+    padding: 20px;
+
+    border: 1px solid #dde7f0;
+    border-radius: 19px;
+
+    background:
+        linear-gradient(
+            150deg,
+            #f7fbff,
+            #fff
+        );
+
+    box-shadow:
+        0 12px 32px rgba(24, 55, 85, .04);
+}
+
+
+.public-complaint-page .related-company-heading p {
+    margin: 0 0 5px;
+
+    color: #1765b3;
+
+    font-size: .64rem;
+    font-weight: 900;
+    letter-spacing: .12em;
+}
+
+
+.public-complaint-page .related-company-heading h2 {
+    margin: 0 0 15px;
+
+    color: #1c3952;
+
+    font-size: 1rem;
+}
+
+
+.public-complaint-page .related-company-list {
+    display: grid;
+    gap: 9px;
+}
+
+
+.public-complaint-page .related-complaint-card {
+    display: block;
+
+    padding: 13px;
+
+    border: 1px solid #e2eaf1;
+    border-radius: 12px;
+
+    background: #fff;
+
+    color: inherit;
+
+    text-decoration: none;
+
+    transition:
+        transform .18s ease,
+        border-color .18s ease,
+        box-shadow .18s ease;
+}
+
+
+.public-complaint-page .related-complaint-card:hover {
+    border-color: #afd0ec;
+
+    transform: translateY(-2px);
+
+    box-shadow:
+        0 8px 20px rgba(31, 74, 111, .07);
+}
+
+
+.public-complaint-page .related-complaint-card h3 {
+    margin: 8px 0 10px;
+
+    color: #29455e;
+
+    font-size: .82rem;
+    line-height: 1.45;
+}
+
+
+.public-complaint-page .related-complaint-card footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+
+    color: #8494a4;
+
+    font-size: .68rem;
+}
+
+
+.public-complaint-page .related-complaint-card footer span {
+    color: #54728e;
+
+    font-weight: 800;
+}
+
+
+.public-complaint-page .related-company-all {
+    display: inline-flex;
+
+    margin-top: 14px;
+
+    color: #1765b3;
+
+    font-size: .75rem;
+    font-weight: 850;
+
+    text-decoration: none;
+}
+
+
+/* ---------------------------------------------------------
+   COMMUNITY INTERACTION
+   --------------------------------------------------------- */
+
+.public-complaint-page .interaction-panel {
+    margin-top: 20px;
+    padding: 24px;
+
+    border: 1px solid #d8e5f2;
+    border-radius: 20px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #f4f9ff,
+            #ffffff 55%,
+            #f8f6ff
+        );
+
+    box-shadow:
+        0 12px 30px rgba(33, 65, 96, .04);
+}
+
+
+.public-complaint-page .interaction-panel > header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+
+    margin-bottom: 18px;
+}
+
+
+.public-complaint-page .section-kicker {
+    margin: 0 0 5px;
+
+    color: #1765b3;
+
+    font-size: .67rem;
+    font-weight: 900;
+    letter-spacing: .12em;
+}
+
+
+.public-complaint-page .interaction-panel h2 {
+    margin: 0;
+
+    color: #193650;
+
+    font-size: 1.14rem;
+}
+
+
+.public-complaint-page .interaction-summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+
+.public-complaint-page .interaction-stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+
+    min-height: 34px;
+    padding: 0 10px;
+
+    border: 1px solid #dbe6f0;
+    border-radius: 999px;
+
+    background: rgba(255, 255, 255, .82);
+
+    color: #64798d;
+}
+
+
+.public-complaint-page .interaction-stat b {
+    color: #254b6b;
+
+    font-size: .76rem;
+}
+
+
+.public-complaint-page .interaction-stat small {
+    font-size: .67rem;
+}
+
+
+.public-complaint-page .interaction-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+
+    padding: 13px;
+
+    border: 1px solid #e1e9f1;
+    border-radius: 14px;
+
+    background: rgba(255, 255, 255, .78);
+}
+
+
+.public-complaint-page .emoji-options {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+
+.public-complaint-page .emoji-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+
+    min-width: 50px;
+    min-height: 38px;
+
+    padding: 0 9px;
+
+    border: 1px solid #d8e4ef;
+    border-radius: 10px;
+
+    background: #fff;
+
+    cursor: pointer;
+
+    transition:
+        background .16s ease,
+        border-color .16s ease,
+        transform .16s ease;
+}
+
+
+.public-complaint-page .emoji-option:hover {
+    border-color: #93bde1;
+
+    background: #f3f9ff;
+
+    transform: translateY(-1px);
+}
+
+
+.public-complaint-page .emoji-option.is-active {
+    border-color: #6fa9d9;
+
+    background: #eaf5ff;
+}
+
+
+.public-complaint-page .emoji-option b {
+    color: #49637b;
+
+    font-size: .7rem;
+}
+
+
+.public-complaint-page .report-trigger {
+    min-height: 38px;
+    padding: 0 13px;
+
+    border: 1px solid #d7e2ec;
+    border-radius: 10px;
+
+    background: #fff;
+    color: #556b80;
+
+    font: inherit;
+    font-size: .76rem;
+    font-weight: 800;
+
+    cursor: pointer;
+}
+
+
+.public-complaint-page .report-trigger:hover {
+    border-color: #e2a8b1;
+    color: #b14252;
+}
+
+
+.public-complaint-page .comment-count-link {
+    display: inline-flex;
+    align-items: center;
+
+    min-height: 38px;
+    padding: 0 13px;
+
+    border: 1px solid #d8e4ef;
+    border-radius: 10px;
+
+    background: #fff;
+    color: #35536e;
+
+    font-size: .76rem;
+    font-weight: 850;
+
+    text-decoration: none;
+}
+
+
+/* =========================================================
+   DERMAN
+   ========================================================= */
+
+.public-complaint-page .derman-section {
+    position: relative;
+
+    margin-top: 20px;
+    padding: 26px;
+
+    overflow: hidden;
+
+    border: 1px solid #cfe2f4;
+    border-radius: 22px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #eef7ff 0%,
+            #ffffff 52%,
+            #f8fbff 100%
+        );
+
+    box-shadow:
+        0 18px 42px rgba(28, 70, 109, .06);
+}
+
+
+.public-complaint-page .derman-section::before {
+    content: "";
+
+    position: absolute;
+    inset: 0 auto 0 0;
+
+    width: 4px;
+
+    background:
+        linear-gradient(
+            180deg,
+            #1765b3,
+            #53a5ec
+        );
+}
+
+
+.public-complaint-page .derman-section::after {
+    content: "✦";
+
+    position: absolute;
+    top: -28px;
+    right: 25px;
+
+    color: rgba(23, 101, 179, .055);
+
+    font-size: 8rem;
+    line-height: 1;
+
+    pointer-events: none;
+}
+
+
+.public-complaint-page .derman-section__header {
+    position: relative;
+    z-index: 1;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 22px;
+}
+
+
+.public-complaint-page .derman-section__identity {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+
+.public-complaint-page .derman-section__icon {
+    display: grid;
+    place-items: center;
+
+    width: 50px;
+    height: 50px;
+    flex: 0 0 50px;
+
+    border: 1px solid #c8def3;
+    border-radius: 15px;
+
+    background: #fff;
+    color: #1765b3;
+
+    box-shadow:
+        0 9px 22px rgba(23, 101, 179, .09);
+}
+
+
+.public-complaint-page .derman-section__kicker {
+    margin: 0 0 4px;
+
+    color: #1765b3;
+
+    font-size: .67rem;
+    font-weight: 900;
+    letter-spacing: .14em;
+}
+
+
+.public-complaint-page .derman-section__identity h2 {
+    margin: 0;
+
+    color: #102e49;
+
+    font-size: 1.3rem;
+}
+
+
+.public-complaint-page .derman-section__subtitle {
+    margin: 5px 0 0;
+
+    color: #6d8195;
+
+    font-size: .82rem;
+}
+
+
+.public-complaint-page .derman-section__actions {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+
+    position: relative;
+    z-index: 1;
+}
+
+
+.public-complaint-page .derman-count {
+    min-height: 40px;
+    padding: 0 14px;
+
+    border: 1px solid #d4e4f2;
+
+    background: rgba(255, 255, 255, .88);
+
+    box-shadow: none;
+}
+
+
+.public-complaint-page .derman-primary-button {
+    min-height: 42px;
+
+    border-radius: 10px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #1765b3,
+            #2378c5
+        );
+
+    box-shadow:
+        0 9px 22px rgba(23, 101, 179, .18);
+}
+
+
+.public-complaint-page .derman-info-banner {
+    position: relative;
+    z-index: 1;
+
+    margin-top: 17px;
+
+    border-color: #cae2f5;
+
+    background: rgba(238, 248, 255, .88);
+}
+
+
+.public-complaint-page .derman-list {
+    position: relative;
+    z-index: 1;
+
+    gap: 12px;
+
+    margin-top: 18px;
+}
+
+
+.public-complaint-page .derman-card {
+    padding: 19px;
+
+    border: 1px solid #dce7f0;
+    border-radius: 16px;
+
+    background: rgba(255, 255, 255, .94);
+
+    box-shadow:
+        0 9px 24px rgba(29, 64, 97, .045);
+
+    transition:
+        transform .18s ease,
+        box-shadow .18s ease,
+        border-color .18s ease;
+}
+
+
+.public-complaint-page .derman-card:hover {
+    border-color: #c5dcec;
+
+    transform: translateY(-1px);
+
+    box-shadow:
+        0 13px 28px rgba(29, 64, 97, .065);
+}
+
+
+.public-complaint-page .derman-card__username {
+    color: #173a58;
+
+    font-weight: 900;
+}
+
+
+.public-complaint-page .derman-card__body {
+    color: #334c63;
+
+    line-height: 1.72;
+}
+
+
+.public-complaint-page .derman-card__footer {
+    margin-top: 17px;
+    padding-top: 13px;
+
+    border-top: 1px solid #edf2f6;
+}
+
+
+.public-complaint-page .derman-reaction-button {
+    min-height: 37px;
+
+    border-radius: 9px;
+}
+
+
+.public-complaint-page .derman-reaction-button.is-active {
+    border-color: #83b6e2;
+
+    background: #eaf5ff;
+    color: #1765b3;
+}
+
+
+.public-complaint-page .derman-withdraw-button {
+    padding: 7px 10px;
+
+    border-radius: 8px;
+
+    color: #c43f53;
+}
+
+
+.public-complaint-page .derman-withdraw-button:hover {
+    background: #fff0f2;
+}
+
+
+/* ---------------------------------------------------------
+   EMPTY / PAYWALL DERMAN STATES
+   --------------------------------------------------------- */
+
+.public-complaint-page .derman-empty,
+.public-complaint-page .derman-gate {
+    position: relative;
+    z-index: 1;
+
+    margin-top: 18px;
+
+    border-radius: 14px;
+
+    background: rgba(255, 255, 255, .76);
+}
+
+
+.public-complaint-page .derman-gate--pro {
+    border-color: #bedaf0;
+
+    background:
+        linear-gradient(
+            135deg,
+            #edf7ff,
+            #fff
+        );
+}
+
+
+/* ---------------------------------------------------------
+   DERMAN OFFICIAL RESPONSE
+   --------------------------------------------------------- */
+
+.public-complaint-page .derman-company-response {
+    border-radius: 13px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #effaf6,
+            #ffffff
+        );
+}
+
+
+/* =========================================================
+   COMPANY OFFICIAL RESPONSE
+   ========================================================= */
+
+.public-complaint-page .official-response-section,
+.public-complaint-page .community-comments {
+    margin-top: 20px;
+    padding: 25px;
+
+    border: 1px solid #dce6ef;
+    border-radius: 20px;
+
+    background: #fff;
+
+    box-shadow:
+        0 12px 32px rgba(28, 59, 90, .045);
+}
+
+
+.public-complaint-page .public-section-heading {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+
+    margin-bottom: 18px;
+}
+
+
+.public-complaint-page .public-section-heading > span {
+    display: grid;
+    place-items: center;
+
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+
+    border-radius: 12px;
+
+    background: #edf6ff;
+    color: #1765b3;
+
+    font-weight: 900;
+}
+
+
+.public-complaint-page .public-section-heading h2 {
+    margin: 0;
+
+    color: #173650;
+
+    font-size: 1.2rem;
+}
+
+
+.public-complaint-page .official-response {
+    padding: 18px;
+
+    border: 1px solid #d2e6f4;
+    border-left: 4px solid #1765b3;
+    border-radius: 14px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #f1f8ff,
+            #ffffff
+        );
+}
+
+
+.public-complaint-page .official-response + .official-response {
+    margin-top: 12px;
+}
+
+
+.public-complaint-page .official-response > header {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+}
+
+
+.public-complaint-page .official-company-logo {
+    display: grid;
+    place-items: center;
+
+    width: 42px;
+    height: 42px;
+
+    overflow: hidden;
+
+    border-radius: 12px;
+
+    background: #eaf4fd;
+}
+
+
+.public-complaint-page .official-response > header > div {
+    display: grid;
+    gap: 3px;
+}
+
+
+.public-complaint-page .official-response strong {
+    color: #173650;
+
+    font-size: .88rem;
+}
+
+
+.public-complaint-page .official-badge {
+    display: inline-flex;
+
+    width: fit-content;
+
+    padding: 3px 7px;
+
+    border-radius: 999px;
+
+    background: #e5f3ff;
+    color: #1765b3;
+
+    font-size: .61rem;
+    font-weight: 850;
+}
+
+
+.public-complaint-page .official-response time {
+    margin-left: auto;
+
+    color: #8797a7;
+
+    font-size: .69rem;
+}
+
+
+.public-complaint-page .official-response > p {
+    margin: 14px 0 0;
+
+    color: #40596e;
+
+    font-size: .86rem;
+    line-height: 1.65;
+}
+
+
+/* =========================================================
+   COMMENTS
+   ========================================================= */
+
+.public-complaint-page .community-comments
+.public-section-heading > b {
+    margin-left: auto;
+
+    display: grid;
+    place-items: center;
+
+    min-width: 31px;
+    height: 31px;
+    padding: 0 8px;
+
+    border-radius: 999px;
+
+    background: #eff5fa;
+    color: #385a76;
+
+    font-size: .75rem;
+}
+
+
+.public-complaint-page .comment-form {
+    padding: 16px;
+
+    border: 1px solid #e0e8f0;
+    border-radius: 14px;
+
+    background: #f8fbfd;
+}
+
+
+.public-complaint-page .comment-form textarea {
+    min-height: 105px;
+
+    border-color: #d5e1ec;
+    border-radius: 11px;
+
+    background: #fff;
+}
+
+
+.public-complaint-page .comment-login {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+
+    padding: 14px;
+
+    border: 1px solid #dde7f0;
+    border-radius: 13px;
+
+    background: #f8fbfe;
+}
+
+
+.public-complaint-page .comment-login p {
+    margin: 0;
+
+    color: #667c91;
+
+    font-size: .8rem;
+}
+
+
+.public-complaint-page .comment-list {
+    display: grid;
+    gap: 10px;
+
+    margin-top: 18px;
+}
+
+
+.public-complaint-page .community-comment {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 12px;
+
+    padding: 15px;
+
+    border: 1px solid #e3eaf1;
+    border-radius: 13px;
+
+    background: #fff;
+}
+
+
+.public-complaint-page .community-comment > div > header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+
+.public-complaint-page .community-comment a {
+    color: #2a4b68;
+
+    text-decoration: none;
+}
+
+
+.public-complaint-page .community-comment time {
+    color: #8a9aaa;
+
+    font-size: .68rem;
+}
+
+
+.public-complaint-page .community-comment p {
+    margin: 9px 0 0;
+
+    color: #425b70;
+
+    font-size: .83rem;
+    line-height: 1.6;
+}
+
+
+.public-complaint-page .comment-delete-form button {
+    border: 0;
+
+    background: transparent;
+    color: #bd4455;
+
+    font: inherit;
+    font-size: .68rem;
+    font-weight: 800;
+
+    cursor: pointer;
+}
+
+
+/* ---------------------------------------------------------
+   EMPTY STATES
+   --------------------------------------------------------- */
+
+.public-complaint-page .public-empty-note,
+.public-complaint-page .comment-empty {
+    padding: 17px;
+
+    border: 1px dashed #d4e0ea;
+    border-radius: 13px;
+
+    background: #f9fbfd;
+
+    color: #74879a;
+}
+
+
+.public-complaint-page .comment-empty {
+    text-align: center;
+}
+
+
+.public-complaint-page .comment-empty > span {
+    display: grid;
+    place-items: center;
+
+    width: 40px;
+    height: 40px;
+
+    margin: 0 auto 9px;
+
+    border-radius: 11px;
+
+    background: #edf6ff;
+    color: #1765b3;
+}
+
+
+.public-complaint-page .comment-empty h3 {
+    margin: 0;
+
+    color: #36526b;
+
+    font-size: .9rem;
+}
+
+
+.public-complaint-page .comment-empty p {
+    margin: 4px 0 0;
+
+    font-size: .76rem;
+}
+
+
+/* ---------------------------------------------------------
+   BOTTOM ACTION
+   --------------------------------------------------------- */
+
+.public-complaint-page .public-detail-actions {
+    display: flex;
+    justify-content: flex-start;
+
+    margin-top: 20px;
+}
+
+
+.public-complaint-page .public-detail-actions .secondary-action {
+    min-height: 40px;
+
+    border-radius: 10px;
+}
+
+
+/* ---------------------------------------------------------
+   RESPONSIVE
+   --------------------------------------------------------- */
+
+@media (max-width: 940px) {
+
+    .public-complaint-page .public-detail-hero {
+        grid-template-columns: 1fr;
+    }
+
+
+    .public-complaint-page .public-detail-company {
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-start;
+    }
+
+
+    .public-complaint-page .complaint-context-grid {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+
+@media (max-width: 720px) {
+
+    .public-complaint-page .public-detail-shell {
+        width: min(
+            100% - 22px,
+            1180px
+        );
+    }
+
+
+    .public-complaint-page .public-detail-v2 {
+        padding-top: 18px;
+    }
+
+
+    .public-complaint-page .public-detail-hero,
+    .public-complaint-page .interaction-panel,
+    .public-complaint-page .derman-section,
+    .public-complaint-page .official-response-section,
+    .public-complaint-page .community-comments {
+        padding: 18px;
+
+        border-radius: 17px;
+    }
+
+
+    .public-complaint-page .public-detail-title h1 {
+        font-size: 1.7rem;
+    }
+
+
+    .public-complaint-page .public-detail-dates {
+        grid-template-columns: 1fr;
+    }
+
+
+    .public-complaint-page .interaction-panel > header,
+    .public-complaint-page .derman-section__header,
+    .public-complaint-page .official-response > header,
+    .public-complaint-page .comment-login {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+
+    .public-complaint-page .interaction-summary {
+        flex-wrap: wrap;
+    }
+
+
+    .public-complaint-page .interaction-bar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+
+    .public-complaint-page .emoji-options {
+        width: 100%;
+    }
+
+
+    .public-complaint-page .derman-section__actions {
+        width: 100%;
+    }
+
+
+    .public-complaint-page .derman-primary-button {
+        flex: 1;
+    }
+
+
+    .public-complaint-page .official-response time {
+        margin-left: 0;
+    }
+
+
+    .public-complaint-page .community-comment > div > header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+}
+
+
+@media (max-width: 480px) {
+
+    .public-complaint-page .public-detail-company {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+
+    .public-complaint-page .public-detail-logo {
+        width: 54px;
+        height: 54px;
+    }
+
+
+    .public-complaint-page .derman-section__identity {
+        align-items: flex-start;
+    }
+
+
+    .public-complaint-page .derman-section__icon {
+        width: 43px;
+        height: 43px;
+        flex-basis: 43px;
+    }
+
+
+    .public-complaint-page .community-comment {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+/* =========================================================
+   DERMAN CREATE MODAL — V2
+   ========================================================= */
+
+.public-complaint-page .derman-modal {
+    padding: 24px;
+}
+
+
+.public-complaint-page .derman-modal__card {
+    width: min(680px, 100%);
+    max-height: min(88dvh, 820px);
+
+    display: flex;
+    flex-direction: column;
+
+    overflow: hidden;
+
+    border: 1px solid #d8e4ef;
+    border-radius: 22px;
+
+    background: #fff;
+
+    box-shadow:
+        0 30px 80px rgba(15, 39, 64, .22);
+}
+
+
+/* HEADER */
+
+.public-complaint-page .derman-modal
+.report-modal-head {
+    position: relative;
+
+    flex: 0 0 auto;
+
+    padding: 24px 28px 20px;
+
+    border-bottom: 1px solid #edf1f5;
+
+    background:
+        linear-gradient(
+            135deg,
+            #f7fbff,
+            #ffffff
+        );
+}
+
+
+.public-complaint-page .derman-modal
+.report-modal-kicker {
+    margin: 0 0 5px;
+
+    color: #1765b3;
+
+    font-size: .68rem;
+    font-weight: 900;
+    letter-spacing: .13em;
+}
+
+
+.public-complaint-page .derman-modal
+.report-modal-head h2 {
+    margin: 0;
+
+    color: #102a43;
+
+    font-size: 1.45rem;
+    line-height: 1.25;
+}
+
+
+.public-complaint-page .derman-modal
+.report-modal-head p:last-child {
+    max-width: 520px;
+
+    margin: 7px 0 0;
+
+    color: #687e92;
+
+    font-size: .86rem;
+    line-height: 1.55;
+}
+
+
+.public-complaint-page .derman-modal
+.report-modal-close {
+    position: absolute;
+
+    top: 20px;
+    right: 22px;
+
+    display: grid;
+    place-items: center;
+
+    width: 40px;
+    height: 40px;
+
+    border: 1px solid #dce6ef;
+    border-radius: 50%;
+
+    background: #fff;
+    color: #536a80;
+
+    font-size: 1.25rem;
+
+    cursor: pointer;
+
+    transition:
+        background .16s ease,
+        color .16s ease,
+        border-color .16s ease;
+}
+
+
+.public-complaint-page .derman-modal
+.report-modal-close:hover {
+    border-color: #bad2e7;
+
+    background: #edf7ff;
+    color: #1765b3;
+}
+
+
+/* FORM BODY */
+
+.public-complaint-page .derman-modal__body {
+    flex: 1 1 auto;
+
+    min-height: 0;
+
+    display: flex;
+    flex-direction: column;
+    gap: 17px;
+
+    padding: 22px 28px 0;
+
+    overflow-y: auto;
+
+    scrollbar-width: thin;
+    scrollbar-color:
+        #b8c7d5
+        transparent;
+}
+
+
+.public-complaint-page .derman-modal__body::-webkit-scrollbar {
+    width: 7px;
+}
+
+
+.public-complaint-page .derman-modal__body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+
+.public-complaint-page .derman-modal__body::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: #bdcbd7;
+}
+
+
+/* FIELD */
+
+.public-complaint-page .derman-modal
+.report-modal-field {
+    display: grid;
+    gap: 8px;
+}
+
+
+.public-complaint-page .derman-modal
+.report-modal-field > span {
+    color: #203b55;
+
+    font-size: .82rem;
+    font-weight: 850;
+}
+
+
+.public-complaint-page .derman-modal
+textarea {
+    width: 100%;
+    min-height: 175px;
+    max-height: 280px;
+
+    padding: 15px 16px;
+
+    border: 1px solid #cfddea;
+    border-radius: 13px;
+
+    background: #fff;
+
+    color: #2f485f;
+
+    font: inherit;
+    font-size: .86rem;
+    line-height: 1.65;
+
+    resize: vertical;
+
+    transition:
+        border-color .16s ease,
+        box-shadow .16s ease,
+        background .16s ease;
+}
+
+
+.public-complaint-page .derman-modal
+textarea:hover {
+    border-color: #aec9e2;
+}
+
+
+.public-complaint-page .derman-modal
+textarea:focus {
+    outline: none;
+
+    border-color: #5f9fd4;
+
+    background: #fcfeff;
+
+    box-shadow:
+        0 0 0 4px rgba(23, 101, 179, .09);
+}
+
+
+.public-complaint-page .derman-modal
+textarea::placeholder {
+    color: #899aaa;
+}
+
+
+/* CHARACTER / HELP */
+
+.public-complaint-page .derman-modal
+.report-modal-field small {
+    color: #76899b;
+
+    font-size: .72rem;
+}
+
+
+.public-complaint-page .derman-modal
+[data-character-count-output] {
+    color: #486178;
+
+    font-size: .73rem;
+    font-weight: 800;
+}
+
+
+/* WARNING */
+
+.public-complaint-page .derman-modal__warning {
+    position: relative;
+
+    padding: 14px 15px 14px 43px;
+
+    border: 1px solid #cce2f5;
+    border-radius: 13px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #eef7ff,
+            #f8fbff
+        );
+}
+
+
+.public-complaint-page .derman-modal__warning::before {
+    content: "i";
+
+    position: absolute;
+    top: 14px;
+    left: 14px;
+
+    display: grid;
+    place-items: center;
+
+    width: 21px;
+    height: 21px;
+
+    border-radius: 50%;
+
+    background: #1765b3;
+    color: #fff;
+
+    font-size: .7rem;
+    font-weight: 900;
+}
+
+
+.public-complaint-page .derman-modal__warning strong {
+    display: block;
+
+    margin-bottom: 3px;
+
+    color: #204b70;
+
+    font-size: .8rem;
+}
+
+
+.public-complaint-page .derman-modal__warning p {
+    margin: 0;
+
+    color: #58748c;
+
+    font-size: .77rem;
+    line-height: 1.5;
+}
+
+
+/* CONFIRM */
+
+.public-complaint-page .derman-confirm {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 10px;
+
+    align-items: flex-start;
+
+    padding: 13px 14px;
+
+    border: 1px solid #e0e7ee;
+    border-radius: 12px;
+
+    background: #fafbfd;
+
+    cursor: pointer;
+}
+
+
+.public-complaint-page .derman-confirm:hover {
+    border-color: #c5d9ea;
+
+    background: #f6faff;
+}
+
+
+.public-complaint-page .derman-confirm input {
+    width: 18px;
+    height: 18px;
+
+    margin-top: 1px;
+
+    accent-color: #1765b3;
+}
+
+
+.public-complaint-page .derman-confirm span {
+    color: #344e66;
+
+    font-size: .78rem;
+    font-weight: 700;
+    line-height: 1.5;
+}
+
+
+/* ACTION BAR */
+
+.public-complaint-page .derman-modal
+.report-modal-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+
+    margin: 3px -28px 0;
+    padding: 15px 28px 18px;
+
+    border-top: 1px solid #e8eef4;
+
+    background:
+        linear-gradient(
+            180deg,
+            rgba(255, 255, 255, .94),
+            #fff 30%
+        );
+
+    box-shadow:
+        0 -10px 25px rgba(33, 65, 95, .035);
+}
+
+
+.public-complaint-page .derman-modal
+.report-cancel {
+    min-height: 42px;
+    padding: 0 17px;
+
+    border: 1px solid #d4e0eb;
+    border-radius: 10px;
+
+    background: #fff;
+    color: #50677d;
+
+    font: inherit;
+    font-size: .8rem;
+    font-weight: 800;
+
+    cursor: pointer;
+}
+
+
+.public-complaint-page .derman-modal
+.report-cancel:hover {
+    background: #f5f8fb;
+}
+
+
+.public-complaint-page .derman-modal
+.report-submit.derman-submit {
+    min-height: 42px;
+    padding: 0 19px;
+
+    border: 1px solid #1765b3;
+    border-radius: 10px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #1765b3,
+            #2477c2
+        );
+
+    color: #fff;
+
+    font: inherit;
+    font-size: .8rem;
+    font-weight: 850;
+
+    cursor: pointer;
+
+    box-shadow:
+        0 8px 18px rgba(23, 101, 179, .18);
+}
+
+
+.public-complaint-page .derman-modal
+.report-submit.derman-submit:hover {
+    background:
+        linear-gradient(
+            135deg,
+            #125794,
+            #1c69ae
+        );
+
+    box-shadow:
+        0 10px 24px rgba(23, 101, 179, .24);
+}
+
+
+/* MOBILE */
+
+@media (max-width: 640px) {
+
+    .public-complaint-page .derman-modal {
+        padding: 10px;
+    }
+
+
+    .public-complaint-page .derman-modal__card {
+        max-height: 94dvh;
+
+        border-radius: 17px;
+    }
+
+
+    .public-complaint-page .derman-modal
+    .report-modal-head {
+        padding: 20px 20px 17px;
+    }
+
+
+    .public-complaint-page .derman-modal
+    .report-modal-head h2 {
+        padding-right: 40px;
+
+        font-size: 1.25rem;
+    }
+
+
+    .public-complaint-page .derman-modal
+    .report-modal-close {
+        top: 15px;
+        right: 15px;
+
+        width: 37px;
+        height: 37px;
+    }
+
+
+    .public-complaint-page .derman-modal__body {
+        padding:
+            18px
+            20px
+            0;
+    }
+
+
+    .public-complaint-page .derman-modal
+    textarea {
+        min-height: 150px;
+    }
+
+
+    .public-complaint-page .derman-modal
+    .report-modal-actions {
+        margin:
+            2px
+            -20px
+            0;
+
+        padding:
+            13px
+            20px
+            16px;
+    }
+
+
+    .public-complaint-page .derman-modal
+    .report-cancel,
+    .public-complaint-page .derman-modal
+    .report-submit.derman-submit {
+        flex: 1;
+    }
+
+}
+/* =========================================================
+   PUBLISHED DERMAN CARD — V3
+   ========================================================= */
+
+.public-complaint-page .derman-list {
+    display: grid;
+    gap: 16px;
+}
+
+
+.public-complaint-page .derman-card {
+    position: relative;
+
+    overflow: hidden;
+
+    padding: 0;
+
+    border: 1px solid #d9e5ef;
+    border-radius: 18px;
+
+    background: #fff;
+
+    box-shadow:
+        0 12px 34px rgba(31, 66, 101, .055);
+}
+
+
+.public-complaint-page .derman-card::before {
+    content: "";
+
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+
+    width: 4px;
+
+    background:
+        linear-gradient(
+            180deg,
+            #1765b3,
+            #55a9ec
+        );
+}
+
+
+/* ---------------------------------------------------------
+   AUTHOR HEADER
+   --------------------------------------------------------- */
+
+.public-complaint-page .derman-card__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+
+    padding: 18px 20px 15px 22px;
+
+    border-bottom: 1px solid #edf2f6;
+
+    background:
+        linear-gradient(
+            135deg,
+            #f9fcff,
+            #ffffff
+        );
+}
+
+
+.public-complaint-page .derman-card__author {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    min-width: 0;
+}
+
+
+.public-complaint-page .derman-card__author-copy {
+    display: grid;
+    gap: 4px;
+
+    min-width: 0;
+}
+
+
+.public-complaint-page .derman-card__author-line {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    flex-wrap: wrap;
+}
+
+
+.public-complaint-page .derman-card__username {
+    color: #153956;
+
+    font-size: .91rem;
+    font-weight: 900;
+
+    text-decoration: none;
+}
+
+
+.public-complaint-page .derman-card__username:hover {
+    color: #1765b3;
+}
+
+
+.public-complaint-page .derman-card__meta {
+    color: #8393a4;
+
+    font-size: .7rem;
+}
+
+
+/* ---------------------------------------------------------
+   BADGES
+   --------------------------------------------------------- */
+
+.public-complaint-page .derman-user-badge,
+.public-complaint-page .derman-owner-badge {
+    display: inline-flex;
+    align-items: center;
+
+    min-height: 21px;
+    padding: 0 7px;
+
+    border-radius: 999px;
+
+    font-size: .61rem;
+    font-weight: 850;
+}
+
+
+.public-complaint-page .derman-user-badge {
+    border: 1px solid #d3e5f6;
+
+    background: #eef7ff;
+    color: #1765b3;
+}
+
+
+.public-complaint-page .derman-owner-badge {
+    border: 1px solid #cfe9dd;
+
+    background: #eff9f4;
+    color: #267b5c;
+}
+
+
+/* ---------------------------------------------------------
+   DERMAN CONTENT
+   --------------------------------------------------------- */
+
+.public-complaint-page .derman-card__content {
+    padding: 19px 22px 6px;
+}
+
+
+.public-complaint-page .derman-card__body {
+    position: relative;
+
+    margin: 0;
+
+    padding-left: 17px;
+
+    color: #314a61;
+
+    font-size: .92rem;
+    line-height: 1.76;
+}
+
+
+.public-complaint-page .derman-card__body::before {
+    content: "“";
+
+    position: absolute;
+    top: -5px;
+    left: 0;
+
+    color: #9bc4e7;
+
+    font-size: 1.55rem;
+    font-family: Georgia, serif;
+    font-weight: 700;
+}
+
+
+/* ---------------------------------------------------------
+   WITHDRAW
+   --------------------------------------------------------- */
+
+.public-complaint-page .derman-withdraw-form {
+    flex: 0 0 auto;
+
+    margin: 0;
+}
+
+
+.public-complaint-page .derman-withdraw-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+
+    min-height: 34px;
+    padding: 0 10px;
+
+    border: 1px solid transparent;
+    border-radius: 9px;
+
+    background: transparent;
+    color: #bd4153;
+
+    font: inherit;
+    font-size: .7rem;
+    font-weight: 850;
+
+    cursor: pointer;
+
+    transition:
+        background .16s ease,
+        border-color .16s ease;
+}
+
+
+.public-complaint-page .derman-withdraw-button:hover {
+    border-color: #f0c9cf;
+
+    background: #fff3f5;
+}
+
+
+/* ---------------------------------------------------------
+   REACTION AREA
+   --------------------------------------------------------- */
+
+.public-complaint-page .derman-card__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+
+    margin: 15px 22px 0;
+    padding: 13px 0 17px;
+
+    border-top: 1px solid #edf1f5;
+}
+
+
+.public-complaint-page .derman-reactions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+
+.public-complaint-page .derman-reactions form {
+    margin: 0;
+}
+
+
+.public-complaint-page .derman-reaction-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+
+    min-height: 36px;
+    padding: 0 11px;
+
+    border: 1px solid #d8e4ee;
+    border-radius: 9px;
+
+    background: #fff;
+    color: #536a80;
+
+    font: inherit;
+    font-size: .73rem;
+    font-weight: 800;
+
+    cursor: pointer;
+
+    transition:
+        background .16s ease,
+        color .16s ease,
+        border-color .16s ease,
+        transform .16s ease;
+}
+
+
+.public-complaint-page .derman-reaction-button:hover {
+    border-color: #9cc3e4;
+
+    background: #f3f9ff;
+    color: #1765b3;
+
+    transform: translateY(-1px);
+}
+
+
+.public-complaint-page .derman-reaction-button.is-active {
+    border-color: #76aede;
+
+    background: #eaf5ff;
+    color: #1765b3;
+}
+
+
+.public-complaint-page .derman-reaction-button b {
+    display: grid;
+    place-items: center;
+
+    min-width: 20px;
+    height: 20px;
+
+    padding: 0 5px;
+
+    border-radius: 999px;
+
+    background: #eef3f7;
+
+    color: #385875;
+
+    font-size: .65rem;
+}
+
+
+.public-complaint-page
+.derman-reaction-button.is-active b {
+    background: #d7ebfc;
+    color: #1765b3;
+}
+
+
+/* ---------------------------------------------------------
+   READ-ONLY REACTION SUMMARY
+   --------------------------------------------------------- */
+
+.public-complaint-page .derman-reaction-summary {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+
+.public-complaint-page .derman-reaction-summary span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+
+    padding: 7px 10px;
+
+    border-radius: 8px;
+
+    background: #f5f8fa;
+
+    color: #718396;
+
+    font-size: .7rem;
+}
+
+
+.public-complaint-page .derman-reaction-summary b {
+    color: #36546d;
+}
+
+
+/* =========================================================
+   DERMAN COMPANY RESPONSE
+   ========================================================= */
+
+.public-complaint-page .derman-company-response {
+    margin: 12px 22px 0;
+    padding: 15px 16px;
+
+    border: 1px solid #cce7df;
+    border-left: 4px solid #2c9877;
+    border-radius: 13px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #f0faf6,
+            #fbfefd
+        );
+}
+
+
+.public-complaint-page
+.derman-company-response__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+}
+
+
+.public-complaint-page
+.derman-company-response__identity {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+
+.public-complaint-page
+.derman-company-response__badge {
+    display: grid;
+    place-items: center;
+
+    width: 34px;
+    height: 34px;
+
+    flex: 0 0 34px;
+
+    border: 1px solid #cde9df;
+    border-radius: 10px;
+
+    background: #e3f6ef;
+    color: #258267;
+
+    font-size: .75rem;
+    font-weight: 900;
+}
+
+
+.public-complaint-page
+.derman-company-response__identity > div {
+    display: grid;
+    gap: 2px;
+}
+
+
+.public-complaint-page
+.derman-company-response__label {
+    color: #238064;
+
+    font-size: .59rem;
+    font-weight: 900;
+    letter-spacing: .09em;
+
+    text-transform: uppercase;
+}
+
+
+.public-complaint-page
+.derman-company-response__identity strong {
+    color: #274b42;
+
+    font-size: .81rem;
+}
+
+
+.public-complaint-page
+.derman-company-response__body {
+    margin: 11px 0 0;
+
+    color: #46645c;
+
+    font-size: .8rem;
+    line-height: 1.63;
+}
+
+
+.public-complaint-page
+.derman-company-response__meta {
+    display: block;
+
+    margin-top: 8px;
+
+    color: #859990;
+
+    font-size: .65rem;
+}
+
+
+/* ---------------------------------------------------------
+   COMPANY RESPONSE CTA
+   --------------------------------------------------------- */
+
+.public-complaint-page
+.derman-company-response-empty {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+
+    margin: 13px 22px 0;
+    padding: 14px 15px;
+
+    border: 1px dashed #bed9ed;
+    border-radius: 12px;
+
+    background: #f7fbff;
+}
+
+
+.public-complaint-page
+.derman-company-response-empty strong {
+    display: block;
+
+    color: #31536f;
+
+    font-size: .76rem;
+}
+
+
+.public-complaint-page
+.derman-company-response-empty p {
+    margin: 4px 0 0;
+
+    color: #76899b;
+
+    font-size: .7rem;
+    line-height: 1.45;
+}
+
+
+.public-complaint-page
+.derman-company-action {
+    flex: 0 0 auto;
+
+    min-height: 34px;
+    padding: 0 11px;
+
+    border: 1px solid #a8cae6;
+    border-radius: 9px;
+
+    background: #fff;
+    color: #1765b3;
+
+    font: inherit;
+    font-size: .7rem;
+    font-weight: 850;
+
+    cursor: pointer;
+}
+
+
+.public-complaint-page
+.derman-company-action:hover {
+    background: #edf7ff;
+}
+
+
+/* ---------------------------------------------------------
+   MULTIPLE DERMAN CARDS
+   --------------------------------------------------------- */
+
+.public-complaint-page
+.derman-card + .derman-card {
+    margin-top: 0;
+}
+
+
+/* ---------------------------------------------------------
+   MOBILE
+   --------------------------------------------------------- */
+
+@media (max-width: 680px) {
+
+    .public-complaint-page
+    .derman-card__header {
+        align-items: flex-start;
+        flex-direction: column;
+
+        padding:
+            16px
+            17px
+            14px
+            19px;
+    }
+
+
+    .public-complaint-page
+    .derman-card__content {
+        padding:
+            17px
+            19px
+            5px;
+    }
+
+
+    .public-complaint-page
+    .derman-card__footer {
+        align-items: flex-start;
+        flex-direction: column;
+
+        margin-left: 19px;
+        margin-right: 19px;
+    }
+
+
+    .public-complaint-page
+    .derman-withdraw-button {
+        padding-left: 0;
+    }
+
+
+    .public-complaint-page
+    .derman-company-response,
+    .public-complaint-page
+    .derman-company-response-empty {
+        margin-left: 19px;
+        margin-right: 19px;
+    }
+
+
+    .public-complaint-page
+    .derman-company-response__header,
+    .public-complaint-page
+    .derman-company-response-empty {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+}

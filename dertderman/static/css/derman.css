@@ -1,347 +1,604 @@
 .derman-section {
-    margin-top: 24px;
-    padding: 20px;
-    border: 1px solid #e4eaf1;
-    border-radius: 20px;
-    background: #fff;
-    box-shadow: 0 12px 34px rgba(15, 23, 42, .05);
+    margin-top: 26px;
+    padding: 24px;
+    border: 1px solid #dce9f6;
+    border-radius: 22px;
+    background:
+        linear-gradient(
+            135deg,
+            rgba(240, 247, 255, .88),
+            rgba(255, 255, 255, .98) 48%,
+            rgba(255, 255, 255, 1)
+        );
+    box-shadow:
+        0 18px 48px rgba(33, 73, 115, .07);
 }
+
 
 .derman-section__header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 18px;
+    gap: 24px;
 }
+
 
 .derman-section__identity {
     display: flex;
     align-items: flex-start;
-    gap: 12px;
+    gap: 16px;
     min-width: 0;
 }
 
+
 .derman-section__icon {
-    display: inline-grid;
+    display: grid;
     place-items: center;
     flex: 0 0 auto;
-    width: 40px;
-    height: 40px;
-    border-radius: 12px;
-    background: #eef6ff;
-    color: #1d5fa7;
-    font-size: 1rem;
+
+    width: 48px;
+    height: 48px;
+
+    border: 1px solid #cfe2f6;
+    border-radius: 14px;
+
+    background: #f2f8ff;
+    color: #1765b3;
+
+    font-size: 1.05rem;
     font-weight: 900;
 }
 
-.derman-section__identity h2 {
-    margin: 2px 0 0;
-    color: #172033;
-    font-size: 1.18rem;
-    line-height: 1.3;
+
+.derman-section__kicker {
+    margin: 0 0 5px;
+
+    color: #1765b3;
+
+    font-size: .72rem;
+    font-weight: 900;
+    letter-spacing: .14em;
 }
 
-.derman-section__subtitle {
-    margin: 5px 0 0;
-    color: #64748b;
-    font-size: .9rem;
-    line-height: 1.45;
+
+.derman-section__identity h2 {
+    margin: 0;
+
+    color: #102a43;
+
+    font-size: 1.4rem;
+    line-height: 1.25;
 }
+
+
+.derman-section__subtitle {
+    max-width: 650px;
+    margin: 6px 0 0;
+
+    color: #657b91;
+
+    font-size: .9rem;
+    line-height: 1.6;
+}
+
 
 .derman-section__actions {
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 10px;
+    gap: 12px;
     flex-wrap: wrap;
 }
+
 
 .derman-count {
     display: inline-flex;
     align-items: center;
-    min-height: 34px;
-    padding: 0 11px;
-    border: 1px solid #dfe7f0;
-    border-radius: 999px;
-    background: #f8fafc;
-    color: #475569;
-    font-size: .82rem;
-    font-weight: 800;
-    white-space: nowrap;
-}
+    gap: 7px;
 
-.derman-open-button {
     min-height: 40px;
-    padding-inline: 14px;
-    white-space: nowrap;
+    padding: 0 14px;
+
+    border: 1px solid #d7e5f2;
+    border-radius: 999px;
+
+    background: rgba(255, 255, 255, .88);
+
+    color: #3b536b;
+
+    font-size: .82rem;
+    font-weight: 850;
 }
 
-.derman-state-note {
-    margin: 14px 0 0;
-    padding: 10px 12px;
+
+.derman-primary-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+
+    min-height: 44px;
+    padding: 0 18px;
+
+    border: 1px solid #1765b3;
     border-radius: 11px;
-    background: #f8fafc;
-    color: #64748b;
-    font-size: .86rem;
-    line-height: 1.45;
+
+    background: #1765b3;
+    color: #fff;
+
+    font: inherit;
+    font-size: .84rem;
+    font-weight: 850;
+
+    text-decoration: none;
+
+    cursor: pointer;
+
+    box-shadow:
+        0 8px 18px rgba(23, 101, 179, .18);
+
+    transition:
+        background .18s ease,
+        transform .18s ease,
+        box-shadow .18s ease;
 }
+
+
+.derman-primary-button:hover {
+    background: #115591;
+
+    transform: translateY(-1px);
+
+    box-shadow:
+        0 11px 24px rgba(23, 101, 179, .24);
+}
+
+
+.derman-info-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+
+    margin-top: 18px;
+    padding: 12px 14px;
+
+    border: 1px solid #cfe4f7;
+    border-radius: 12px;
+
+    background: #edf7ff;
+}
+
+
+.derman-info-banner__icon {
+    display: grid;
+    place-items: center;
+
+    flex: 0 0 auto;
+
+    width: 22px;
+    height: 22px;
+
+    border-radius: 50%;
+
+    background: #1765b3;
+    color: #fff;
+
+    font-size: .72rem;
+    font-weight: 900;
+}
+
+
+.derman-info-banner p {
+    margin: 1px 0 0;
+
+    color: #355c80;
+
+    font-size: .82rem;
+    line-height: 1.5;
+}
+
 
 .derman-list {
     display: grid;
-    gap: 10px;
-    margin-top: 16px;
+    gap: 14px;
+
+    margin-top: 18px;
 }
 
+
 .derman-card {
-    padding: 15px 16px;
-    border: 1px solid #e7ecf2;
-    border-radius: 15px;
-    background: #fbfcfe;
+    position: relative;
+
+    padding: 18px;
+
+    border: 1px solid #dfe8f1;
+    border-radius: 16px;
+
+    background: rgba(255, 255, 255, .93);
+
+    box-shadow:
+        0 7px 22px rgba(35, 70, 105, .045);
 }
+
 
 .derman-card__header {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 14px;
+    gap: 16px;
 }
+
 
 .derman-card__author {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 11px;
+
     min-width: 0;
 }
 
-.derman-card__author > div {
+
+.derman-card__author-copy {
     display: grid;
-    gap: 2px;
-    min-width: 0;
+    gap: 4px;
 }
+
+
+.derman-card__author-line {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    flex-wrap: wrap;
+}
+
 
 .derman-card__username {
-    color: #172033;
-    font-size: .9rem;
-    font-weight: 800;
+    color: #122c46;
+
+    font-size: .92rem;
+    font-weight: 850;
+
     text-decoration: none;
 }
 
+
 .derman-card__username:hover {
-    color: #1d5fa7;
+    color: #1765b3;
 }
 
-.derman-card__meta {
-    color: #8491a3;
-    font-size: .76rem;
-    line-height: 1.35;
-}
 
-.derman-card__body {
-    margin: 12px 0 0;
-    color: #334155;
-    font-size: .94rem;
-    line-height: 1.65;
-}
-
-.derman-company-response {
-    margin-top: 14px;
-    padding: 13px 14px;
-    border: 1px solid #d7e6f5;
-    border-left: 3px solid #1d5fa7;
-    border-radius: 12px;
-    background: #f7fbff;
-}
-
-.derman-company-response__header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 12px;
-}
-
-.derman-company-response__identity {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    min-width: 0;
-}
-
-.derman-company-response__badge {
-    display: inline-grid;
-    place-items: center;
-    flex: 0 0 auto;
-    width: 30px;
-    height: 30px;
-    border-radius: 9px;
-    background: #e7f2ff;
-    color: #1d5fa7;
-    font-size: .78rem;
-    font-weight: 900;
-}
-
-.derman-company-response__identity > div {
-    display: grid;
-    gap: 1px;
-    min-width: 0;
-}
-
-.derman-company-response__label {
-    color: #1d5fa7;
-    font-size: .68rem;
-    font-weight: 900;
-    letter-spacing: .06em;
-    text-transform: uppercase;
-}
-
-.derman-company-response__identity strong {
-    color: #22344b;
-    font-size: .86rem;
-}
-
-.derman-company-response__body {
-    margin: 10px 0 0;
-    color: #40536a;
-    font-size: .88rem;
-    line-height: 1.6;
-}
-
-.derman-company-response__meta {
-    display: block;
-    margin-top: 8px;
-    color: #8290a2;
-    font-size: .72rem;
-}
-
-.derman-company-response-empty {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 14px;
-    margin-top: 14px;
-    padding: 12px 13px;
-    border: 1px dashed #cbdbea;
-    border-radius: 12px;
-    background: #f8fbff;
-}
-
-.derman-company-response-empty strong {
-    display: block;
-    color: #31445c;
-    font-size: .84rem;
-}
-
-.derman-company-response-empty p {
-    margin: 3px 0 0;
-    color: #718096;
-    font-size: .78rem;
-    line-height: 1.45;
-}
-
-.derman-company-action {
+.derman-user-badge,
+.derman-owner-badge {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    flex: 0 0 auto;
-    min-height: 34px;
-    padding: 0 11px;
-    border: 1px solid #b7cfe7;
-    border-radius: 9px;
-    background: #fff;
-    color: #1d5fa7;
-    font: inherit;
-    font-size: .76rem;
-    font-weight: 800;
-    cursor: pointer;
+
+    min-height: 22px;
+    padding: 0 8px;
+
+    border-radius: 999px;
+
+    font-size: .66rem;
+    font-weight: 850;
 }
 
-.derman-company-action:hover {
-    border-color: #8db3d9;
-    background: #eef6ff;
-    color: #174b85;
+
+.derman-user-badge {
+    background: #e8f4ff;
+    color: #1765b3;
 }
+
+
+.derman-owner-badge {
+    background: #eef7f2;
+    color: #25845f;
+}
+
+
+.derman-card__meta {
+    color: #8192a5;
+
+    font-size: .75rem;
+}
+
+
+.derman-card__content {
+    margin-top: 15px;
+}
+
+
+.derman-card__body {
+    margin: 0;
+
+    color: #253d54;
+
+    font-size: .94rem;
+    line-height: 1.72;
+}
+
 
 .derman-card__footer {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 10px;
-    margin-top: 13px;
-    padding-top: 11px;
-    border-top: 1px solid #edf1f5;
+    gap: 12px;
+
+    margin-top: 16px;
+    padding-top: 13px;
+
+    border-top: 1px solid #edf2f6;
 }
+
 
 .derman-reactions,
 .derman-reaction-summary {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 9px;
     flex-wrap: wrap;
 }
+
 
 .derman-reactions form {
     margin: 0;
 }
 
+
 .derman-reaction-button {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    min-height: 34px;
-    padding: 0 10px;
-    border: 1px solid #dce4ed;
+    gap: 7px;
+
+    min-height: 36px;
+    padding: 0 12px;
+
+    border: 1px solid #d7e3ef;
     border-radius: 10px;
+
     background: #fff;
-    color: #526176;
+    color: #4d657d;
+
     font: inherit;
-    font-size: .8rem;
-    font-weight: 750;
+    font-size: .79rem;
+    font-weight: 800;
+
     cursor: pointer;
+
+    transition:
+        border-color .18s ease,
+        color .18s ease,
+        background .18s ease;
 }
+
 
 .derman-reaction-button:hover {
-    border-color: #a8bfd9;
-    color: #1d5fa7;
+    border-color: #8eb9df;
+
+    background: #f5faff;
+    color: #1765b3;
 }
+
 
 .derman-reaction-button.is-active {
-    border-color: #9abde3;
-    background: #edf6ff;
-    color: #174b85;
+    border-color: #82b4df;
+
+    background: #edf7ff;
+    color: #1765b3;
 }
+
 
 .derman-reaction-button b {
-    min-width: 18px;
-    padding: 1px 5px;
+    display: inline-grid;
+    place-items: center;
+
+    min-width: 21px;
+    height: 21px;
+
+    padding: 0 5px;
+
     border-radius: 999px;
-    background: #f1f5f9;
-    color: inherit;
-    font-size: .72rem;
-    text-align: center;
+
+    background: #edf2f7;
+
+    font-size: .7rem;
 }
 
+
 .derman-reaction-summary span {
-    color: #718096;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+
+    color: #75869a;
+
     font-size: .78rem;
     font-weight: 700;
 }
+
+
+.derman-reaction-summary b {
+    color: #314d68;
+}
+
 
 .derman-withdraw-form {
     margin: 0;
 }
 
+
 .derman-withdraw-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+
     border: 0;
+
     background: transparent;
-    color: #7a8798;
+    color: #c94a5a;
+
     font: inherit;
-    font-size: .78rem;
-    font-weight: 700;
+    font-size: .76rem;
+    font-weight: 800;
+
     cursor: pointer;
 }
 
+
 .derman-withdraw-button:hover {
-    color: #b42318;
+    color: #a61f35;
 }
+
+
+.derman-company-response {
+    margin-top: 16px;
+    padding: 15px;
+
+    border: 1px solid #cfe9e3;
+    border-left: 4px solid #2c9b7a;
+    border-radius: 13px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #f3fbf8,
+            #fff
+        );
+}
+
+
+.derman-company-response__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+}
+
+
+.derman-company-response__identity {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+
+.derman-company-response__badge {
+    display: grid;
+    place-items: center;
+
+    width: 34px;
+    height: 34px;
+
+    border-radius: 10px;
+
+    background: #dff5ed;
+    color: #25876a;
+
+    font-size: .78rem;
+    font-weight: 900;
+}
+
+
+.derman-company-response__identity > div {
+    display: grid;
+    gap: 2px;
+}
+
+
+.derman-company-response__label {
+    color: #25876a;
+
+    font-size: .64rem;
+    font-weight: 900;
+    letter-spacing: .09em;
+}
+
+
+.derman-company-response__identity strong {
+    color: #23433d;
+
+    font-size: .86rem;
+}
+
+
+.derman-company-response__body {
+    margin: 11px 0 0;
+
+    color: #3c5b56;
+
+    font-size: .87rem;
+    line-height: 1.62;
+}
+
+
+.derman-company-response__meta {
+    display: block;
+
+    margin-top: 8px;
+
+    color: #84938f;
+
+    font-size: .7rem;
+}
+
+
+.derman-company-response-empty {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+
+    margin-top: 15px;
+    padding: 13px 14px;
+
+    border: 1px dashed #c8ddec;
+    border-radius: 12px;
+
+    background: #f8fbff;
+}
+
+
+.derman-company-response-empty strong {
+    display: block;
+
+    color: #31506c;
+
+    font-size: .82rem;
+}
+
+
+.derman-company-response-empty p {
+    margin: 4px 0 0;
+
+    color: #75889b;
+
+    font-size: .77rem;
+    line-height: 1.45;
+}
+
+
+.derman-company-action {
+    flex: 0 0 auto;
+
+    min-height: 34px;
+    padding: 0 12px;
+
+    border: 1px solid #aac9e4;
+    border-radius: 9px;
+
+    background: #fff;
+    color: #1765b3;
+
+    font: inherit;
+    font-size: .75rem;
+    font-weight: 850;
+
+    cursor: pointer;
+}
+
+
+.derman-company-action:hover {
+    background: #eff7ff;
+}
+
 
 .derman-empty,
 .derman-gate {
@@ -349,130 +606,206 @@
     align-items: center;
     justify-content: space-between;
     gap: 16px;
-    margin-top: 15px;
-    padding: 14px 15px;
-    border: 1px dashed #d7e0ea;
+
+    margin-top: 18px;
+    padding: 16px;
+
+    border: 1px dashed #cedce9;
     border-radius: 14px;
-    background: #fafcff;
+
+    background: rgba(250, 252, 255, .92);
 }
+
 
 .derman-empty {
     justify-content: flex-start;
 }
 
+
 .derman-empty > span {
-    display: inline-grid;
+    display: grid;
     place-items: center;
-    flex: 0 0 auto;
-    width: 34px;
-    height: 34px;
-    border-radius: 10px;
-    background: #eef6ff;
-    color: #1d5fa7;
+
+    width: 38px;
+    height: 38px;
+
+    border-radius: 11px;
+
+    background: #edf6ff;
+    color: #1765b3;
 }
+
 
 .derman-empty strong,
 .derman-gate strong {
     display: block;
-    color: #273449;
+
+    color: #283f56;
+
     font-size: .9rem;
 }
 
+
 .derman-empty p,
 .derman-gate p {
-    margin: 3px 0 0;
-    color: #718096;
-    font-size: .83rem;
-    line-height: 1.45;
+    margin: 4px 0 0;
+
+    color: #75879a;
+
+    font-size: .81rem;
+    line-height: 1.5;
 }
+
 
 .derman-gate--pro {
     border-style: solid;
-    border-color: #d9e7f6;
-    background: linear-gradient(135deg, #f8fbff 0%, #ffffff 100%);
+    border-color: #cfe2f5;
+
+    background:
+        linear-gradient(
+            135deg,
+            #eff7ff,
+            #fff
+        );
 }
+
 
 .derman-pro-label {
     display: inline-flex;
-    margin-bottom: 6px;
-    padding: 3px 7px;
+
+    margin-bottom: 7px;
+    padding: 4px 8px;
+
     border-radius: 999px;
-    background: #1d5fa7;
+
+    background: #1765b3;
     color: #fff;
-    font-size: .65rem;
+
+    font-size: .62rem;
     font-weight: 900;
     letter-spacing: .08em;
 }
 
+
 .derman-modal__card {
-    width: min(620px, 100%);
+    width: min(640px, 100%);
 }
+
+/* =========================================================
+   DERMAN COMPANY RESPONSE MODAL POSITION
+   Sadece Resmi Yanıt Ver / Yanıtı Düzenle penceresini
+   normal merkezden biraz aşağı taşır.
+   ========================================================= */
+
+.report-modal.derman-company-modal {
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+.derman-company-modal .derman-modal__card {
+    width: min(640px, 100%);
+    max-height: calc(100dvh - 96px);
+    margin: 0 auto;
+    transform: translateY(36px);
+}
+
 
 .derman-modal__body textarea {
     min-height: 180px;
 }
 
+
 .derman-modal__warning,
 .derman-company-modal__notice {
-    padding: 12px 14px;
-    border: 1px solid #dce8f4;
+    padding: 13px 14px;
+
+    border: 1px solid #d6e6f4;
     border-radius: 12px;
-    background: #f6faff;
+
+    background: #f3f9ff;
 }
+
 
 .derman-modal__warning strong,
 .derman-company-modal__notice strong {
     display: block;
-    color: #214466;
-    font-size: .88rem;
+
+    color: #234b6e;
+
+    font-size: .85rem;
 }
+
 
 .derman-modal__warning p,
 .derman-company-modal__notice p {
     margin: 4px 0 0;
-    color: #60758a;
-    font-size: .84rem;
+
+    color: #60788d;
+
+    font-size: .82rem;
     line-height: 1.5;
 }
 
+
 .derman-company-form-help {
     display: block;
+
     margin-top: 6px;
-    color: #7a8798;
-    font-size: .76rem;
+
+    color: #8090a1;
+
+    font-size: .74rem;
 }
+
 
 .derman-confirm {
     display: flex;
     align-items: flex-start;
     gap: 10px;
-    color: #334155;
-    font-size: .86rem;
-    line-height: 1.45;
+
+    color: #3d5368;
+
+    font-size: .82rem;
+    line-height: 1.5;
+
     cursor: pointer;
 }
 
+
 .derman-confirm input {
-    flex: 0 0 auto;
     width: 17px;
     height: 17px;
+
     margin-top: 2px;
-    accent-color: #1d5fa7;
+
+    accent-color: #1765b3;
 }
+
 
 .report-submit.derman-submit {
-    border-color: #1d5fa7;
-    background: #1d5fa7;
+    border-color: #1765b3;
+    background: #1765b3;
 }
+
 
 .report-submit.derman-submit:hover {
-    background: #174b85;
+    background: #115591;
 }
+@media (max-width: 760px) {
 
-@media (max-width: 720px) {
     .derman-section {
+        padding: 17px;
+
+        border-radius: 18px;
+    }
+.report-modal.derman-company-modal {
         padding: 16px;
-        border-radius: 16px;
+    }
+
+    .derman-company-modal .derman-modal__card {
+        max-height: calc(100dvh - 32px);
+        transform: none;
     }
 
     .derman-section__header,
@@ -482,24 +815,30 @@
         flex-direction: column;
     }
 
+
     .derman-section__actions {
         justify-content: flex-start;
     }
 
-    .derman-open-button,
-    .derman-gate > a,
-    .derman-company-response-empty .derman-company-action {
+
+    .derman-primary-button,
+    .derman-gate > a {
         width: 100%;
-        justify-content: center;
     }
 
-    .derman-card__header,
-    .derman-company-response__header {
-        gap: 10px;
+
+    .derman-card__header {
+        flex-direction: column;
     }
+
 
     .derman-card__footer {
         align-items: flex-start;
         flex-direction: column;
+    }
+
+
+    .derman-withdraw-button {
+        padding-left: 0;
     }
 }

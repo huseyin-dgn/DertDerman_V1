@@ -1,0 +1,525 @@
+.user-dermans-page {
+    background:
+        linear-gradient(
+            180deg,
+            #f6faff,
+            #f8fafc
+        );
+}
+
+
+.user-dermans-shell {
+    padding-top: 28px;
+    padding-bottom: 55px;
+}
+
+
+.user-dermans-hero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+
+    padding: 28px;
+
+    border: 1px solid #dce8f4;
+    border-radius: 22px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #eef7ff,
+            #ffffff
+        );
+
+    box-shadow:
+        0 16px 45px rgba(26, 72, 112, .07);
+}
+
+
+.user-dermans-hero h1 {
+    margin: 4px 0 7px;
+
+    color: #102a43;
+
+    font-size: 2rem;
+}
+
+
+.user-dermans-hero p:last-child {
+    max-width: 650px;
+
+    margin: 0;
+
+    color: #657b91;
+
+    line-height: 1.6;
+}
+
+
+.user-dermans-hero__icon {
+    display: grid;
+    place-items: center;
+
+    flex: 0 0 auto;
+
+    width: 70px;
+    height: 70px;
+
+    border-radius: 20px;
+
+    background: #1765b3;
+    color: #fff;
+
+    font-size: 1.5rem;
+
+    box-shadow:
+        0 12px 28px rgba(23, 101, 179, .2);
+}
+
+
+.user-derman-metrics {
+    display: grid;
+    grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+
+    gap: 14px;
+
+    margin-top: 18px;
+}
+
+
+.user-derman-metric {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 17px 18px;
+
+    border: 1px solid #dfe8f1;
+    border-radius: 15px;
+
+    background: #fff;
+
+    text-decoration: none;
+}
+
+
+.user-derman-metric span {
+    color: #6b7f92;
+
+    font-size: .78rem;
+    font-weight: 800;
+}
+
+
+.user-derman-metric strong {
+    color: #1765b3;
+
+    font-size: 1.45rem;
+}
+
+
+.user-derman-metric--green strong {
+    color: #25845f;
+}
+
+
+.user-derman-metric--amber strong {
+    color: #b7791f;
+}
+
+
+.user-derman-metric--muted strong {
+    color: #718096;
+}
+
+
+.user-dermans-layout {
+    display: grid;
+
+    grid-template-columns:
+        minmax(0, 1fr) 300px;
+
+    gap: 20px;
+
+    margin-top: 20px;
+}
+
+
+.user-dermans-main,
+.user-dermans-help {
+    border: 1px solid #dfe7ef;
+    border-radius: 18px;
+
+    background: #fff;
+
+    box-shadow:
+        0 12px 32px rgba(31, 63, 94, .05);
+}
+
+
+.user-dermans-main {
+    padding: 22px;
+}
+
+
+.user-dermans-toolbar {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+
+    padding-bottom: 17px;
+
+    border-bottom: 1px solid #edf1f5;
+}
+
+
+.user-dermans-toolbar h2 {
+    margin: 3px 0 0;
+
+    color: #172f48;
+
+    font-size: 1.2rem;
+}
+
+
+.user-dermans-filter {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+
+.user-dermans-filter label {
+    color: #75879a;
+
+    font-size: .75rem;
+    font-weight: 800;
+}
+
+
+.user-dermans-filter select {
+    min-height: 38px;
+
+    padding: 0 34px 0 11px;
+
+    border: 1px solid #d7e2ed;
+    border-radius: 10px;
+
+    background: #fff;
+
+    color: #354e67;
+
+    font: inherit;
+    font-size: .79rem;
+}
+
+
+.user-derman-list {
+    display: grid;
+    gap: 13px;
+
+    margin-top: 17px;
+}
+
+
+.user-derman-card {
+    padding: 17px;
+
+    border: 1px solid #e1e8ef;
+    border-radius: 15px;
+
+    background: #fbfcfe;
+}
+
+
+.user-derman-card__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 15px;
+}
+
+
+.user-derman-company {
+    color: #1765b3;
+
+    font-size: .7rem;
+    font-weight: 900;
+    letter-spacing: .04em;
+}
+
+
+.user-derman-card h3 {
+    margin: 4px 0;
+
+    font-size: .96rem;
+}
+
+
+.user-derman-card h3 a {
+    color: #233d56;
+
+    text-decoration: none;
+}
+
+
+.user-derman-card h3 a:hover {
+    color: #1765b3;
+}
+
+
+.user-derman-card small {
+    color: #8a99aa;
+}
+
+
+.user-derman-status {
+    display: inline-flex;
+
+    padding: 5px 9px;
+
+    border-radius: 999px;
+
+    background: #eef2f6;
+    color: #607286;
+
+    font-size: .67rem;
+    font-weight: 850;
+
+    white-space: nowrap;
+}
+
+
+.user-derman-status--published {
+    background: #e8f7ef;
+    color: #287759;
+}
+
+
+.user-derman-status--pending {
+    background: #fff5dc;
+    color: #9b6814;
+}
+
+
+.user-derman-status--withdrawn {
+    background: #edf1f5;
+    color: #637487;
+}
+
+
+.user-derman-status--rejected,
+.user-derman-status--removed {
+    background: #fff0f2;
+    color: #a93647;
+}
+
+
+.user-derman-card__body {
+    margin: 14px 0 0;
+
+    color: #3b5269;
+
+    font-size: .88rem;
+    line-height: 1.62;
+}
+
+
+.user-derman-card__footer {
+    display: flex;
+    gap: 12px;
+
+    margin-top: 14px;
+    padding-top: 12px;
+
+    border-top: 1px solid #edf1f5;
+}
+
+
+.user-derman-card__footer span {
+    color: #718296;
+
+    font-size: .76rem;
+}
+
+
+.user-derman-card__footer strong {
+    color: #274760;
+}
+
+
+.user-derman-card__notice {
+    margin-top: 14px;
+    padding: 10px 12px;
+
+    border-radius: 10px;
+
+    background: #eef7ff;
+    color: #406788;
+
+    font-size: .77rem;
+    line-height: 1.5;
+}
+
+
+.user-derman-card__notice--warning {
+    background: #fff8e8;
+    color: #8e6a20;
+}
+
+
+.user-derman-card__notice--danger {
+    background: #fff1f3;
+    color: #9c3a48;
+}
+
+
+.user-dermans-help {
+    align-self: start;
+
+    padding: 22px;
+}
+
+
+.user-dermans-help__icon {
+    display: grid;
+    place-items: center;
+
+    width: 38px;
+    height: 38px;
+
+    margin-bottom: 15px;
+
+    border-radius: 11px;
+
+    background: #eaf5ff;
+    color: #1765b3;
+
+    font-weight: 900;
+}
+
+
+.user-dermans-help h2 {
+    margin: 4px 0 11px;
+
+    color: #18344f;
+}
+
+
+.user-dermans-help > p:not(.section-kicker) {
+    color: #718397;
+
+    font-size: .82rem;
+    line-height: 1.55;
+}
+
+
+.user-dermans-help__warning {
+    margin-top: 18px;
+    padding: 13px;
+
+    border: 1px solid #d5e5f3;
+    border-radius: 11px;
+
+    background: #f5faff;
+}
+
+
+.user-dermans-help__warning strong {
+    color: #295171;
+
+    font-size: .8rem;
+}
+
+
+.user-dermans-help__warning p {
+    margin: 5px 0 0;
+
+    color: #657d92;
+
+    font-size: .75rem;
+    line-height: 1.5;
+}
+
+
+.user-dermans-empty {
+    padding: 45px 25px;
+
+    text-align: center;
+}
+
+
+.user-dermans-empty > span {
+    display: grid;
+    place-items: center;
+
+    width: 48px;
+    height: 48px;
+
+    margin: 0 auto 13px;
+
+    border-radius: 14px;
+
+    background: #eef7ff;
+    color: #1765b3;
+}
+
+
+.user-dermans-empty h3 {
+    margin: 0;
+
+    color: #253f57;
+}
+
+
+.user-dermans-empty p {
+    max-width: 410px;
+
+    margin: 7px auto 16px;
+
+    color: #73869a;
+}
+
+
+@media (max-width: 900px) {
+
+    .user-derman-metrics {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+
+    .user-dermans-layout {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+
+@media (max-width: 640px) {
+
+    .user-dermans-hero {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+
+    .user-derman-metrics {
+        grid-template-columns: 1fr;
+    }
+
+
+    .user-dermans-toolbar,
+    .user-derman-card__header {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+
+    .user-dermans-filter {
+        justify-content: space-between;
+    }
+}

@@ -1,93 +1,245 @@
-{% extends 'adminx/table_base.html' %}
+{% extends 'adminx/content_base.html' %}
+{% load static %}
+
 
 {% block title %}
 Dermanlar | DertDerman Yönetim
 {% endblock %}
 
+
+{% block extra_head %}
+{{ block.super }}
+
+<link
+    rel="stylesheet"
+    href="{% static 'css/admin-derman.css' %}?v=1"
+>
+{% endblock %}
+
+
 {% block content_heading %}
+
 <p class="ad-kicker">
-    YÖNETİM MERKEZİ
+    TOPLULUK ÇÖZÜMLERİ
 </p>
 
 <h1>
-    Dermanlar
+    Derman Moderasyonu
 </h1>
 
 <p>
-    Kullanıcıların çözüm paylaşımlarını
-    inceleyin ve moderasyon kararlarını yönetin.
+    Kullanıcıların paylaştığı çözüm önerilerini
+    inceleyin, yayın kararlarını yönetin ve
+    moderasyon geçmişini takip edin.
 </p>
+
 {% endblock %}
 
 
-{% block table_head %}
-<th scope="col">ID</th>
-<th scope="col">Derman</th>
-<th scope="col">Kullanıcı</th>
-<th scope="col">Şikayet</th>
-<th scope="col">Şirket</th>
-<th scope="col">Tarih</th>
-<th scope="col">Durum</th>
-<th scope="col">Aksiyon</th>
+{% block heading_actions %}
+
+<div class="ad-derman-heading-stat">
+
+    <span>
+        Görüntülenen
+    </span>
+
+    <strong>
+        {{ page_obj.paginator.count }}
+    </strong>
+
+</div>
+
 {% endblock %}
 
 
-{% block table_rows %}
-{% for derman in page_obj %}
-<tr>
+{% block management_content %}
 
-    <td>
-        #{{ derman.pk }}
-    </td>
-
-    <td class="ad-title-cell">
-        {{ derman.body|truncatechars:90 }}
-    </td>
-
-    <td>
-        {{ derman.author_user.username }}
-    </td>
-
-    <td>
-        #{{ derman.complaint_id }}
-        ·
-        {{ derman.complaint.title|truncatechars:50 }}
-    </td>
-
-    <td>
-        {{ derman.complaint.company.name }}
-    </td>
-
-    <td>
-        {{ derman.created_at|date:'d.m.Y H:i' }}
-    </td>
-
-    <td>
-        {% include 'components/badge.html' with status=derman.status label=derman.get_status_display %}
-    </td>
-
-    <td>
-        <a
-            class="ad-row-action"
-            href="{% url 'adminx:derman_detail' derman.pk %}"
-        >
-            İncele ↗
-        </a>
-    </td>
-
-</tr>
-{% endfor %}
-{% endblock %}
+{% include 'adminx/filters.html' %}
 
 
-{% block table_empty %}
-{% if filter_form.cleaned_data.status == 'PENDING' %}
+<section
+    class="ad-derman-board"
+    aria-label="Derman kayıtları"
+>
 
-    {% include 'components/empty_state.html' with heading='İnceleme bekleyen Derman bulunmuyor.' route='adminx:derman_list' %}
+    <header class="ad-derman-board__header">
 
-{% else %}
+        <div>
 
-    {% include 'components/empty_state.html' with heading='Bu filtrelerle eşleşen Derman bulunmuyor.' route='adminx:derman_list' %}
+            <span class="ad-derman-board__eyebrow">
+                MODERASYON KUYRUĞU
+            </span>
 
-{% endif %}
+            <h2>
+                Derman kayıtları
+            </h2>
+
+        </div>
+
+        <p>
+            Öncelik inceleme bekleyen kayıtlardadır.
+        </p>
+
+    </header>
+
+
+    {% if page_obj %}
+
+        <div class="ad-derman-list">
+
+            {% for derman in page_obj %}
+
+                <article class="ad-derman-item">
+
+                    <div class="ad-derman-item__top">
+
+                        <div class="ad-derman-item__identity">
+
+                            <span class="ad-derman-item__id">
+                                #{{ derman.pk }}
+                            </span>
+
+                            <span class="ad-derman-company">
+                                {{ derman.complaint.company.name }}
+                            </span>
+
+                        </div>
+
+
+                        {% include 'components/badge.html' with status=derman.status label=derman.get_status_display %}
+
+                    </div>
+
+
+                    <div class="ad-derman-item__content">
+
+                        <p>
+                            {{ derman.body|truncatechars:220 }}
+                        </p>
+
+                    </div>
+
+
+                    <div class="ad-derman-item__context">
+
+                        <div>
+
+                            <span>
+                                Yazar
+                            </span>
+
+                            <strong>
+                                @{{ derman.author_user.username }}
+                            </strong>
+
+                        </div>
+
+
+                        <div>
+
+                            <span>
+                                Bağlı şikayet
+                            </span>
+
+                            <strong>
+                                #{{ derman.complaint_id }}
+                                ·
+                                {{ derman.complaint.title|truncatechars:55 }}
+                            </strong>
+
+                        </div>
+
+
+                        <div>
+
+                            <span>
+                                Oluşturulma
+                            </span>
+
+                            <strong>
+                                {{ derman.created_at|date:'d.m.Y H:i' }}
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+
+                    <footer class="ad-derman-item__footer">
+
+                        <span>
+                            İçeriği ve moderasyon geçmişini inceleyin.
+                        </span>
+
+                        <a
+                            href="{% url 'adminx:derman_detail' derman.pk %}"
+                            class="ad-derman-review"
+                        >
+                            İncele
+                            <span aria-hidden="true">
+                                →
+                            </span>
+                        </a>
+
+                    </footer>
+
+                </article>
+
+            {% endfor %}
+
+        </div>
+
+
+        <div class="ad-derman-pagination">
+
+            {% include 'components/pagination.html' %}
+
+        </div>
+
+
+    {% else %}
+
+        <div class="ad-derman-empty">
+
+            <span>
+                ✓
+            </span>
+
+            {% if filter_form.cleaned_data.status == 'PENDING' %}
+
+                <h2>
+                    İnceleme bekleyen Derman yok
+                </h2>
+
+                <p>
+                    Moderasyon kuyruğu şu anda temiz.
+                </p>
+
+            {% else %}
+
+                <h2>
+                    Sonuç bulunamadı
+                </h2>
+
+                <p>
+                    Seçtiğiniz filtrelerle eşleşen
+                    Derman kaydı bulunmuyor.
+                </p>
+
+            {% endif %}
+
+            <a
+                href="{% url 'adminx:derman_list' %}"
+                class="secondary-action"
+            >
+                Filtreleri Temizle
+            </a>
+
+        </div>
+
+    {% endif %}
+
+</section>
+
 {% endblock %}

@@ -13,6 +13,15 @@ public-site public-complaint-page
 
 <link
     rel="stylesheet"
+    href="{% static 'css/read-more.css' %}?v=1"
+>
+
+<script
+    src="{% static 'js/read-more.js' %}?v=1"
+    defer
+></script>
+<link
+    rel="stylesheet"
     href="{% static 'css/report-modal.css' %}"
 >
 
@@ -24,6 +33,14 @@ public-site public-complaint-page
 <link
     rel="stylesheet"
     href="{% static 'css/derman.css' %}"
+>
+<link
+    rel="stylesheet"
+    href="{% static 'css/public-complaint-detail-v3.css' %}?v=1"
+>
+<link
+    rel="stylesheet"
+    href="{% static 'css/public-complaint-detail-fixes.css' %}?v=1"
 >
 
 <script
@@ -340,83 +357,101 @@ public-site public-complaint-page
             </header>
 
 
-            <div class="interaction-bar">
+<div class="interaction-bar">
 
-                {% if request.user.is_authenticated and request.user.user_type == 'USER' %}
+    {% if request.user.is_authenticated and request.user.user_type == 'USER' %}
 
-                    <form
-                        class="emoji-picker emoji-picker--direct"
-                        method="post"
-                        action="{% url 'complaints:react' complaint.pk %}"
+        <form
+            class="emoji-picker emoji-picker--direct"
+            method="post"
+            action="{% url 'complaints:react' complaint.pk %}"
+        >
+
+            {% csrf_token %}
+
+            <div
+                class="emoji-options"
+                aria-label="Emoji tepkileri"
+            >
+
+                {% for reaction in reaction_options %}
+
+                    <button
+                        type="submit"
+                        name="reaction_type"
+                        value="{{ reaction.value }}"
+                        class="emoji-option{% if reaction.active %} is-active{% endif %}"
+                        aria-pressed="{% if reaction.active %}true{% else %}false{% endif %}"
+                        title="{{ reaction.count }} tepki"
                     >
 
-                        {% csrf_token %}
+                        <span aria-hidden="true">
+                            {{ reaction.value }}
+                        </span>
 
-                        <div
-                            class="emoji-options"
-                            aria-label="Emoji tepkileri"
-                        >
+                        <b>
+                            {{ reaction.count }}
+                        </b>
 
-                            {% for reaction in reaction_options %}
+                    </button>
 
-                                <button
-                                    type="submit"
-                                    name="reaction_type"
-                                    value="{{ reaction.value }}"
-                                    class="emoji-option{% if reaction.active %} is-active{% endif %}"
-                                    aria-pressed="{% if reaction.active %}true{% else %}false{% endif %}"
-                                    title="{{ reaction.count }} tepki"
-                                >
-
-                                    <span aria-hidden="true">
-                                        {{ reaction.value }}
-                                    </span>
-
-                                    <b>
-                                        {{ reaction.count }}
-                                    </b>
-
-                                </button>
-
-                            {% endfor %}
-
-                        </div>
-
-                    </form>
-
-
-                    {% if request.user.pk != complaint.user_id %}
-
-                        <button
-                            type="button"
-                            class="report-trigger"
-                            data-report-open="complaint-report-dialog"
-                        >
-                            ⚑ Raporla
-                        </button>
-
-                    {% endif %}
-
-                {% else %}
-
-                    <a
-                        class="secondary-action"
-                        href="{% url 'accounts:login' %}?next={{ request.path|urlencode }}"
-                    >
-                        Tepki vermek için giriş yapın
-                    </a>
-
-                {% endif %}
-
-
-                <a
-                    class="comment-count-link"
-                    href="#community-comments"
-                >
-                    💬 {{ complaint.comment_count }} Yorum
-                </a>
+                {% endfor %}
 
             </div>
+
+        </form>
+
+
+        {% if request.user.pk != complaint.user_id %}
+
+            <button
+                type="button"
+                class="report-trigger"
+                data-report-open="complaint-report-dialog"
+            >
+                ⚑ Raporla
+            </button>
+
+        {% endif %}
+
+
+    {% elif request.user.is_authenticated and request.user.user_type == 'COMPANY' %}
+
+        <a
+            class="secondary-action"
+            href="{% url 'companies:company_panel' %}"
+        >
+            Şirket işlemleri için panele git
+        </a>
+
+
+    {% elif request.user.is_authenticated and request.user.user_type == 'ADMIN' %}
+
+        <span class="secondary-action" aria-disabled="true">
+            Yönetim hesapları tepki veremez
+        </span>
+
+
+    {% else %}
+
+        <a
+            class="secondary-action"
+            href="{% url 'accounts:login' %}?next={{ request.path|urlencode }}"
+        >
+            Tepki vermek için giriş yapın
+        </a>
+
+    {% endif %}
+
+
+    <a
+        class="comment-count-link"
+        href="#community-comments"
+    >
+        💬 {{ complaint.comment_count }} Yorum
+    </a>
+
+</div>
 
         </section>
 
@@ -484,10 +519,7 @@ public-site public-complaint-page
 
                     </header>
 
-
-                    <p>
-                        {{ response.body|linebreaksbr }}
-                    </p>
+{% include 'components/expandable_text.html' with text=response.body prefix='official-response' object_id=response.pk title='Resmi şirket yanıtı' lines='4' %}
 
                 </article>
 
@@ -640,9 +672,7 @@ public-site public-complaint-page
                             </header>
 
 
-                            <p>
-                                {{ comment.body|linebreaksbr }}
-                            </p>
+{% include 'components/expandable_text.html' with text=comment.body prefix='comment' object_id=comment.pk title='Topluluk yorumu' lines='4' %}
 
                         </div>
 

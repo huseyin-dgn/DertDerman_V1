@@ -1,0 +1,18 @@
+<div class="rm-block">
+  <div
+    id="{{ prefix|default:'text' }}-{{ object_id }}"
+    class="rm-preview rm-preview--{{ lines|default:'4' }}"
+  >
+    {{ text|linebreaksbr }}
+  </div>
+
+  <button
+    type="button"
+    class="rm-more"
+    data-read-more-target="{{ prefix|default:'text' }}-{{ object_id }}"
+    data-read-more-title="{{ title|default:'Metnin tamamı' }}"
+  >
+    Devamını Oku
+    <span aria-hidden="true">→</span>
+  </button>
+</div>

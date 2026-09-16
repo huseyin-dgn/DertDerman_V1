@@ -115,6 +115,35 @@ class DermanTemplateTests(TestCase):
             ),
         )
 
+    def _grant_unrelated_company_access(self, *, pro=False):
+        unrelated_company = Company.objects.create(
+            name="Unrelated Derman Template Company",
+            is_active=True,
+            is_verified=True,
+            approval_status=Company.ApprovalStatus.APPROVED,
+        )
+
+        CompanyMembership.objects.create(
+            user=self.company_user,
+            company=unrelated_company,
+            role=CompanyMembership.Role.OWNER,
+            is_active=True,
+        )
+
+        if pro:
+            CompanySubscription.objects.create(
+                company=unrelated_company,
+                plan=CompanySubscription.Plan.PRO,
+                billing_period=(
+                    CompanySubscription.BillingPeriod.MONTHLY
+                ),
+                is_active=True,
+                current_period_end=(
+                    timezone.now()
+                    + timedelta(days=30)
+                ),
+            )
+
     def test_anonymous_sees_count_but_not_derman_body(self):
         response = self.client.get(
             self.url
@@ -286,6 +315,71 @@ class DermanTemplateTests(TestCase):
                 kwargs={
                     "derman_pk": self.derman.pk,
                 },
+            ),
+        )
+
+    def test_unrelated_standard_company_sees_only_public_count(self):
+        company_response = self._create_company_response()
+        self._grant_unrelated_company_access()
+
+        self.client.force_login(self.company_user)
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "1 yayınlanmış Derman")
+        self.assertNotContains(response, self.derman.body)
+        self.assertNotContains(response, self.derman_author.username)
+        self.assertNotContains(response, company_response.body)
+        self.assertNotContains(response, "DertDerman Pro")
+        self.assertNotContains(response, "Pro'yu İncele")
+        self.assertNotContains(
+            response,
+            reverse(
+                "complaints:derman_company_response_create",
+                kwargs={"derman_pk": self.derman.pk},
+            ),
+        )
+        self.assertNotContains(
+            response,
+            reverse(
+                "complaints:derman_company_response_update",
+                kwargs={"derman_pk": self.derman.pk},
+            ),
+        )
+
+    def test_unrelated_pro_company_sees_only_public_count(self):
+        company_response = self._create_company_response()
+        self._grant_unrelated_company_access(pro=True)
+
+        self.client.force_login(self.company_user)
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "1 yayınlanmış Derman")
+        self.assertNotContains(response, self.derman.body)
+        self.assertNotContains(response, self.derman_author.username)
+        self.assertNotContains(response, company_response.body)
+        self.assertNotContains(response, "DertDerman Pro")
+        self.assertNotContains(response, "Pro'yu İncele")
+        self.assertNotContains(
+            response,
+            reverse(
+                "complaints:derman_react",
+                args=[self.complaint.pk, self.derman.pk],
+            ),
+        )
+        self.assertNotContains(
+            response,
+            reverse(
+                "complaints:derman_company_response_create",
+                kwargs={"derman_pk": self.derman.pk},
+            ),
+        )
+        self.assertNotContains(
+            response,
+            reverse(
+                "complaints:derman_company_response_update",
+                kwargs={"derman_pk": self.derman.pk},
             ),
         )
 

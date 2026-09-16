@@ -1,0 +1,51 @@
+/* =========================================================
+   DERTDERMAN
+   Public Complaint Detail — Final UI Fixes
+   ========================================================= */
+
+
+/* Kullanıcı tarafından girilen boşluksuz uzun içerikler
+   kartların dışına taşmasın. */
+
+.public-complaint-page .derman-card__body,
+.public-complaint-page .derman-company-response__body,
+.public-complaint-page .official-response > p,
+.public-complaint-page .community-comment p {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+
+/* Derman kartındaki içerik alanı kendi grid/flex
+   konteynerini taşırmasın. */
+
+.public-complaint-page .derman-card,
+.public-complaint-page .derman-card__content,
+.public-complaint-page .derman-card__body {
+    min-width: 0;
+    max-width: 100%;
+}
+
+
+/* Şirket yanıtları da uzun URL/metinlerde taşmasın. */
+
+.public-complaint-page .derman-company-response,
+.public-complaint-page .official-response {
+    min-width: 0;
+    max-width: 100%;
+}
+
+
+/* Mobilde kart içeriği ekstra güvenli kalsın. */
+
+@media (max-width: 680px) {
+
+    .public-complaint-page .derman-card__body,
+    .public-complaint-page .derman-company-response__body,
+    .public-complaint-page .official-response > p,
+    .public-complaint-page .community-comment p {
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+}

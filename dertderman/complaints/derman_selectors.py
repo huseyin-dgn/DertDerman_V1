@@ -33,6 +33,7 @@ from .selectors import (
 class DermanAccessLevel:
     ANONYMOUS = "ANONYMOUS"
     USER = "USER"
+    COMPANY_OTHER = "COMPANY_OTHER"
     COMPANY_STANDARD = "COMPANY_STANDARD"
     COMPANY_PRO = "COMPANY_PRO"
     ADMIN = "ADMIN"
@@ -440,9 +441,22 @@ def derman_visibility_for(
             .exists()
         )
 
+        if not membership_exists:
+            return DermanVisibility(
+                access_level=(
+                    DermanAccessLevel.COMPANY_OTHER
+                ),
+                published_count=count,
+                can_view_content=False,
+                paywalled=False,
+                can_create=False,
+                can_react=False,
+                dermans=_empty_dermans(),
+                can_company_respond=False,
+            )
+
         has_pro_access = (
-            membership_exists
-            and company_has_active_pro(
+            company_has_active_pro(
                 complaint.company
             )
         )

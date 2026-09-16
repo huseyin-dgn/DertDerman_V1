@@ -1,0 +1,680 @@
+{% extends "layouts/company_base.html" %}
+{% load static %}
+
+
+{% block title %}
+Dermanlar
+{% endblock %}
+
+
+{% block extra_css %}
+
+<link
+    rel="stylesheet"
+    href="{% static 'css/company-dermans.css' %}?v=3"
+>
+
+<link
+    rel="stylesheet"
+    href="{% static 'css/read-more.css' %}?v=2"
+>
+
+<script
+    src="{% static 'js/read-more.js' %}?v=2"
+    defer
+></script>
+
+{% endblock %}
+
+
+{% block panel_content %}
+
+<section class="cd-page">
+
+    <header class="cd-hero">
+
+        <div class="cd-hero__copy">
+
+            <p class="cd-eyebrow">
+                TOPLULUK ÇÖZÜMLERİ
+            </p>
+
+            <h1>
+                Dermanlar
+            </h1>
+
+            <p>
+                Şirketiniz hakkındaki şikayetlere kullanıcıların
+                eklediği çözüm paylaşımlarını takip edin ve
+                uygun durumlarda resmi şirket yanıtınızı paylaşın.
+            </p>
+
+        </div>
+
+
+        <div class="cd-hero__side">
+
+            {% if is_pro %}
+
+                <span class="cd-plan cd-plan--pro">
+                    ✦ DertDerman Pro
+                </span>
+
+            {% else %}
+
+                <span class="cd-plan">
+                    Standart Paket
+                </span>
+
+            {% endif %}
+
+        </div>
+
+    </header>
+
+
+    {% if not is_pro %}
+
+        <section class="cd-paywall">
+
+            <div class="cd-paywall__mark">
+                ✦
+            </div>
+
+
+            <div class="cd-paywall__copy">
+
+                <p class="cd-eyebrow">
+                    PRO ÖZELLİĞİ
+                </p>
+
+                <h2>
+                    {{ published_count }}
+                    yayınlanmış Derman var
+                </h2>
+
+                <p>
+                    Standart pakette yalnızca şirketinizle ilgili
+                    yayınlanmış Derman sayısını görebilirsiniz.
+                    İçerik, kullanıcı bilgisi, değerlendirmeler ve
+                    resmi yanıt özellikleri DertDerman Pro ile açılır.
+                </p>
+
+            </div>
+
+
+            <a
+                href="{% url 'companies:plan' %}"
+                class="cd-primary-button"
+            >
+                Pro'yu İncele
+                <span aria-hidden="true">→</span>
+            </a>
+
+        </section>
+
+
+        <section class="cd-standard-info">
+
+            <article>
+
+                <span class="cd-standard-info__icon">
+                    1
+                </span>
+
+                <div>
+
+                    <strong>
+                        Dermanları takip edin
+                    </strong>
+
+                    <p>
+                        Şirketiniz hakkındaki şikayetlere
+                        eklenen çözüm sayısını görün.
+                    </p>
+
+                </div>
+
+            </article>
+
+
+            <article>
+
+                <span class="cd-standard-info__icon">
+                    2
+                </span>
+
+                <div>
+
+                    <strong>
+                        Pro ile içeriği görüntüleyin
+                    </strong>
+
+                    <p>
+                        Derman metni ve topluluk
+                        değerlendirmelerine erişin.
+                    </p>
+
+                </div>
+
+            </article>
+
+
+            <article>
+
+                <span class="cd-standard-info__icon">
+                    3
+                </span>
+
+                <div>
+
+                    <strong>
+                        Resmi yanıt verin
+                    </strong>
+
+                    <p>
+                        Uygun Dermanlara şirketiniz
+                        adına resmi açıklama ekleyin.
+                    </p>
+
+                </div>
+
+            </article>
+
+        </section>
+
+
+    {% else %}
+
+        <section
+            class="cd-metrics"
+            aria-label="Derman istatistikleri"
+        >
+
+            <article>
+
+                <div class="cd-metric-icon">
+                    ✦
+                </div>
+
+                <div>
+
+                    <span>
+                        Yayınlanan
+                    </span>
+
+                    <strong>
+                        {{ metrics.total }}
+                    </strong>
+
+                </div>
+
+            </article>
+
+
+            <article>
+
+                <div class="cd-metric-icon cd-metric-icon--waiting">
+                    ↗
+                </div>
+
+                <div>
+
+                    <span>
+                        Yanıt Bekleyen
+                    </span>
+
+                    <strong>
+                        {{ metrics.waiting }}
+                    </strong>
+
+                </div>
+
+            </article>
+
+
+            <article>
+
+                <div class="cd-metric-icon cd-metric-icon--answered">
+                    ✓
+                </div>
+
+                <div>
+
+                    <span>
+                        Yanıtlanan
+                    </span>
+
+                    <strong>
+                        {{ metrics.answered }}
+                    </strong>
+
+                </div>
+
+            </article>
+
+        </section>
+
+
+        <section class="cd-feed">
+
+            <header class="cd-feed__header">
+
+                <div>
+
+                    <p class="cd-eyebrow">
+                        YAYINDAKİ DERMANLAR
+                    </p>
+
+                    <h2>
+                        Topluluk paylaşımları
+                    </h2>
+
+                    <p>
+                        Şirketinizle doğrudan ilişkili,
+                        yönetim tarafından yayınlanmış
+                        çözüm paylaşımları.
+                    </p>
+
+                </div>
+
+
+                <span class="cd-feed__count">
+                    {{ metrics.total }} kayıt
+                </span>
+
+            </header>
+
+
+            {% if page_obj %}
+
+                <div class="cd-list">
+
+                    {% for derman in page_obj %}
+
+                        <article class="cd-card">
+
+                            <header class="cd-card__header">
+
+                                <div class="cd-card__complaint">
+
+                                    <span class="cd-card__complaint-id">
+                                        ŞİKAYET #{{ derman.complaint_id }}
+                                    </span>
+
+                                    <h3>
+                                        {{ derman.complaint.title }}
+                                    </h3>
+
+
+                                    <div class="cd-card__meta">
+
+                                        <span>
+                                            @{{ derman.author_user.username }}
+                                        </span>
+
+                                        <i></i>
+
+                                        <time
+                                            datetime="{{ derman.published_at|date:'c' }}"
+                                        >
+                                            {{ derman.published_at|date:'d.m.Y H:i' }}
+                                        </time>
+
+                                    </div>
+
+                                </div>
+
+
+                                <div class="cd-card__header-actions">
+
+                                    <span class="cd-status">
+                                        Yayında
+                                    </span>
+
+                                    <a
+                                        href="{% url 'companies:complaint_detail' derman.complaint_id %}"
+                                        class="cd-complaint-link"
+                                    >
+                                        Şikayeti Aç
+                                        <span aria-hidden="true">
+                                            ↗
+                                        </span>
+                                    </a>
+
+                                </div>
+
+                            </header>
+
+
+                            <div class="cd-card__body">
+
+                                <div class="cd-derman-content">
+
+                                    <div class="cd-content-heading">
+
+                                        <span class="cd-content-heading__mark">
+                                            ✦
+                                        </span>
+
+                                        <div>
+
+                                            <small>
+                                                DERMAN
+                                            </small>
+
+                                            <strong>
+                                                Kullanıcı çözüm paylaşımı
+                                            </strong>
+
+                                        </div>
+
+                                    </div>
+
+
+                                    {% include 'components/expandable_text.html' with text=derman.body prefix='company-derman' object_id=derman.pk title='Derman paylaşımı' lines='4' %}
+
+                                </div>
+
+
+                                <div class="cd-reactions">
+
+                                    <span>
+                                        <b>↑</b>
+
+                                        Faydalı
+
+                                        <strong>
+                                            {{ derman.like_count }}
+                                        </strong>
+                                    </span>
+
+                                    <span>
+                                        <b>↓</b>
+
+                                        Faydalı Değil
+
+                                        <strong>
+                                            {{ derman.dislike_count }}
+                                        </strong>
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+
+                            {% if derman.company_response_id %}
+
+                                <section class="cd-response">
+
+                                    <header class="cd-response__header">
+
+                                        <div class="cd-response__identity">
+
+                                            <span class="cd-response__icon">
+                                                ✓
+                                            </span>
+
+                                            <div>
+
+                                                <small>
+                                                    RESMİ ŞİRKET YANITINIZ
+                                                </small>
+
+                                                <strong>
+                                                    {{ company.name }}
+                                                </strong>
+
+                                            </div>
+
+                                        </div>
+
+
+                                        {% if can_respond and derman.complaint.status == 'PUBLISHED' %}
+
+                                            <button
+                                                type="button"
+                                                class="cd-edit-trigger"
+                                                data-response-toggle="response-form-{{ derman.pk }}"
+                                            >
+                                                Yanıtı Düzenle
+                                            </button>
+
+                                        {% endif %}
+
+                                    </header>
+
+
+                                    {% include 'components/expandable_text.html' with text=derman.company_response_body prefix='company-response' object_id=derman.pk title='Resmi şirket yanıtı' lines='3' %}
+
+                                </section>
+
+                            {% endif %}
+
+
+                            {% if can_respond and derman.complaint.status == 'PUBLISHED' %}
+
+                                <section
+                                    class="cd-response-editor{% if derman.company_response_id %} cd-response-editor--hidden{% endif %}"
+                                    id="response-form-{{ derman.pk }}"
+                                >
+
+                                    <header>
+
+                                        <div>
+
+                                            <small>
+                                                ŞİRKET YANITI
+                                            </small>
+
+                                            <h4>
+
+                                                {% if derman.company_response_id %}
+                                                    Resmi yanıtı düzenleyin
+                                                {% else %}
+                                                    Bu Derman'a resmi yanıt verin
+                                                {% endif %}
+
+                                            </h4>
+
+                                        </div>
+
+
+                                        {% if derman.company_response_id %}
+
+                                            <button
+                                                type="button"
+                                                class="cd-editor-close"
+                                                data-response-toggle="response-form-{{ derman.pk }}"
+                                            >
+                                                ×
+                                            </button>
+
+                                        {% endif %}
+
+                                    </header>
+
+
+                                    <form
+                                        method="post"
+                                        action="{% if derman.company_response_id %}{% url 'companies:derman_response_update' derman.pk %}{% else %}{% url 'companies:derman_response_create' derman.pk %}{% endif %}"
+                                    >
+
+                                        {% csrf_token %}
+
+                                        <label>
+
+                                            <span>
+                                                Resmi şirket yanıtı
+                                            </span>
+
+                                            <textarea
+                                                name="body"
+                                                rows="5"
+                                                minlength="20"
+                                                maxlength="3000"
+                                                required
+                                                placeholder="Şirketinizin bu Derman hakkındaki resmi açıklamasını yazın."
+                                            >{% if derman.company_response_id %}{{ derman.company_response_body }}{% endif %}</textarea>
+
+                                        </label>
+
+
+                                        <div class="cd-editor-footer">
+
+                                            <small>
+                                                En az 20, en fazla 3000 karakter.
+                                            </small>
+
+                                            <button
+                                                type="submit"
+                                                class="cd-primary-button"
+                                            >
+
+                                                {% if derman.company_response_id %}
+                                                    Yanıtı Güncelle
+                                                {% else %}
+                                                    Resmi Yanıtı Yayınla
+                                                {% endif %}
+
+                                            </button>
+
+                                        </div>
+
+                                    </form>
+
+                                </section>
+
+
+                            {% elif derman.complaint.status == 'RESOLVED' %}
+
+                                <div class="cd-readonly-note">
+
+                                    <span>
+                                        ✓
+                                    </span>
+
+                                    <p>
+                                        Bu şikayet çözüldüğü için Derman
+                                        görüntülenebilir ancak yeni resmi
+                                        yanıt eklenemez veya düzenlenemez.
+                                    </p>
+
+                                </div>
+
+
+                            {% elif not can_respond %}
+
+                                <div class="cd-readonly-note">
+
+                                    <span>
+                                        i
+                                    </span>
+
+                                    <p>
+                                        Derman içeriğini görüntüleyebilirsiniz.
+                                        Resmi yanıt oluşturma ve düzenleme
+                                        yetkisi Owner veya Manager rolündedir.
+                                    </p>
+
+                                </div>
+
+                            {% endif %}
+
+                        </article>
+
+                    {% endfor %}
+
+                </div>
+
+
+                <div class="cd-pagination">
+
+                    {% include 'components/pagination.html' with page_obj=page_obj %}
+
+                </div>
+
+
+            {% else %}
+
+                <div class="cd-empty">
+
+                    <span class="cd-empty__mark">
+                        ✦
+                    </span>
+
+                    <h2>
+                        Henüz yayınlanmış Derman yok
+                    </h2>
+
+                    <p>
+                        Şirketiniz hakkındaki şikayetlere
+                        kullanıcılar tarafından eklenen ve
+                        yönetim tarafından onaylanan Dermanlar
+                        burada görüntülenecek.
+                    </p>
+
+                </div>
+
+            {% endif %}
+
+        </section>
+
+    {% endif %}
+
+</section>
+
+
+<script>
+    document.addEventListener(
+        "click",
+        function (event) {
+
+            const button =
+                event.target.closest(
+                    "[data-response-toggle]"
+                );
+
+            if (!button) {
+                return;
+            }
+
+            const targetId =
+                button.getAttribute(
+                    "data-response-toggle"
+                );
+
+            const target =
+                document.getElementById(
+                    targetId
+                );
+
+            if (!target) {
+                return;
+            }
+
+            target.classList.toggle(
+                "cd-response-editor--hidden"
+            );
+
+            if (
+                !target.classList.contains(
+                    "cd-response-editor--hidden"
+                )
+            ) {
+
+                const textarea =
+                    target.querySelector(
+                        "textarea"
+                    );
+
+                if (textarea) {
+                    textarea.focus();
+                }
+            }
+        }
+    );
+</script>
+
+{% endblock %}

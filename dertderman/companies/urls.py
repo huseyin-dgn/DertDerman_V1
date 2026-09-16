@@ -1,26 +1,132 @@
 from django.urls import path
 
-from . import panel_views
+from . import (
+    derman_panel_views,
+    panel_views,
+)
 
 
 app_name = "companies"
 
+
 urlpatterns = [
-    path("", panel_views.dashboard, name="company_panel"),
-    path("sikayetler/", panel_views.complaint_list, name="complaint_list"),
-    path("sikayetler/<int:pk>/", panel_views.complaint_detail, name="complaint_detail"),
-    path("sikayetler/<int:pk>/cevap/", panel_views.response_create, name="response_create"),
-    path("sikayetler/<int:pk>/not/", panel_views.note_create, name="note_create"),
-    path("cevaplar/", panel_views.responses, name="responses"),
-    path("profil/", panel_views.profile, name="profile"),
-    path("profil/logo-kaldir/", panel_views.logo_remove, name="logo_remove"),
-    path("yetkililer/", panel_views.members, name="members"),
-    path("bildirimler/", panel_views.notifications, name="notifications"),
-    path("bildirimler/<int:pk>/", panel_views.notification_open, name="notification_open"),
-    path("bildirimler/tumunu-okundu/", panel_views.notifications_read_all, name="notifications_read_all"),
-    path("bildirimler/<int:pk>/okundu/", panel_views.notification_read, name="notification_read"),
-    path("paket/", panel_views.plan, name="plan"),
-    path("ayarlar/", panel_views.panel_settings, name="settings"),
-    path("sirket-sec/", panel_views.switch_company, name="switch_company"),
-    path("<slug:slug>/", panel_views.legacy_company_dashboard, name="company_panel_detail"),
+    path(
+        "",
+        panel_views.dashboard,
+        name="company_panel",
+    ),
+
+    path(
+        "sikayetler/",
+        panel_views.complaint_list,
+        name="complaint_list",
+    ),
+
+    path(
+        "sikayetler/<int:pk>/",
+        panel_views.complaint_detail,
+        name="complaint_detail",
+    ),
+
+    path(
+        "sikayetler/<int:pk>/cevap/",
+        panel_views.response_create,
+        name="response_create",
+    ),
+
+    path(
+        "sikayetler/<int:pk>/not/",
+        panel_views.note_create,
+        name="note_create",
+    ),
+
+    path(
+        "dermanlar/",
+        derman_panel_views.dermans,
+        name="dermans",
+    ),
+
+    path(
+        "dermanlar/<int:pk>/yanit/",
+        derman_panel_views.derman_response_create,
+        name="derman_response_create",
+    ),
+
+    path(
+        "dermanlar/<int:pk>/yanit/duzenle/",
+        derman_panel_views.derman_response_update,
+        name="derman_response_update",
+    ),
+
+    path(
+        "cevaplar/",
+        panel_views.responses,
+        name="responses",
+    ),
+
+    path(
+        "profil/",
+        panel_views.profile,
+        name="profile",
+    ),
+
+    path(
+        "profil/logo-kaldir/",
+        panel_views.logo_remove,
+        name="logo_remove",
+    ),
+
+    path(
+        "yetkililer/",
+        panel_views.members,
+        name="members",
+    ),
+
+    path(
+        "bildirimler/",
+        panel_views.notifications,
+        name="notifications",
+    ),
+
+    path(
+        "bildirimler/<int:pk>/",
+        panel_views.notification_open,
+        name="notification_open",
+    ),
+
+    path(
+        "bildirimler/tumunu-okundu/",
+        panel_views.notifications_read_all,
+        name="notifications_read_all",
+    ),
+
+    path(
+        "bildirimler/<int:pk>/okundu/",
+        panel_views.notification_read,
+        name="notification_read",
+    ),
+
+    path(
+        "paket/",
+        panel_views.plan,
+        name="plan",
+    ),
+
+    path(
+        "ayarlar/",
+        panel_views.panel_settings,
+        name="settings",
+    ),
+
+    path(
+        "sirket-sec/",
+        panel_views.switch_company,
+        name="switch_company",
+    ),
+
+    path(
+        "<slug:slug>/",
+        panel_views.legacy_company_dashboard,
+        name="company_panel_detail",
+    ),
 ]

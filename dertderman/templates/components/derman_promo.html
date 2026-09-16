@@ -1,0 +1,115 @@
+<section
+    class="derman-promo{% if compact_derman_promo %} derman-promo--compact{% endif %}"
+    aria-labelledby="derman-promo-title"
+>
+
+    <div class="derman-promo__visual">
+
+        <span class="derman-promo__spark derman-promo__spark--one">
+            ✦
+        </span>
+
+        <span class="derman-promo__spark derman-promo__spark--two">
+            ✦
+        </span>
+
+        <div class="derman-promo__mark">
+            ✦
+        </div>
+
+        <div class="derman-promo__mini-card">
+
+            <span>
+                TOPLULUK ÇÖZÜMÜ
+            </span>
+
+            <strong>
+                Derman Ol
+            </strong>
+
+            <p>
+                Deneyimin çözüme dönüştüğü yer.
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <div class="derman-promo__content">
+
+        <p class="derman-promo__eyebrow">
+            YENİ · DERMAN OL
+        </p>
+
+        <h2 id="derman-promo-title">
+            Sorunu yaşayan anlatsın.
+            <span>
+                Çözümü bilen Derman olsun.
+            </span>
+        </h2>
+
+        <p>
+            Bir şikayette gerçekten işe yarayan
+            bir çözüm biliyorsanız deneyiminizi
+            toplulukla paylaşın. Onaylanan Dermanlar,
+            aynı sorunu yaşayan kullanıcıların
+            doğrudan şikayet sayfasında karşısına çıkar.
+        </p>
+
+
+        <div class="derman-promo__features">
+
+            <span>
+                <b>1</b>
+                Şikayeti aç
+            </span>
+
+            <span>
+                <b>2</b>
+                Dermanını paylaş
+            </span>
+
+            <span>
+                <b>3</b>
+                Topluluğa yardımcı ol
+            </span>
+
+        </div>
+
+
+        <div class="derman-promo__actions">
+
+            <a
+                href="{% url 'complaints:public_list' %}"
+                class="derman-promo__primary"
+            >
+                Derman Olabileceğin Şikayetleri Keşfet
+                <span aria-hidden="true">
+                    →
+                </span>
+            </a>
+
+
+            {% if request.user.is_authenticated and request.user.user_type == 'USER' %}
+
+                <a
+                    href="{% url 'dashboard:dermans' %}"
+                    class="derman-promo__secondary"
+                >
+                    Dermanlarım
+                </a>
+
+            {% endif %}
+
+        </div>
+
+
+        <small class="derman-promo__note">
+            Derman paylaşımları yayınlanmadan önce
+            yönetim incelemesinden geçer.
+        </small>
+
+    </div>
+
+</section>

@@ -1,0 +1,908 @@
+/* =========================================================
+   DERMAN PROMO
+   ========================================================= */
+
+.derman-promo {
+    position: relative;
+
+    display: grid;
+    grid-template-columns:
+        minmax(250px, .7fr)
+        minmax(0, 1.3fr);
+
+    gap: 42px;
+    align-items: center;
+
+    overflow: hidden;
+
+    padding: 38px;
+
+    border: 1px solid #cfe2f4;
+    border-radius: 24px;
+
+    background:
+        radial-gradient(
+            circle at 12% 30%,
+            rgba(61, 156, 232, .13),
+            transparent 18rem
+        ),
+        linear-gradient(
+            135deg,
+            #eaf6ff 0%,
+            #f8fbff 48%,
+            #ffffff 100%
+        );
+
+    box-shadow:
+        0 18px 48px rgba(25, 67, 104, .07);
+}
+
+.derman-promo::before {
+    content: "";
+
+    position: absolute;
+    inset: 0 auto 0 0;
+
+    width: 5px;
+
+    background:
+        linear-gradient(
+            180deg,
+            #1766b3,
+            #58afea
+        );
+}
+
+.derman-promo__visual {
+    position: relative;
+
+    display: grid;
+    place-items: center;
+
+    min-height: 250px;
+}
+
+.derman-promo__mark {
+    display: grid;
+    place-items: center;
+
+    width: 118px;
+    height: 118px;
+
+    border: 1px solid #bfdcf4;
+    border-radius: 32px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #1766b3,
+            #3b93d7
+        );
+
+    color: #fff;
+
+    font-size: 2rem;
+
+    box-shadow:
+        0 22px 45px rgba(23, 102, 179, .23);
+
+    transform: rotate(-5deg);
+}
+
+.derman-promo__mini-card {
+    position: absolute;
+    right: 4%;
+    bottom: 6%;
+
+    width: min(210px, 70%);
+
+    padding: 15px;
+
+    border: 1px solid rgba(202, 222, 240, .95);
+    border-radius: 15px;
+
+    background: rgba(255, 255, 255, .94);
+
+    box-shadow:
+        0 14px 35px rgba(34, 68, 99, .1);
+
+    backdrop-filter: blur(10px);
+}
+
+.derman-promo__mini-card span {
+    color: #1766b3;
+
+    font-size: .57rem;
+    font-weight: 900;
+    letter-spacing: .1em;
+}
+
+.derman-promo__mini-card strong {
+    display: block;
+
+    margin-top: 3px;
+
+    color: #183a56;
+
+    font-size: .96rem;
+}
+
+.derman-promo__mini-card p {
+    margin: 5px 0 0;
+
+    color: #71869a;
+
+    font-size: .68rem;
+    line-height: 1.45;
+}
+
+.derman-promo__spark {
+    position: absolute;
+
+    color: rgba(23, 102, 179, .2);
+
+    font-size: 1.2rem;
+}
+
+.derman-promo__spark--one {
+    top: 12%;
+    right: 17%;
+}
+
+.derman-promo__spark--two {
+    bottom: 18%;
+    left: 15%;
+
+    font-size: .8rem;
+}
+
+.derman-promo__content {
+    position: relative;
+    z-index: 1;
+}
+
+.derman-promo__eyebrow {
+    margin: 0 0 8px;
+
+    color: #1766b3;
+
+    font-size: .67rem;
+    font-weight: 900;
+    letter-spacing: .13em;
+}
+
+.derman-promo h2 {
+    max-width: 680px;
+
+    margin: 0;
+
+    color: #102d48;
+
+    font-size: clamp(1.65rem, 3vw, 2.35rem);
+    line-height: 1.16;
+    letter-spacing: -.035em;
+}
+
+.derman-promo h2 span {
+    color: #1766b3;
+}
+
+.derman-promo__content > p:not(.derman-promo__eyebrow) {
+    max-width: 680px;
+
+    margin: 15px 0 0;
+
+    color: #61798f;
+
+    font-size: .89rem;
+    line-height: 1.7;
+}
+
+.derman-promo__features {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+
+    margin-top: 20px;
+}
+
+.derman-promo__features > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+
+    min-height: 37px;
+    padding: 0 11px;
+
+    border: 1px solid #d4e4f2;
+    border-radius: 999px;
+
+    background: rgba(255, 255, 255, .8);
+
+    color: #516b82;
+
+    font-size: .7rem;
+    font-weight: 800;
+}
+
+.derman-promo__features b {
+    display: grid;
+    place-items: center;
+
+    width: 21px;
+    height: 21px;
+
+    border-radius: 50%;
+
+    background: #e6f2fc;
+    color: #1766b3;
+
+    font-size: .62rem;
+}
+
+.derman-promo__actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+
+    margin-top: 22px;
+}
+
+.derman-promo__primary,
+.derman-promo__secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+
+    min-height: 43px;
+    padding: 0 15px;
+
+    border-radius: 10px;
+
+    font-size: .77rem;
+    font-weight: 850;
+
+    text-decoration: none;
+}
+
+.derman-promo__primary {
+    border: 1px solid #1766b3;
+
+    background: #1766b3;
+    color: #fff;
+
+    box-shadow:
+        0 9px 21px rgba(23, 102, 179, .17);
+}
+
+.derman-promo__primary:hover {
+    background: #125892;
+}
+
+.derman-promo__secondary {
+    border: 1px solid #c9ddeb;
+
+    background: #fff;
+    color: #1766b3;
+}
+
+.derman-promo__secondary:hover {
+    background: #eff7ff;
+}
+
+.derman-promo__note {
+    display: block;
+
+    margin-top: 13px;
+
+    color: #8898a7;
+
+    font-size: .65rem;
+}
+
+
+/* COMPACT VERSION — COMPLAINT LIST */
+
+.derman-promo--compact {
+    grid-template-columns:
+        170px
+        minmax(0, 1fr);
+
+    gap: 28px;
+
+    padding: 26px 30px;
+
+    border-radius: 19px;
+}
+
+.derman-promo--compact .derman-promo__visual {
+    min-height: 160px;
+}
+
+.derman-promo--compact .derman-promo__mark {
+    width: 82px;
+    height: 82px;
+
+    border-radius: 23px;
+
+    font-size: 1.4rem;
+}
+
+.derman-promo--compact .derman-promo__mini-card {
+    display: none;
+}
+
+.derman-promo--compact h2 {
+    font-size: clamp(1.35rem, 2.5vw, 1.8rem);
+}
+
+.derman-promo--compact
+.derman-promo__content
+> p:not(.derman-promo__eyebrow) {
+    margin-top: 10px;
+
+    font-size: .8rem;
+}
+
+.derman-promo--compact .derman-promo__features {
+    margin-top: 13px;
+}
+
+.derman-promo--compact .derman-promo__actions {
+    margin-top: 16px;
+}
+
+
+/* RESPONSIVE */
+
+@media (max-width: 800px) {
+    .derman-promo,
+    .derman-promo--compact {
+        grid-template-columns: 1fr;
+
+        gap: 14px;
+
+        padding: 25px;
+    }
+
+    .derman-promo__visual,
+    .derman-promo--compact .derman-promo__visual {
+        min-height: 130px;
+    }
+
+    .derman-promo__mark {
+        width: 80px;
+        height: 80px;
+
+        border-radius: 22px;
+
+        font-size: 1.35rem;
+    }
+
+    .derman-promo__mini-card {
+        display: none;
+    }
+}
+
+@media (max-width: 520px) {
+    .derman-promo {
+        padding: 20px;
+
+        border-radius: 17px;
+    }
+
+    .derman-promo__features {
+        display: grid;
+    }
+
+    .derman-promo__features > span {
+        width: 100%;
+    }
+
+    .derman-promo__actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .derman-promo__primary,
+    .derman-promo__secondary {
+        width: 100%;
+    }
+}
+/* =========================================================
+   DERMAN PROMO — FINAL COMPACT DESIGN
+   ========================================================= */
+
+
+/* Şikayetler sayfasındaki bölümün
+   üst-alt boşluğunu azalt */
+
+.complaints-index .derman-promo-list-section {
+    padding-top: 22px;
+    padding-bottom: 18px;
+}
+
+
+/* Promo ile filtre alanı arasında
+   gereksiz büyük boşluk bırakma */
+
+.complaints-index .public-complaints-section {
+    padding-top: 18px;
+}
+
+
+/* Şikayetler sayfasındaki promo */
+
+.complaints-index .derman-promo--compact {
+    grid-template-columns:
+        145px
+        minmax(0, 1fr);
+
+    gap: 26px;
+
+    width: 100%;
+    min-height: 0;
+
+    padding: 22px 28px;
+
+    border-radius: 18px;
+}
+
+
+/* Sol taraftaki görsel alan */
+
+.complaints-index
+.derman-promo--compact
+.derman-promo__visual {
+    min-height: 125px;
+}
+
+
+/* Büyük mavi ikon küçülsün */
+
+.complaints-index
+.derman-promo--compact
+.derman-promo__mark {
+    width: 72px;
+    height: 72px;
+
+    border-radius: 20px;
+
+    font-size: 1.2rem;
+
+    box-shadow:
+        0 13px 28px rgba(23, 102, 179, .18);
+}
+
+
+/* Küçük dekoratif parıltılar */
+
+.complaints-index
+.derman-promo--compact
+.derman-promo__spark--one {
+    top: 8%;
+    right: 15%;
+}
+
+
+.complaints-index
+.derman-promo--compact
+.derman-promo__spark--two {
+    bottom: 12%;
+    left: 12%;
+}
+
+
+/* Başlık daha dengeli */
+
+.complaints-index
+.derman-promo--compact h2 {
+    max-width: 720px;
+
+    font-size: clamp(
+        1.35rem,
+        2vw,
+        1.72rem
+    );
+
+    line-height: 1.18;
+}
+
+
+/* Açıklama */
+
+.complaints-index
+.derman-promo--compact
+.derman-promo__content
+> p:not(.derman-promo__eyebrow) {
+    max-width: 760px;
+
+    margin-top: 8px;
+
+    font-size: .78rem;
+    line-height: 1.55;
+}
+
+
+/* YENİ · DERMAN OL */
+
+.complaints-index
+.derman-promo--compact
+.derman-promo__eyebrow {
+    margin-bottom: 5px;
+
+    font-size: .6rem;
+}
+
+
+/* 1-2-3 adımları */
+
+.complaints-index
+.derman-promo--compact
+.derman-promo__features {
+    gap: 7px;
+
+    margin-top: 12px;
+}
+
+
+.complaints-index
+.derman-promo--compact
+.derman-promo__features > span {
+    min-height: 31px;
+
+    padding: 0 9px;
+
+    font-size: .65rem;
+}
+
+
+.complaints-index
+.derman-promo--compact
+.derman-promo__features b {
+    width: 18px;
+    height: 18px;
+
+    font-size: .56rem;
+}
+
+
+/* Butonlar */
+
+.complaints-index
+.derman-promo--compact
+.derman-promo__actions {
+    gap: 8px;
+
+    margin-top: 13px;
+}
+
+
+.complaints-index
+.derman-promo--compact
+.derman-promo__primary,
+.complaints-index
+.derman-promo--compact
+.derman-promo__secondary {
+    min-height: 37px;
+
+    padding: 0 13px;
+
+    border-radius: 9px;
+
+    font-size: .68rem;
+}
+
+
+/* En alttaki moderasyon notu */
+
+.complaints-index
+.derman-promo--compact
+.derman-promo__note {
+    margin-top: 8px;
+
+    font-size: .6rem;
+}
+
+
+/* Ana sayfadaki promo ise
+   biraz daha büyük kalabilir */
+
+.home-public .derman-promo {
+    min-height: 0;
+
+    padding: 34px 38px;
+}
+
+
+.home-public
+.derman-promo__visual {
+    min-height: 210px;
+}
+
+
+.home-public
+.derman-promo__mark {
+    width: 100px;
+    height: 100px;
+
+    border-radius: 28px;
+}
+
+
+.home-public
+.derman-promo h2 {
+    font-size: clamp(
+        1.55rem,
+        2.6vw,
+        2.05rem
+    );
+}
+
+
+/* TABLET */
+
+@media (max-width: 800px) {
+
+    .complaints-index
+    .derman-promo--compact,
+    .home-public
+    .derman-promo {
+        grid-template-columns: 1fr;
+
+        gap: 12px;
+
+        padding: 22px;
+    }
+
+
+    .complaints-index
+    .derman-promo--compact
+    .derman-promo__visual {
+        min-height: 90px;
+    }
+
+
+    .complaints-index
+    .derman-promo--compact
+    .derman-promo__mark {
+        width: 64px;
+        height: 64px;
+
+        border-radius: 18px;
+    }
+
+
+    .home-public
+    .derman-promo__visual {
+        min-height: 130px;
+    }
+
+}
+
+
+/* MOBİL */
+
+@media (max-width: 520px) {
+
+    .complaints-index
+    .derman-promo-list-section {
+        padding-top: 14px;
+        padding-bottom: 12px;
+    }
+
+
+    .complaints-index
+    .public-complaints-section {
+        padding-top: 10px;
+    }
+
+
+    .complaints-index
+    .derman-promo--compact {
+        padding: 18px;
+    }
+
+
+    .complaints-index
+    .derman-promo--compact
+    .derman-promo__visual {
+        display: none;
+    }
+
+
+    .complaints-index
+    .derman-promo--compact
+    .derman-promo__features {
+        display: grid;
+    }
+
+
+    .complaints-index
+    .derman-promo--compact
+    .derman-promo__features > span {
+        width: 100%;
+    }
+
+
+    .complaints-index
+    .derman-promo--compact
+    .derman-promo__actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+
+    .complaints-index
+    .derman-promo--compact
+    .derman-promo__primary,
+    .complaints-index
+    .derman-promo--compact
+    .derman-promo__secondary {
+        width: 100%;
+    }
+
+}
+/* =========================================================
+   COMPLAINTS DERMAN PROMO — SLIGHTLY LARGER
+   ========================================================= */
+
+.complaints-index .derman-promo--compact {
+    grid-template-columns:
+        165px
+        minmax(0, 1fr);
+
+    gap: 30px;
+
+    padding: 25px 32px;
+}
+
+
+.complaints-index
+.derman-promo--compact
+.derman-promo__visual {
+    min-height: 140px;
+}
+
+
+.complaints-index
+.derman-promo--compact
+.derman-promo__mark {
+    width: 80px;
+    height: 80px;
+
+    border-radius: 22px;
+
+    font-size: 1.3rem;
+}
+
+
+.complaints-index
+.derman-promo--compact h2 {
+    font-size: clamp(
+        1.45rem,
+        2.1vw,
+        1.82rem
+    );
+}
+
+
+.complaints-index
+.derman-promo--compact
+.derman-promo__content
+> p:not(.derman-promo__eyebrow) {
+    font-size: .82rem;
+    line-height: 1.6;
+}
+
+
+.complaints-index
+.derman-promo--compact
+.derman-promo__features {
+    margin-top: 14px;
+}
+
+
+.complaints-index
+.derman-promo--compact
+.derman-promo__features > span {
+    min-height: 33px;
+
+    padding-inline: 10px;
+
+    font-size: .67rem;
+}
+
+
+.complaints-index
+.derman-promo--compact
+.derman-promo__actions {
+    margin-top: 15px;
+}
+
+
+.complaints-index
+.derman-promo--compact
+.derman-promo__primary,
+.complaints-index
+.derman-promo--compact
+.derman-promo__secondary {
+    min-height: 39px;
+
+    padding-inline: 14px;
+
+    font-size: .7rem;
+}
+/* =========================================================
+   COMPLAINTS DERMAN PROMO — FINAL MICRO SCALE UP
+   ========================================================= */
+
+.complaints-index .derman-promo--compact {
+    grid-template-columns:
+        172px
+        minmax(0, 1fr);
+
+    gap: 31px;
+
+    padding: 27px 34px;
+}
+
+
+.complaints-index
+.derman-promo--compact
+.derman-promo__visual {
+    min-height: 146px;
+}
+
+
+.complaints-index
+.derman-promo--compact
+.derman-promo__mark {
+    width: 84px;
+    height: 84px;
+
+    border-radius: 23px;
+
+    font-size: 1.34rem;
+}
+
+
+.complaints-index
+.derman-promo--compact h2 {
+    font-size: clamp(
+        1.5rem,
+        2.15vw,
+        1.88rem
+    );
+}
+
+
+.complaints-index
+.derman-promo--compact
+.derman-promo__content
+> p:not(.derman-promo__eyebrow) {
+    font-size: .84rem;
+}
+
+
+.complaints-index
+.derman-promo--compact
+.derman-promo__features > span {
+    min-height: 34px;
+
+    font-size: .68rem;
+}
+
+
+.complaints-index
+.derman-promo--compact
+.derman-promo__primary,
+.complaints-index
+.derman-promo--compact
+.derman-promo__secondary {
+    min-height: 40px;
+
+    font-size: .71rem;
+}

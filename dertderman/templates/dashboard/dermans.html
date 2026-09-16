@@ -1,0 +1,362 @@
+{% extends "complaints/private_base.html" %}
+{% load static %}
+
+{% block title %}
+Dermanlarım | DertDerman
+{% endblock %}
+
+
+{% block extra_head %}
+{{ block.super }}
+
+<link
+    rel="stylesheet"
+    href="{% static 'css/user-dermans.css' %}"
+>
+{% endblock %}
+
+
+{% block content %}
+
+<main
+    class="content-section user-dermans-page"
+    id="main-content"
+>
+
+    {% include 'components/workspace_nav.html' %}
+
+
+    <div class="section-inner user-dermans-shell">
+
+        <header class="user-dermans-hero">
+
+            <div>
+
+                <p class="section-kicker">
+                    TOPLULUK KATKILARINIZ
+                </p>
+
+                <h1>
+                    Dermanlarım
+                </h1>
+
+                <p>
+                    Diğer kullanıcıların sorunlarına yazdığınız
+                    çözüm önerilerini ve moderasyon durumlarını
+                    buradan takip edebilirsiniz.
+                </p>
+
+            </div>
+
+            <div class="user-dermans-hero__icon">
+                ✦
+            </div>
+
+        </header>
+
+
+        <section
+            class="user-derman-metrics"
+            aria-label="Derman özeti"
+        >
+
+            <a
+                href="{% url 'dashboard:dermans' %}"
+                class="user-derman-metric"
+            >
+                <span>Toplam</span>
+                <strong>
+                    {{ metrics.total }}
+                </strong>
+            </a>
+
+
+            <a
+                href="{% url 'dashboard:dermans' %}?status=PUBLISHED"
+                class="user-derman-metric user-derman-metric--green"
+            >
+                <span>Yayında</span>
+                <strong>
+                    {{ metrics.published }}
+                </strong>
+            </a>
+
+
+            <a
+                href="{% url 'dashboard:dermans' %}?status=PENDING"
+                class="user-derman-metric user-derman-metric--amber"
+            >
+                <span>İncelemede</span>
+                <strong>
+                    {{ metrics.pending }}
+                </strong>
+            </a>
+
+
+            <a
+                href="{% url 'dashboard:dermans' %}?status=WITHDRAWN"
+                class="user-derman-metric user-derman-metric--muted"
+            >
+                <span>Geri Çekildi</span>
+                <strong>
+                    {{ metrics.withdrawn }}
+                </strong>
+            </a>
+
+        </section>
+
+
+        <div class="user-dermans-layout">
+
+            <section class="user-dermans-main">
+
+                <header class="user-dermans-toolbar">
+
+                    <div>
+
+                        <p class="section-kicker">
+                            PAYLAŞIMLAR
+                        </p>
+
+                        <h2>
+                            Derman geçmişiniz
+                        </h2>
+
+                    </div>
+
+
+                    <form
+                        method="get"
+                        class="user-dermans-filter"
+                    >
+
+                        <label for="derman-status">
+                            Durum
+                        </label>
+
+                        <select
+                            id="derman-status"
+                            name="status"
+                            onchange="this.form.submit()"
+                        >
+
+                            <option
+                                value="ALL"
+                                {% if active_status == 'ALL' %}selected{% endif %}
+                            >
+                                Tümü
+                            </option>
+
+                            {% for value, label in status_options %}
+
+                                <option
+                                    value="{{ value }}"
+                                    {% if active_status == value %}selected{% endif %}
+                                >
+                                    {{ label }}
+                                </option>
+
+                            {% endfor %}
+
+                        </select>
+
+                    </form>
+
+                </header>
+
+
+                <div class="user-derman-list">
+
+                    {% for derman in page_obj %}
+
+                        <article class="user-derman-card">
+
+                            <header class="user-derman-card__header">
+
+                                <div>
+
+                                    <span class="user-derman-company">
+                                        {{ derman.complaint.company.name }}
+                                    </span>
+
+                                    <h3>
+
+                                        {% if derman.complaint.status == 'PUBLISHED' or derman.complaint.status == 'RESOLVED' %}
+
+                                            <a
+                                                href="{% url 'complaints:public_detail' derman.complaint_id %}"
+                                            >
+                                                {{ derman.complaint.title }}
+                                            </a>
+
+                                        {% else %}
+
+                                            {{ derman.complaint.title }}
+
+                                        {% endif %}
+
+                                    </h3>
+
+                                    <small>
+                                        {{ derman.created_at|date:'d.m.Y H:i' }}
+                                    </small>
+
+                                </div>
+
+
+                                <span
+                                    class="
+                                        user-derman-status
+                                        user-derman-status--{{ derman.status|lower }}
+                                    "
+                                >
+                                    {{ derman.get_status_display }}
+                                </span>
+
+                            </header>
+
+
+                            <p class="user-derman-card__body">
+                                {{ derman.body|linebreaksbr }}
+                            </p>
+
+
+                            {% if derman.status == 'PUBLISHED' %}
+
+                                <footer class="user-derman-card__footer">
+
+                                    <span>
+                                        Faydalı
+                                        <strong>
+                                            {{ derman.like_count }}
+                                        </strong>
+                                    </span>
+
+                                    <span>
+                                        Faydalı Değil
+                                        <strong>
+                                            {{ derman.dislike_count }}
+                                        </strong>
+                                    </span>
+
+                                </footer>
+
+                            {% elif derman.status == 'PENDING' %}
+
+                                <div class="user-derman-card__notice">
+                                    Dermanınız yönetim incelemesinde.
+                                </div>
+
+                            {% elif derman.status == 'WITHDRAWN' %}
+
+                                <div class="user-derman-card__notice user-derman-card__notice--warning">
+
+                                    Bu Dermanı geri çektiniz.
+                                    Aynı şikayet için yeni bir Derman
+                                    paylaşamazsınız.
+
+                                </div>
+
+                            {% elif derman.status == 'REJECTED' %}
+
+                                <div class="user-derman-card__notice user-derman-card__notice--danger">
+                                    Bu Derman yayın kriterlerini karşılamadığı
+                                    için yayınlanmadı.
+                                </div>
+
+                            {% elif derman.status == 'REMOVED' %}
+
+                                <div class="user-derman-card__notice user-derman-card__notice--danger">
+                                    Bu Derman moderasyon işlemi sonucunda
+                                    yayından kaldırıldı.
+                                </div>
+
+                            {% endif %}
+
+                        </article>
+
+
+                    {% empty %}
+
+                        <div class="user-dermans-empty">
+
+                            <span>
+                                ✦
+                            </span>
+
+                            <h3>
+                                Henüz Derman paylaşımınız yok
+                            </h3>
+
+                            <p>
+                                Yayındaki şikayetlerde
+                                “Derman Ol” alanından çözümünüzü
+                                paylaşabilirsiniz.
+                            </p>
+
+                            <a
+                                class="primary-action"
+                                href="{% url 'complaints:public_list' %}"
+                            >
+                                Şikayetleri İncele
+                            </a>
+
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+
+                {% include 'components/pagination.html' with page_obj=page_obj %}
+
+            </section>
+
+
+            <aside class="user-dermans-help">
+
+                <span class="user-dermans-help__icon">
+                    i
+                </span>
+
+                <p class="section-kicker">
+                    DERMAN HAKKI
+                </p>
+
+                <h2>
+                    Nasıl çalışıyor?
+                </h2>
+
+                <p>
+                    Bir şikayet için yalnızca bir kez
+                    Derman paylaşabilirsiniz.
+                </p>
+
+                <p>
+                    Dermanınızı incelemedeyken veya yayındayken
+                    geri çekebilirsiniz.
+                </p>
+
+                <div class="user-dermans-help__warning">
+
+                    <strong>
+                        Geri çekme hakkı yenilemez
+                    </strong>
+
+                    <p>
+                        Bir Dermanı geri çekmeniz,
+                        aynı şikayete ikinci kez Derman
+                        yazma hakkı oluşturmaz.
+                    </p>
+
+                </div>
+
+            </aside>
+
+        </div>
+
+    </div>
+
+</main>
+
+{% endblock %}

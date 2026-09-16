@@ -3,8 +3,11 @@
     id="derman-ol"
     aria-labelledby="derman-title"
 >
+
     <header class="derman-section__header">
+
         <div class="derman-section__identity">
+
             <span
                 class="derman-section__icon"
                 aria-hidden="true"
@@ -13,7 +16,8 @@
             </span>
 
             <div>
-                <p class="section-kicker">
+
+                <p class="derman-section__kicker">
                     DERMAN OL
                 </p>
 
@@ -22,57 +26,126 @@
                 </h2>
 
                 <p class="derman-section__subtitle">
-                    Aynı sorunu yaşayanların işe yarayan çözüm önerileri.
+                    Aynı sorunu yaşayanların deneyimlerini
+                    ve işe yarayan çözüm önerilerini keşfedin.
                 </p>
+
             </div>
+
         </div>
+
 
         <div class="derman-section__actions">
+
             <span class="derman-count">
-                {{ derman_visibility.published_count }} Derman
+
+                <span aria-hidden="true">
+                    ✦
+                </span>
+
+                {{ derman_visibility.published_count }}
+                Derman
+
             </span>
 
+
             {% if derman_visibility.can_create and derman_create_form %}
+
                 <button
                     type="button"
-                    class="primary-action derman-open-button"
+                    class="derman-primary-button"
                     data-report-open="derman-create-dialog"
                 >
-                    <span aria-hidden="true">+</span>
+                    <span aria-hidden="true">
+                        +
+                    </span>
+
                     Derman Ol
                 </button>
+
             {% endif %}
+
         </div>
+
     </header>
 
 
     {% if request.user.is_authenticated and request.user.user_type == 'USER' and not derman_visibility.can_create %}
+
         {% if not request.user.can_perform_user_mutations %}
-            <p class="derman-state-note">
-                Hesabınız şu anda yeni Derman paylaşımı veya tepki işlemi yapmaya uygun değil.
-            </p>
+
+            <div class="derman-info-banner">
+
+                <span class="derman-info-banner__icon">
+                    i
+                </span>
+
+                <p>
+                    Hesabınız şu anda yeni Derman paylaşımı
+                    veya tepki işlemi yapmaya uygun değil.
+                </p>
+
+            </div>
+
 
         {% elif complaint.status == 'RESOLVED' %}
-            <p class="derman-state-note">
-                Bu şikayet çözüldü. Mevcut Dermanlar görüntülenebilir ancak yeni Derman eklenemez.
-            </p>
+
+            <div class="derman-info-banner">
+
+                <span class="derman-info-banner__icon">
+                    i
+                </span>
+
+                <p>
+                    Bu şikayet çözüldü.
+                    Yayındaki Dermanlar görüntülenebilir ancak
+                    yeni Derman eklenemez.
+                </p>
+
+            </div>
+
 
         {% elif request.user.pk == complaint.user_id %}
-            <p class="derman-state-note">
-                Şikayet sahibi kendi şikayetine Derman ekleyemez.
-            </p>
+
+            <div class="derman-info-banner">
+
+                <span class="derman-info-banner__icon">
+                    i
+                </span>
+
+                <p>
+                    Şikayet sahibi kendi şikayetine
+                    Derman paylaşamaz.
+                </p>
+
+            </div>
+
 
         {% else %}
-            <p class="derman-state-note">
-                Bu şikayet için Derman paylaşım hakkınızı daha önce kullandınız.
-            </p>
+
+            <div class="derman-info-banner">
+
+                <span class="derman-info-banner__icon">
+                    i
+                </span>
+
+                <p>
+                    Bu şikayet için Derman hakkınızı daha önce kullandınız.
+                    Dermanınızı geri çekseniz bile aynı şikayet için
+                    yeniden Derman paylaşamazsınız.
+                </p>
+
+            </div>
+
         {% endif %}
+
     {% endif %}
 
 
     {% if derman_visibility.can_view_content %}
 
         {% if derman_visibility.dermans %}
+
             <div class="derman-list">
 
                 {% for item in derman_visibility.dermans %}
@@ -85,23 +158,43 @@
 
                                 {% include 'components/complaint_author_avatar.html' with complaint=item size_class='user-avatar--comment' only %}
 
-                                <div>
 
-                                    <a
-                                        href="{% url 'accounts:public_profile' item.author_username %}"
-                                        class="derman-card__username"
-                                    >
-                                        @{{ item.author_username }}
-                                    </a>
+                                <div class="derman-card__author-copy">
+
+                                    <div class="derman-card__author-line">
+
+                                        <a
+                                            href="{% url 'accounts:public_profile' item.author_username %}"
+                                            class="derman-card__username"
+                                        >
+                                            @{{ item.author_username }}
+                                        </a>
+
+
+                                        <span class="derman-user-badge">
+                                            Kullanıcı
+                                        </span>
+
+
+                                        {% if request.user.is_authenticated and request.user.pk == item.author_user_id %}
+
+                                            <span class="derman-owner-badge">
+                                                Senin Dermanın
+                                            </span>
+
+                                        {% endif %}
+
+                                    </div>
+
 
                                     <span class="derman-card__meta">
-                                        Derman paylaşımı ·
 
                                         <time
                                             datetime="{{ item.published_at|date:'c' }}"
                                         >
                                             {{ item.published_at|date:'d.m.Y H:i' }}
                                         </time>
+
                                     </span>
 
                                 </div>
@@ -116,14 +209,20 @@
                                     action="{% url 'complaints:derman_withdraw' complaint.pk item.id %}"
                                     class="derman-withdraw-form"
                                 >
+
                                     {% csrf_token %}
 
                                     <button
                                         type="submit"
                                         class="derman-withdraw-button"
                                     >
-                                        Geri Çek
+                                        <span aria-hidden="true">
+                                            ⌫
+                                        </span>
+
+                                        Dermanımı Geri Çek
                                     </button>
+
                                 </form>
 
                             {% endif %}
@@ -131,9 +230,11 @@
                         </header>
 
 
-                        <p class="derman-card__body">
-                            {{ item.body|linebreaksbr }}
-                        </p>
+<div class="derman-card__content">
+
+    {% include 'components/expandable_text.html' with text=item.body prefix='derman' object_id=item.id title='Derman paylaşımı' lines='4' %}
+
+</div>
 
 
                         {% if item.company_response_id %}
@@ -155,6 +256,7 @@
                                         </span>
 
                                         <div>
+
                                             <span class="derman-company-response__label">
                                                 Resmi Şirket Yanıtı
                                             </span>
@@ -162,6 +264,7 @@
                                             <strong>
                                                 {{ complaint.company.name }}
                                             </strong>
+
                                         </div>
 
                                     </div>
@@ -181,35 +284,43 @@
 
                                 </header>
 
+<div class="derman-company-response__body">
 
-                                <p class="derman-company-response__body">
-                                    {{ item.company_response_body|linebreaksbr }}
-                                </p>
+    {% include 'components/expandable_text.html' with text=item.company_response_body prefix='derman-company-response' object_id=item.id title='Resmi şirket yanıtı' lines='3' %}
 
+</div>
 
                                 <span class="derman-company-response__meta">
+
                                     <time
                                         datetime="{{ item.company_response_created_at|date:'c' }}"
                                     >
                                         {{ item.company_response_created_at|date:'d.m.Y H:i' }}
                                     </time>
+
                                 </span>
 
                             </section>
+
 
                         {% elif derman_visibility.can_company_respond and derman_company_response_form %}
 
                             <div class="derman-company-response-empty">
 
                                 <div>
+
                                     <strong>
-                                        Şirketiniz bu Derman'a henüz resmi yanıt vermedi.
+                                        Şirketiniz bu Derman'a henüz
+                                        resmi yanıt vermedi.
                                     </strong>
 
                                     <p>
-                                        Yanıtınız Derman kartı üzerinde resmi şirket açıklaması olarak gösterilir.
+                                        Yanıtınız şirketiniz adına
+                                        Derman kartının altında gösterilir.
                                     </p>
+
                                 </div>
+
 
                                 <button
                                     type="button"
@@ -234,6 +345,7 @@
                                         method="post"
                                         action="{% url 'complaints:derman_react' complaint.pk item.id %}"
                                     >
+
                                         {% csrf_token %}
 
                                         <button
@@ -243,6 +355,7 @@
                                             class="derman-reaction-button{% if item.viewer_reaction == 'LIKE' %} is-active{% endif %}"
                                             aria-pressed="{% if item.viewer_reaction == 'LIKE' %}true{% else %}false{% endif %}"
                                         >
+
                                             <span aria-hidden="true">
                                                 ↑
                                             </span>
@@ -252,6 +365,7 @@
                                             <b>
                                                 {{ item.like_count }}
                                             </b>
+
                                         </button>
 
                                     </form>
@@ -261,6 +375,7 @@
                                         method="post"
                                         action="{% url 'complaints:derman_react' complaint.pk item.id %}"
                                     >
+
                                         {% csrf_token %}
 
                                         <button
@@ -270,6 +385,7 @@
                                             class="derman-reaction-button{% if item.viewer_reaction == 'DISLIKE' %} is-active{% endif %}"
                                             aria-pressed="{% if item.viewer_reaction == 'DISLIKE' %}true{% else %}false{% endif %}"
                                         >
+
                                             <span aria-hidden="true">
                                                 ↓
                                             </span>
@@ -279,25 +395,32 @@
                                             <b>
                                                 {{ item.dislike_count }}
                                             </b>
+
                                         </button>
 
                                     </form>
 
                                 </div>
 
+
                             {% else %}
 
-                                <div
-                                    class="derman-reaction-summary"
-                                    aria-label="Derman değerlendirmeleri"
-                                >
+                                <div class="derman-reaction-summary">
 
                                     <span>
-                                        ↑ {{ item.like_count }} faydalı
+                                        Faydalı
+
+                                        <b>
+                                            {{ item.like_count }}
+                                        </b>
                                     </span>
 
                                     <span>
-                                        ↓ {{ item.dislike_count }} faydalı değil
+                                        Faydalı Değil
+
+                                        <b>
+                                            {{ item.dislike_count }}
+                                        </b>
                                     </span>
 
                                 </div>
@@ -329,19 +452,21 @@
                                     <div>
 
                                         <p class="report-modal-kicker">
-                                            DERMAN OL
+                                            RESMİ ŞİRKET YANITI
                                         </p>
 
                                         <h2 id="derman-company-response-title-{{ item.id }}">
+
                                             {% if item.company_response_id %}
                                                 Resmi yanıtı düzenleyin
                                             {% else %}
-                                                Resmi şirket yanıtı verin
+                                                Resmi yanıt verin
                                             {% endif %}
+
                                         </h2>
 
                                         <p>
-                                            Yanıt doğrudan şirketiniz adına yayınlanır ve bu Derman kartında görünür.
+                                            Yanıt şirketiniz adına yayınlanır.
                                         </p>
 
                                     </div>
@@ -372,7 +497,7 @@
                                     <label class="report-modal-field">
 
                                         <span>
-                                            {{ derman_company_response_form.body.label }}
+                                            Resmi şirket yanıtı
                                         </span>
 
                                         <textarea
@@ -399,7 +524,8 @@
                                         </strong>
 
                                         <p>
-                                            Bu metin şirketiniz adına görünür. Yalnızca DertDerman Pro kapsamındaki yetkili şirket hesapları bu yanıtı oluşturabilir veya güncelleyebilir.
+                                            Bu açıklama şirketiniz adına
+                                            herkese açık olarak gösterilir.
                                         </p>
 
                                     </div>
@@ -418,13 +544,14 @@
                                         <button
                                             type="submit"
                                             class="report-submit derman-submit"
-                                            data-submit-label="{% if item.company_response_id %}Yanıtı Güncelle{% else %}Yanıtı Yayınla{% endif %}"
                                         >
+
                                             {% if item.company_response_id %}
                                                 Yanıtı Güncelle
                                             {% else %}
                                                 Yanıtı Yayınla
                                             {% endif %}
+
                                         </button>
 
                                     </div>
@@ -441,6 +568,7 @@
 
             </div>
 
+
         {% else %}
 
             <div class="derman-empty">
@@ -456,7 +584,8 @@
                     </strong>
 
                     <p>
-                        Onaylanan çözüm paylaşımları burada gösterilecek.
+                        Yönetim tarafından onaylanan çözüm
+                        paylaşımları burada gösterilecek.
                     </p>
 
                 </div>
@@ -474,7 +603,7 @@
 
                 <div>
 
-                    <strong>{{ derman_visibility.published_count }} yayınlanmış Derman var</strong>
+<strong>{{ derman_visibility.published_count }} yayınlanmış Derman var</strong>
 
                     <p>
                         Çözüm içeriklerini görmek için giriş yapın.
@@ -490,6 +619,7 @@
                 </a>
 
             </div>
+
 
         {% else %}
 
@@ -516,35 +646,24 @@
         {% endif %}
 
 
-    {% elif derman_visibility.access_level == 'COMPANY_STANDARD' %}
+    {% elif derman_visibility.access_level == 'COMPANY_OTHER' %}
 
-        {% if derman_visibility.paywalled %}
+        {% if derman_visibility.published_count %}
 
-            <div class="derman-gate derman-gate--pro">
+            <div class="derman-gate">
 
                 <div>
-
-                    <span class="derman-pro-label">
-                        DertDerman Pro
-                    </span>
 
                     <strong>{{ derman_visibility.published_count }} yayınlanmış Derman var</strong>
 
                     <p>
-                        Standart şirket hesabında Derman içeriği,
-                        yazar bilgisi ve tepki detayları gösterilmez.
+                        Bu şikayette yayınlanmış topluluk çözümü bulunuyor.
                     </p>
 
                 </div>
 
-                <a
-                    class="primary-action"
-                    href="{% url 'payments:checkout' %}"
-                >
-                    DertDerman Pro'yu İncele
-                </a>
-
             </div>
+
 
         {% else %}
 
@@ -561,7 +680,66 @@
                     </strong>
 
                     <p>
-                        Bu şikayet için onaylanmış çözüm bulunmuyor.
+                        Bu şikayet için onaylanmış
+                        çözüm bulunmuyor.
+                    </p>
+
+                </div>
+
+            </div>
+
+        {% endif %}
+
+
+    {% elif derman_visibility.access_level == 'COMPANY_STANDARD' %}
+
+        {% if derman_visibility.paywalled %}
+
+            <div class="derman-gate derman-gate--pro">
+
+                <div>
+
+                    <span class="derman-pro-label">
+                        DertDerman Pro
+                    </span>
+
+<strong>{{ derman_visibility.published_count }} yayınlanmış Derman var</strong>
+
+                    <p>
+                        Standart şirket hesabında Derman içeriği,
+                        yazar bilgisi ve değerlendirme detayları
+                        gösterilmez.
+                    </p>
+
+                </div>
+
+                <a
+                    class="derman-primary-button"
+                    href="{% url 'companies:plan' %}"
+                >
+                    Pro'yu İncele
+                </a>
+
+            </div>
+
+
+        {% else %}
+
+            <div class="derman-empty">
+
+                <span aria-hidden="true">
+                    ✦
+                </span>
+
+                <div>
+
+                    <strong>
+                        Henüz yayınlanmış Derman yok
+                    </strong>
+
+                    <p>
+                        Bu şikayet için onaylanmış
+                        çözüm bulunmuyor.
                     </p>
 
                 </div>
@@ -603,8 +781,8 @@
                     </h2>
 
                     <p>
-                        Gerçekten işe yarayan yöntemi kısa, açık
-                        ve uygulanabilir şekilde anlatın.
+                        Aynı sorunu yaşayanlara yardımcı olabilecek
+                        yöntemi açık ve anlaşılır şekilde anlatın.
                     </p>
 
                 </div>
@@ -626,7 +804,6 @@
                 method="post"
                 action="{% url 'complaints:derman_create' complaint.pk %}"
                 class="report-modal-body derman-modal__body"
-                data-submit-form
             >
 
                 {% csrf_token %}
@@ -635,21 +812,14 @@
                 <label class="report-modal-field">
 
                     <span>
-                        Dermanınız
+                        {{ derman_create_form.body.label }}
                     </span>
 
                     {{ derman_create_form.body }}
 
-                    {% if derman_create_form.body.errors %}
-
-                        <div
-                            class="field-error"
-                            role="alert"
-                        >
-                            {{ derman_create_form.body.errors }}
-                        </div>
-
-                    {% endif %}
+                    <small>
+                        {{ derman_create_form.body.help_text }}
+                    </small>
 
                 </label>
 
@@ -657,13 +827,15 @@
                 <div class="derman-modal__warning">
 
                     <strong>
-                        Yayınlamadan önce kontrol edin
+                        Önemli
                     </strong>
 
                     <p>
-                        Derman yayınlandıktan sonra düzenlenemez.
-                        Aynı şikayet için yalnızca bir Derman
-                        paylaşabilirsiniz.
+                        Her kullanıcı bir şikayet için yalnızca
+                        bir kez Derman paylaşabilir.
+
+                        Dermanınızı daha sonra geri çekebilirsiniz;
+                        ancak geri çekmek yeni paylaşım hakkı oluşturmaz.
                     </p>
 
                 </div>
@@ -680,18 +852,6 @@
                 </label>
 
 
-                {% if derman_create_form.confirm_no_edit.errors %}
-
-                    <div
-                        class="field-error"
-                        role="alert"
-                    >
-                        {{ derman_create_form.confirm_no_edit.errors }}
-                    </div>
-
-                {% endif %}
-
-
                 <div class="report-modal-actions">
 
                     <button
@@ -705,9 +865,8 @@
                     <button
                         type="submit"
                         class="report-submit derman-submit"
-                        data-submit-label="Dermanı Gönder"
                     >
-                        Dermanı Gönder
+                        İncelemeye Gönder
                     </button>
 
                 </div>
