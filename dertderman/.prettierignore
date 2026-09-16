@@ -36,3 +36,5 @@ templates/home.html
 templates/blog/post_list.html
 templates/accounts/password_reset_request.html
 templates/core/for_companies.html
+templates/complaints/public_detail.html
+templates/complaints/_derman_section.html

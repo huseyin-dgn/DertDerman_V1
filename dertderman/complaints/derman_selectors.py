@@ -195,6 +195,13 @@ def _user_can_create_derman(
     user,
     complaint,
 ):
+    if not getattr(
+        user,
+        "can_perform_user_mutations",
+        False,
+    ):
+        return False
+
     if (
         complaint.status
         != Complaint.Status.PUBLISHED
@@ -257,6 +264,14 @@ def derman_visibility_for(
     )
 
     if role == User.UserType.USER:
+        can_mutate = bool(
+            getattr(
+                user,
+                "can_perform_user_mutations",
+                False,
+            )
+        )
+
         return DermanVisibility(
             access_level=(
                 DermanAccessLevel.USER
@@ -271,7 +286,8 @@ def derman_visibility_for(
                 )
             ),
             can_react=(
-                complaint.status
+                can_mutate
+                and complaint.status
                 == Complaint.Status.PUBLISHED
             ),
             dermans=(
