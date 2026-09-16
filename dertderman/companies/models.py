@@ -259,28 +259,72 @@ class InternalCompanyNote(CompanyComplaintEntry):
     class Meta(CompanyComplaintEntry.Meta):
         indexes = [models.Index(fields=("company", "complaint", "-created_at"), name="company_note_recent")]
 
-
 class CompanyNotification(models.Model):
     class Kind(models.TextChoices):
         NEW = "NEW", "Yeni şikayet"
         PUBLISHED = "PUBLISHED", "Şikayet yayınlandı"
         RESOLVED = "RESOLVED", "Şikayet çözüldü"
-        REMOVED = "REMOVED", "Şikayet ihlal nedeniyle kaldırıldı"
+        REMOVED = (
+            "REMOVED",
+            "Şikayet ihlal nedeniyle kaldırıldı",
+        )
         UPDATED = "UPDATED", "Şikayet güncellendi"
+        DERMAN = "DERMAN", "Yeni Derman"
         ADMIN = "ADMIN", "Yönetim işlemi"
 
-    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="panel_notifications")
-    complaint = models.ForeignKey("complaints.Complaint", null=True, blank=True, on_delete=models.CASCADE, related_name="company_notifications")
-    kind = models.CharField(max_length=20, choices=Kind.choices)
-    title = models.CharField(max_length=180)
-    message = models.TextField(blank=True)
-    event_key = models.CharField(max_length=180, null=True, blank=True, unique=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    company = models.ForeignKey(
+        Company,
+        on_delete=models.CASCADE,
+        related_name="panel_notifications",
+    )
+
+    complaint = models.ForeignKey(
+        "complaints.Complaint",
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="company_notifications",
+    )
+
+    kind = models.CharField(
+        max_length=20,
+        choices=Kind.choices,
+    )
+
+    title = models.CharField(
+        max_length=180,
+    )
+
+    message = models.TextField(
+        blank=True,
+    )
+
+    event_key = models.CharField(
+        max_length=180,
+        null=True,
+        blank=True,
+        unique=True,
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
 
     class Meta:
-        ordering = ("-created_at", "-pk")
-        indexes = [models.Index(fields=("company", "-created_at"), name="company_notification_recent")]
+        ordering = (
+            "-created_at",
+            "-pk",
+        )
 
+        indexes = [
+            models.Index(
+                fields=(
+                    "company",
+                    "-created_at",
+                ),
+                name="company_notification_recent",
+            )
+        ]
 
 class CompanyNotificationRead(models.Model):
     notification = models.ForeignKey(CompanyNotification, on_delete=models.CASCADE, related_name="reads")
