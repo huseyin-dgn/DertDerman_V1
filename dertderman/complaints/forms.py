@@ -82,11 +82,14 @@ class ComplaintCreateForm(
         }
 
         widgets = {
-            "category": forms.RadioSelect(
-                attrs={
-                    "class": "complaint-category-radio",
-                }
-            ),
+            "category":
+                forms.RadioSelect(
+                    attrs={
+                        "class":
+                            "complaint-category-radio",
+                    }
+                ),
+
             "title":
                 forms.TextInput(
                     attrs={
@@ -140,18 +143,24 @@ class ComplaintCreateForm(
             "Şirket seçin"
         )
 
-        self.fields["category"].choices = (
+        self.fields[
+            "category"
+        ].choices = (
             Complaint.Category.choices
         )
 
-        self.fields["category"].required = True
+        self.fields[
+            "category"
+        ].required = True
 
         if (
             not self.instance.pk
             and not self.is_bound
         ):
-            self.fields["category"].initial = None
-            
+            self.fields[
+                "category"
+            ].initial = None
+
     def clean_title(self):
         title = (
             self.cleaned_data[
@@ -160,11 +169,9 @@ class ComplaintCreateForm(
         )
 
         if len(title) < 5:
-            raise (
-                forms.ValidationError(
-                    "Başlık en az 5 "
-                    "karakter olmalıdır."
-                )
+            raise forms.ValidationError(
+                "Başlık en az 5 "
+                "karakter olmalıdır."
             )
 
         return title
@@ -177,11 +184,9 @@ class ComplaintCreateForm(
         )
 
         if len(description) < 20:
-            raise (
-                forms.ValidationError(
-                    "Açıklama en az 20 "
-                    "karakter olmalıdır."
-                )
+            raise forms.ValidationError(
+                "Açıklama en az 20 "
+                "karakter olmalıdır."
             )
 
         return description
@@ -235,10 +240,8 @@ class ComplaintCommentForm(
         ).strip()
 
         if not body:
-            raise (
-                forms.ValidationError(
-                    "Yorum boş bırakılamaz."
-                )
+            raise forms.ValidationError(
+                "Yorum boş bırakılamaz."
             )
 
         return body
@@ -418,3 +421,58 @@ class CompanyReportForm(
             )
             or ""
         ).strip()
+
+
+class DermanCreateForm(
+    forms.Form
+):
+    body = forms.CharField(
+        label="Dermanınız",
+        min_length=20,
+        max_length=2000,
+        strip=True,
+        widget=forms.Textarea(
+            attrs={
+                "rows": 7,
+                "maxlength": 2000,
+                "placeholder": (
+                    "Bu sorunu nasıl çözdüğünüzü, "
+                    "hangi adımları uyguladığınızı "
+                    "anlaşılır şekilde paylaşın."
+                ),
+                "data-character-count": "",
+            }
+        ),
+        help_text=(
+            "En az 20, en fazla 2000 karakter."
+        ),
+    )
+
+    confirm_no_edit = (
+        forms.BooleanField(
+            required=True,
+            label=(
+                "Dermanım yayınlandıktan sonra "
+                "düzenleyemeyeceğimi ve bu "
+                "şikayet için yalnızca bir kez "
+                "Derman Ol paylaşabileceğimi "
+                "anlıyorum."
+            ),
+        )
+    )
+
+    def clean_body(self):
+        body = (
+            self.cleaned_data.get(
+                "body"
+            )
+            or ""
+        ).strip()
+
+        if len(body) < 20:
+            raise forms.ValidationError(
+                "Derman en az 20 "
+                "karakter olmalıdır."
+            )
+
+        return body
