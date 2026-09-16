@@ -10,13 +10,20 @@ public-site public-complaint-page
 {% endblock %}
 
 {% block extra_head %}
+
 <link
     rel="stylesheet"
     href="{% static 'css/report-modal.css' %}"
 >
+
 <link
     rel="stylesheet"
     href="{% static 'css/category-system.css' %}"
+>
+
+<link
+    rel="stylesheet"
+    href="{% static 'css/derman.css' %}"
 >
 
 <script
@@ -28,6 +35,7 @@ public-site public-complaint-page
     src="{% static 'js/report-modal.js' %}"
     defer
 ></script>
+
 {% endblock %}
 
 
@@ -57,16 +65,20 @@ public-site public-complaint-page
                 <div>
 
                     <p>
+
                         {{ complaint.company.name }}
 
                         {% if complaint.company.is_verified %}
+
                             <span
                                 class="verified-mark"
                                 title="Doğrulanmış şirket"
                             >
                                 ✓
                             </span>
+
                         {% endif %}
+
                     </p>
 
 
@@ -150,7 +162,6 @@ public-site public-complaint-page
                     Açıklama
                 </h2>
 
-
                 <p>
                     {{ complaint.description }}
                 </p>
@@ -221,11 +232,9 @@ public-site public-complaint-page
                                     {{ item.get_category_display }}
                                 </span>
 
-
                                 <h3>
                                     {{ item.title }}
                                 </h3>
-
 
                                 <footer>
 
@@ -234,7 +243,6 @@ public-site public-complaint-page
                                     >
                                         {{ item.created_at|date:'d.m.Y' }}
                                     </time>
-
 
                                     <span>
 
@@ -343,7 +351,6 @@ public-site public-complaint-page
                     >
 
                         {% csrf_token %}
-
 
                         <div
                             class="emoji-options"
@@ -544,7 +551,6 @@ public-site public-complaint-page
 
                     {% include 'components/field.html' with field=comment_form.body label='Yorumunuz' %}
 
-
                     <button
                         class="primary-action"
                         type="submit"
@@ -582,7 +588,6 @@ public-site public-complaint-page
                     <article class="community-comment">
 
                         {% include 'components/complaint_author_avatar.html' with complaint=comment size_class='user-avatar--comment' only %}
-
 
                         <div>
 
