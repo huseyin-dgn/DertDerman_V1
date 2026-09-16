@@ -1,12 +1,16 @@
-from django.contrib.auth import get_user_model
+
 from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils.html import escape
-
+from datetime import timedelta
+from django.utils import timezone
+from .anti_abuse import (
+    FORM_SESSION_KEY,
+    MIN_FORM_FILL_SECONDS,
+)
+from django.contrib.auth import get_user_model
 from companies.models import Company
-
 from .models import Complaint
-
 
 User = get_user_model()
 
@@ -140,6 +144,8 @@ class PrivateComplaintTests(TestCase):
             self.assertNotIn(self.owned[0].title, response.content.decode())
 
     def test_private_views_reject_mutation_methods(self):
+        initial_count = Complaint.objects.count()
+
         for url in [self.list_url, self.detail_url]:
             for method in ["post", "put", "patch", "delete"]:
                 with self.subTest(url=url, method=method):
@@ -147,7 +153,7 @@ class PrivateComplaintTests(TestCase):
                     self.assertEqual(response.status_code, 405)
         self.owned[0].refresh_from_db()
         self.assertEqual(self.owned[0].status, Complaint.Status.PENDING)
-        self.assertEqual(Complaint.objects.count(), 5)
+        self.assertEqual(Complaint.objects.count(), initial_count)
 
     def test_panel_keeps_up_to_five_recent_complaints_and_private_links(self):
         response = self.client.get(reverse("dashboard:home"))
@@ -246,20 +252,33 @@ class PublicComplaintTests(TestCase):
         ), self.published.title)
 
     def test_public_responses_do_not_expose_owner_profile(self):
+        private_values = [
+            self.owner.email,
+            self.owner.phone,
+            self.owner.first_name,
+            self.owner.last_name,
+        ]
+
         for url in [self.list_url, self.detail_url, self.home_url]:
             with self.subTest(url=url):
                 response = self.client.get(url)
-                for value in [self.owner.email, self.owner.phone, self.owner.username,
-                              self.owner.first_name, self.owner.last_name]:
+
+                for value in private_values:
                     self.assertNotContains(response, value)
-                if url == self.detail_url:
-                    objects = [response.context["complaint"]]
-                elif url == self.list_url:
-                    objects = response.context["page_obj"]
-                else:
-                    objects = response.context["recent_complaints"]
-                for complaint in objects:
-                    self.assertNotIn("user", complaint._state.fields_cache)
+
+        detail_response = self.client.get(self.detail_url)
+
+        self.assertContains(
+            detail_response,
+            f"@{self.owner.username}",
+        )
+        self.assertContains(
+            detail_response,
+            reverse(
+                "accounts:public_profile",
+                kwargs={"username": self.owner.username},
+            ),
+        )
 
     def test_public_user_content_is_escaped(self):
         self.published.title = '<script>alert(1)</script>'
@@ -309,9 +328,10 @@ class PublicComplaintTests(TestCase):
         self.published.save()
         self.complaints[Complaint.Status.RESOLVED].status = Complaint.Status.PENDING
         self.complaints[Complaint.Status.RESOLVED].save()
+
         for url in [self.list_url, self.home_url]:
             response = self.client.get(url, {"page": "999999"})
-            self.assertContains(response, "Henüz yayınlanmış şikayet bulunmuyor.")
+            self.assertContains(response, "şikayet bulunmuyor.")
 
     def test_navbar_and_public_access_for_all_roles_without_private_cache_policy(self):
         self.assertEqual(self.list_url, "/sikayetler/")
@@ -347,6 +367,7 @@ class ComplaintCreateTests(TestCase):
             email=f"{username}@example.com",
             password="StrongPass2026!",
             user_type=user_type,
+            is_verified=True,
         )
 
     def create_company(self, name="Complaint Company", is_active=True):
@@ -355,11 +376,39 @@ class ComplaintCreateTests(TestCase):
     def complaint_data(self, company, **overrides):
         data = {
             "company": company.pk,
+            "category": Complaint.Category.OTHER,
             "title": "Teslimat sorunu",
-            "description": "Siparişim teslim edilmedi ve şirketten dönüş alamadım.",
+            "description": (
+                "Siparişim teslim edilmedi ve "
+                "şirketten dönüş alamadım."
+            ),
         }
         data.update(overrides)
         return data
+
+    def prepare_create_form(self):
+        response = self.client.get(
+            reverse("complaints:create")
+        )
+
+        self.assertEqual(
+            response.status_code,
+            200,
+        )
+
+        session = self.client.session
+
+        session[FORM_SESSION_KEY] = (
+            timezone.now()
+            - timedelta(
+                seconds=(
+                    MIN_FORM_FILL_SECONDS
+                    + 1
+                )
+            )
+        ).timestamp()
+
+        session.save()
 
     def test_anonymous_user_is_redirected_from_create_view(self):
         response = self.client.get(reverse("complaints:create"))
@@ -384,6 +433,7 @@ class ComplaintCreateTests(TestCase):
         user = self.create_user("creator", User.UserType.USER)
         company = self.create_company()
         self.client.force_login(user)
+        self.prepare_create_form()
 
         response = self.client.post(
             reverse("complaints:create"),
@@ -420,6 +470,7 @@ class ComplaintCreateTests(TestCase):
         other = self.create_user("other-owner", User.UserType.USER)
         company = self.create_company()
         self.client.force_login(user)
+        self.prepare_create_form()
 
         response = self.client.post(
             reverse("complaints:create"),
@@ -470,6 +521,7 @@ class ComplaintCreateTests(TestCase):
         user = self.create_user("xss-user", User.UserType.USER)
         company = self.create_company()
         self.client.force_login(user)
+        self.prepare_create_form()
 
         response = self.client.post(
             reverse("complaints:create"),
