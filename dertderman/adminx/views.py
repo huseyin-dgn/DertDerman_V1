@@ -6,7 +6,15 @@ from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST, require_safe
-
+from complaints.models import (
+    CompanyReport,
+    Complaint,
+    ComplaintComment,
+    ContentReport,
+    DermanPost,
+    UserReport,
+    UserViolation,
+)
 from accounts.models import User
 from blog.models import Post
 from companies.models import Company, CompanyNotification
@@ -25,8 +33,17 @@ from notifications.selectors import inbox
 from notifications.services import mark_read
 
 from .decorators import admin_required
-from .filters import ComplaintFilters, EventFilters, list_context
-from .forms import ContactStatusForm
+from .filters import (
+    ComplaintFilters,
+    DermanFilters,
+    EventFilters,
+    list_context,
+)
+from .forms import (
+    ContactStatusForm,
+    DermanPublishForm,
+    DermanRejectForm,
+)
 from .models import AdminAuditLog
 from .services import lock_current_admin, record_admin_audit
 
@@ -149,6 +166,70 @@ def complaint_list(request):
         context,
     )
 
+def _moderation_dermans():
+    return (
+        DermanPost.objects
+        .select_related(
+            "complaint",
+            "complaint__company",
+            "author_user",
+            "reviewed_by",
+        )
+    )
+
+
+@admin_required
+@require_safe
+def derman_list(request):
+    context = list_context(
+        request,
+        _moderation_dermans(),
+        DermanFilters,
+        search_fields=(
+            "body",
+            "author_user__username",
+            "complaint__title",
+            "complaint__company__name",
+        ),
+        fields={
+            "status": "status",
+            "company": "complaint__company",
+        },
+        defaults={
+            "status": DermanPost.Status.PENDING,
+        },
+    )
+
+    context["dermans"] = (
+        context["page_obj"]
+    )
+
+    return render(
+        request,
+        "adminx/derman_list.html",
+        context,
+    )
+
+
+@admin_required
+@require_safe
+def derman_detail(request, pk):
+    derman = get_object_or_404(
+        _moderation_dermans(),
+        pk=pk,
+    )
+
+    return render(
+        request,
+        "adminx/derman_detail.html",
+        {
+            "derman": derman,
+            "publish_form":
+                DermanPublishForm(),
+            "reject_form":
+                DermanRejectForm(),
+        },
+    )
 
 @admin_required
 @require_safe
@@ -245,6 +326,208 @@ def contact_list(request):
         },
     )
 
+@admin_required
+@require_POST
+@transaction.atomic
+def derman_publish(
+    request,
+    pk,
+):
+    form = DermanPublishForm(
+        request.POST
+    )
+
+    derman = get_object_or_404(
+        _moderation_dermans(),
+        pk=pk,
+    )
+
+    if not form.is_valid():
+        return render(
+            request,
+            "adminx/derman_detail.html",
+            {
+                "derman": derman,
+                "publish_form": form,
+                "reject_form":
+                    DermanRejectForm(),
+            },
+            status=400,
+        )
+
+    from complaints.derman_moderation import (
+        DermanModerationStateConflict,
+        publish_derman,
+    )
+
+    previous_status = derman.status
+
+    try:
+        published_derman, _ = (
+            publish_derman(
+                derman_id=pk,
+                actor=request.user,
+                moderation_note=(
+                    form.cleaned_data[
+                        "moderation_note"
+                    ]
+                ),
+            )
+        )
+
+    except DermanModerationStateConflict:
+        derman.refresh_from_db()
+
+        return render(
+            request,
+            "adminx/derman_detail.html",
+            {
+                "derman": derman,
+                "publish_form":
+                    DermanPublishForm(),
+                "reject_form":
+                    DermanRejectForm(),
+                "moderation_error": (
+                    "Bu Derman artık yayınlanabilir "
+                    "durumda değil. Karar uygulanmadı."
+                ),
+            },
+            status=409,
+        )
+
+    record_admin_audit(
+        actor=request.user,
+        action=AdminAuditLog.Action.PUBLISH,
+        target_type="derman_post",
+        target_id=published_derman.pk,
+        target_label=(
+            f"Derman #{published_derman.pk}"
+        ),
+        description=(
+            "Derman yayınlandı."
+        ),
+        metadata={
+            "complaint_id":
+                published_derman.complaint_id,
+            "previous_status":
+                previous_status,
+            "new_status":
+                DermanPost.Status.PUBLISHED,
+        },
+        request=request,
+    )
+
+    messages.success(
+        request,
+        "Derman yayınlandı.",
+    )
+
+    return redirect(
+        "adminx:derman_detail",
+        pk=pk,
+    )
+
+
+@admin_required
+@require_POST
+@transaction.atomic
+def derman_reject(
+    request,
+    pk,
+):
+    form = DermanRejectForm(
+        request.POST
+    )
+
+    derman = get_object_or_404(
+        _moderation_dermans(),
+        pk=pk,
+    )
+
+    if not form.is_valid():
+        return render(
+            request,
+            "adminx/derman_detail.html",
+            {
+                "derman": derman,
+                "publish_form":
+                    DermanPublishForm(),
+                "reject_form": form,
+            },
+            status=400,
+        )
+
+    from complaints.derman_moderation import (
+        DermanModerationStateConflict,
+        reject_derman,
+    )
+
+    previous_status = derman.status
+
+    try:
+        rejected_derman = (
+            reject_derman(
+                derman_id=pk,
+                actor=request.user,
+                moderation_note=(
+                    form.cleaned_data[
+                        "moderation_note"
+                    ]
+                ),
+            )
+        )
+
+    except DermanModerationStateConflict:
+        derman.refresh_from_db()
+
+        return render(
+            request,
+            "adminx/derman_detail.html",
+            {
+                "derman": derman,
+                "publish_form":
+                    DermanPublishForm(),
+                "reject_form":
+                    DermanRejectForm(),
+                "moderation_error": (
+                    "Bu Derman artık incelemede "
+                    "değil. Karar uygulanmadı."
+                ),
+            },
+            status=409,
+        )
+
+    record_admin_audit(
+        actor=request.user,
+        action=AdminAuditLog.Action.REJECT,
+        target_type="derman_post",
+        target_id=rejected_derman.pk,
+        target_label=(
+            f"Derman #{rejected_derman.pk}"
+        ),
+        description=(
+            "Derman reddedildi."
+        ),
+        metadata={
+            "complaint_id":
+                rejected_derman.complaint_id,
+            "previous_status":
+                previous_status,
+            "new_status":
+                DermanPost.Status.REJECTED,
+        },
+        request=request,
+    )
+
+    messages.success(
+        request,
+        "Derman reddedildi.",
+    )
+
+    return redirect(
+        "adminx:derman_detail",
+        pk=pk,
+    )
 
 @admin_required
 @require_safe

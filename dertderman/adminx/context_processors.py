@@ -4,6 +4,7 @@ from django.urls import reverse
 SECTIONS = [
     ("home", "Genel Bakış", "overview"),
     ("complaint_list", "Şikayetler", "complaint"),
+    ("derman_list", "Dermanlar", "note"),
     ("company_list", "Şirketler", "building"),
     ("company_application_list", "Şirket Başvuruları", "shield"),
     ("user_list", "Kullanıcılar", "users"),
@@ -33,6 +34,9 @@ def admin_shell(request):
         "complaint_publish": "complaint_list",
         "complaint_reject": "complaint_list",
         "company_edit": "company_list",
+        "derman_detail": "derman_list",
+        "derman_publish": "derman_list",
+        "derman_reject": "derman_list",
         "company_application_detail": "company_application_list",
         "user_detail": "user_list",
         "user_suspend": "user_list",

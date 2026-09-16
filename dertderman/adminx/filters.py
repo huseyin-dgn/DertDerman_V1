@@ -4,7 +4,7 @@ from django.db.models import Q
 from accounts.models import User
 from blog.models import Post
 from companies.models import Company, CompanyCategory, CompanyNotification
-from complaints.models import Complaint
+from complaints.models import Complaint, DermanPost
 from core.pagination import paginate
 
 
@@ -33,6 +33,25 @@ class CompanyFilters(ApplicationFilters):
     verified = forms.ChoiceField(label="Doğrulama", required=False, choices=choices([("1", "Doğrulanmış"), ("0", "Doğrulanmamış")]))
     active = forms.ChoiceField(label="Aktiflik", required=False, choices=choices([("1", "Aktif"), ("0", "Pasif")]))
 
+class DermanFilters(SearchForm):
+    status = forms.ChoiceField(
+        label="Durum",
+        required=False,
+        choices=choices(
+            DermanPost.Status.choices
+        ),
+    )
+
+    company = forms.ModelChoiceField(
+        label="Şirket",
+        required=False,
+        empty_label="Tüm şirketler",
+        queryset=(
+            Company.objects
+            .only("name")
+            .order_by("name", "pk")
+        ),
+    )
 
 class UserFilters(SearchForm):
     role = forms.ChoiceField(label="Rol", required=False, choices=choices(User.UserType.choices))

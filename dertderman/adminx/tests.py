@@ -1,5 +1,5 @@
 import re
-
+from datetime import timedelta
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
@@ -9,7 +9,10 @@ from django.utils.html import escape
 from companies.models import Company
 from complaints.models import Complaint
 
-
+from complaints.anti_abuse import (
+    FORM_SESSION_KEY,
+    MIN_FORM_FILL_SECONDS,
+)
 User = get_user_model()
 
 
@@ -216,41 +219,217 @@ class ComplaintModerationTests(TestCase):
         self.assertContains(response, escape(self.pending.description))
         self.assertNotContains(response, self.pending.description)
 
-    def _create_and_moderate(self, action, expected):
-        self.client.force_login(self.owner)
-        response = self.client.post(reverse("complaints:create"), {
-            "company": self.company.pk, "title": f"End-to-end {action} complaint",
-            "description": "A real creation request followed by an admin moderation decision.",
-        })
-        self.assertRedirects(response, reverse("dashboard:home"))
-        complaint = Complaint.objects.get(title=f"End-to-end {action} complaint")
-        self.assertEqual(complaint.status, Complaint.Status.PENDING)
+    def _create_and_moderate(
+        self,
+        action,
+        expected,
+    ):
+        flow_owner = User.objects.create_user(
+            username=f"flow-owner-{action}",
+            email=f"flow-owner-{action}@example.com",
+            password="FlowOwnerSecret2026!",
+            user_type=User.UserType.USER,
+            is_verified=True,
+        )
+
+        create_url = reverse(
+            "complaints:create"
+        )
+
+        self.client.force_login(
+            flow_owner
+        )
+
+        # Gerçek tarayıcı akışında kullanıcı önce formu açar.
+        response = self.client.get(
+            create_url
+        )
+
+        self.assertEqual(
+            response.status_code,
+            200,
+        )
+
+        # Testte sleep kullanmadan formun minimum
+        # doldurma süresini geçmiş gibi davran.
+        session = self.client.session
+
+        session[FORM_SESSION_KEY] = (
+            timezone.now()
+            - timedelta(
+                seconds=(
+                    MIN_FORM_FILL_SECONDS
+                    + 1
+                )
+            )
+        ).timestamp()
+
+        session.save()
+
+        response = self.client.post(
+            create_url,
+            {
+                "company":
+                    self.company.pk,
+
+                "category":
+                    Complaint.Category.OTHER,
+
+                "title":
+                    f"End-to-end {action} complaint",
+
+                "description": (
+                    "A real creation request followed "
+                    "by an admin moderation decision."
+                ),
+            },
+        )
+
+        self.assertRedirects(
+            response,
+            reverse(
+                "dashboard:home"
+            ),
+        )
+
+        complaint = Complaint.objects.get(
+            title=(
+                f"End-to-end {action} complaint"
+            )
+        )
+
+        self.assertEqual(
+            complaint.user_id,
+            flow_owner.pk,
+        )
+
+        self.assertEqual(
+            complaint.status,
+            Complaint.Status.PENDING,
+        )
+
         public = Client()
-        public_detail = reverse("complaints:public_detail", args=[complaint.pk])
-        public_pages = [reverse("complaints:public_list"), reverse("core:home")]
+
+        public_detail = reverse(
+            "complaints:public_detail",
+            args=[complaint.pk],
+        )
+
+        public_pages = [
+            reverse(
+                "complaints:public_list"
+            ),
+            reverse(
+                "core:home"
+            ),
+        ]
+
         for url in public_pages:
-            self.assertNotContains(public.get(url), complaint.title)
-        self.assertEqual(public.get(public_detail).status_code, 404)
-        self.client.force_login(self.admin)
-        self.assertRedirects(self.client.post(self.action_url(action, complaint)),
-                             reverse("adminx:complaint_detail", args=[complaint.pk]))
+            self.assertNotContains(
+                public.get(url),
+                complaint.title,
+            )
+
+        self.assertEqual(
+            public.get(
+                public_detail
+            ).status_code,
+            404,
+        )
+
+        # Yönetici moderasyonu
+        self.client.force_login(
+            self.admin
+        )
+
+        self.assertRedirects(
+            self.client.post(
+                self.action_url(
+                    action,
+                    complaint,
+                )
+            ),
+            reverse(
+                "adminx:complaint_detail",
+                args=[complaint.pk],
+            ),
+        )
+
         complaint.refresh_from_db()
-        self.assertEqual(complaint.status, expected)
+
+        self.assertEqual(
+            complaint.status,
+            expected,
+        )
+
         for url in public_pages:
             response = public.get(url)
-            if expected == Complaint.Status.PUBLISHED:
-                self.assertContains(response, complaint.title)
+
+            if (
+                expected
+                == Complaint.Status.PUBLISHED
+            ):
+                self.assertContains(
+                    response,
+                    complaint.title,
+                )
+
             else:
-                self.assertNotContains(response, complaint.title)
-        self.assertEqual(public.get(public_detail).status_code,
-                         200 if expected == Complaint.Status.PUBLISHED else 404)
-        self.assertNotContains(self.client.get(self.list_url), complaint.title)
-        self.client.force_login(self.owner)
-        for url in [reverse("complaints:list"), reverse("complaints:detail", args=[complaint.pk])]:
-            response = self.client.get(url)
-            self.assertContains(response, complaint.title)
-            self.assertContains(response, complaint.get_status_display())
-            self.assert_no_store(response)
+                self.assertNotContains(
+                    response,
+                    complaint.title,
+                )
+
+        self.assertEqual(
+            public.get(
+                public_detail
+            ).status_code,
+            (
+                200
+                if expected
+                == Complaint.Status.PUBLISHED
+                else 404
+            ),
+        )
+
+        self.assertNotContains(
+            self.client.get(
+                self.list_url
+            ),
+            complaint.title,
+        )
+
+        # Tekrar gerçek şikayet sahibine dön.
+        self.client.force_login(
+            flow_owner
+        )
+
+        for url in [
+            reverse(
+                "complaints:list"
+            ),
+            reverse(
+                "complaints:detail",
+                args=[complaint.pk],
+            ),
+        ]:
+            response = self.client.get(
+                url
+            )
+
+            self.assertContains(
+                response,
+                complaint.title,
+            )
+
+            self.assertContains(
+                response,
+                complaint.get_status_display(),
+            )
+
+            self.assert_no_store(
+                response
+            )
 
     def test_user_creation_admin_publish_public_and_private_integration(self):
         self._create_and_moderate("publish", Complaint.Status.PUBLISHED)

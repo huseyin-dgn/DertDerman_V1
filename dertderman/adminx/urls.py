@@ -20,6 +20,26 @@ urlpatterns = [
         content_views.company_archive,
         name="company_archive",
     ),
+    path(
+    "dermanlar/",
+    views.derman_list,
+    name="derman_list",
+),
+path(
+    "dermanlar/<int:pk>/",
+    views.derman_detail,
+    name="derman_detail",
+),
+path(
+    "dermanlar/<int:pk>/yayinla/",
+    views.derman_publish,
+    name="derman_publish",
+),
+path(
+    "dermanlar/<int:pk>/reddet/",
+    views.derman_reject,
+    name="derman_reject",
+),
 
     path(
         "sirket-basvurulari/",

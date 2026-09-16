@@ -134,3 +134,38 @@ class ContactStatusForm(
             .choices
         ),
     )
+
+class DermanPublishForm(forms.Form):
+    moderation_note = forms.CharField(
+        label="İnceleme notu",
+        required=False,
+        max_length=1000,
+        strip=True,
+        widget=forms.Textarea(
+            attrs={
+                "rows": 4,
+                "maxlength": 1000,
+                "placeholder": (
+                    "İsteğe bağlı yönetim notu"
+                ),
+            }
+        ),
+    )
+
+
+class DermanRejectForm(forms.Form):
+    moderation_note = forms.CharField(
+        label="Ret nedeni",
+        required=True,
+        max_length=1000,
+        strip=True,
+        widget=forms.Textarea(
+            attrs={
+                "rows": 4,
+                "maxlength": 1000,
+                "placeholder": (
+                    "Dermanın neden reddedildiğini yazın"
+                ),
+            }
+        ),
+    )

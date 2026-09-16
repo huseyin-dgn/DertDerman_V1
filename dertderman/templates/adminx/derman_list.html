@@ -1,0 +1,93 @@
+{% extends 'adminx/table_base.html' %}
+
+{% block title %}
+Dermanlar | DertDerman Yönetim
+{% endblock %}
+
+{% block content_heading %}
+<p class="ad-kicker">
+    YÖNETİM MERKEZİ
+</p>
+
+<h1>
+    Dermanlar
+</h1>
+
+<p>
+    Kullanıcıların çözüm paylaşımlarını
+    inceleyin ve moderasyon kararlarını yönetin.
+</p>
+{% endblock %}
+
+
+{% block table_head %}
+<th scope="col">ID</th>
+<th scope="col">Derman</th>
+<th scope="col">Kullanıcı</th>
+<th scope="col">Şikayet</th>
+<th scope="col">Şirket</th>
+<th scope="col">Tarih</th>
+<th scope="col">Durum</th>
+<th scope="col">Aksiyon</th>
+{% endblock %}
+
+
+{% block table_rows %}
+{% for derman in page_obj %}
+<tr>
+
+    <td>
+        #{{ derman.pk }}
+    </td>
+
+    <td class="ad-title-cell">
+        {{ derman.body|truncatechars:90 }}
+    </td>
+
+    <td>
+        {{ derman.author_user.username }}
+    </td>
+
+    <td>
+        #{{ derman.complaint_id }}
+        ·
+        {{ derman.complaint.title|truncatechars:50 }}
+    </td>
+
+    <td>
+        {{ derman.complaint.company.name }}
+    </td>
+
+    <td>
+        {{ derman.created_at|date:'d.m.Y H:i' }}
+    </td>
+
+    <td>
+        {% include 'components/badge.html' with status=derman.status label=derman.get_status_display %}
+    </td>
+
+    <td>
+        <a
+            class="ad-row-action"
+            href="{% url 'adminx:derman_detail' derman.pk %}"
+        >
+            İncele ↗
+        </a>
+    </td>
+
+</tr>
+{% endfor %}
+{% endblock %}
+
+
+{% block table_empty %}
+{% if filter_form.cleaned_data.status == 'PENDING' %}
+
+    {% include 'components/empty_state.html' with heading='İnceleme bekleyen Derman bulunmuyor.' route='adminx:derman_list' %}
+
+{% else %}
+
+    {% include 'components/empty_state.html' with heading='Bu filtrelerle eşleşen Derman bulunmuyor.' route='adminx:derman_list' %}
+
+{% endif %}
+{% endblock %}

@@ -1,0 +1,229 @@
+{% extends "layouts/admin_base.html" %}
+
+{% block title %}
+Derman İncele | DertDerman
+{% endblock %}
+
+
+{% block content %}
+
+<main
+    class="content-section section-muted"
+    id="main-content"
+>
+
+    <article
+        class="section-inner account-shell"
+        aria-labelledby="derman-title"
+    >
+
+        <div class="account-card moderation-content">
+
+            <header class="account-header">
+
+                <p class="complaint-company">
+                    {{ derman.complaint.company.name }}
+                </p>
+
+                <h1 id="derman-title">
+                    Derman #{{ derman.pk }}
+                </h1>
+
+            </header>
+
+
+            {% if moderation_error %}
+
+                <p
+                    class="form-alert"
+                    role="alert"
+                >
+                    {{ moderation_error }}
+                </p>
+
+            {% endif %}
+
+
+            <dl class="account-details">
+
+                <div>
+                    <dt>Yazar</dt>
+
+                    <dd>
+                        @{{ derman.author_user.username }}
+                    </dd>
+                </div>
+
+                <div>
+                    <dt>Durum</dt>
+
+                    <dd>
+                        {% include 'components/badge.html' with status=derman.status label=derman.get_status_display %}
+                    </dd>
+                </div>
+
+                <div>
+                    <dt>Bağlı şikayet</dt>
+
+                    <dd>
+                        <a
+                            href="{% url 'adminx:complaint_detail' derman.complaint_id %}"
+                        >
+                            #{{ derman.complaint_id }}
+                            ·
+                            {{ derman.complaint.title }}
+                        </a>
+                    </dd>
+                </div>
+
+                <div>
+                    <dt>Oluşturulma</dt>
+
+                    <dd>
+                        {{ derman.created_at|date:'d.m.Y H:i' }}
+                    </dd>
+                </div>
+
+
+                {% if derman.reviewed_at %}
+
+                    <div>
+                        <dt>İncelenme</dt>
+
+                        <dd>
+                            {{ derman.reviewed_at|date:'d.m.Y H:i' }}
+                        </dd>
+                    </div>
+
+                {% endif %}
+
+
+                {% if derman.reviewed_by %}
+
+                    <div>
+                        <dt>İnceleyen yönetici</dt>
+
+                        <dd>
+                            {{ derman.reviewed_by.username }}
+                        </dd>
+                    </div>
+
+                {% endif %}
+
+            </dl>
+
+
+            <section
+                class="complaint-description"
+                aria-labelledby="derman-body-title"
+            >
+
+                <h2 id="derman-body-title">
+                    Derman içeriği
+                </h2>
+
+                <p>
+                    {{ derman.body|linebreaksbr }}
+                </p>
+
+            </section>
+
+
+            {% if derman.status == 'PENDING' %}
+
+                <section class="complaint-description">
+
+                    <h2>
+                        Moderasyon kararı
+                    </h2>
+
+
+                    <form
+                        method="post"
+                        action="{% url 'adminx:derman_publish' derman.pk %}"
+                    >
+
+                        {% csrf_token %}
+
+                        {{ publish_form.as_p }}
+
+                        <button
+                            class="primary-action"
+                            type="submit"
+                        >
+                            Yayınla
+                        </button>
+
+                    </form>
+
+
+                    <hr>
+
+
+                    <form
+                        method="post"
+                        action="{% url 'adminx:derman_reject' derman.pk %}"
+                    >
+
+                        {% csrf_token %}
+
+                        {{ reject_form.as_p }}
+
+                        <button
+                            class="danger-action"
+                            type="submit"
+                            data-confirm="Bu Dermanı reddetmek inceleme sürecini sonlandırır. Devam etmek istiyor musunuz?"
+                        >
+                            Reddet
+                        </button>
+
+                    </form>
+
+                </section>
+
+
+            {% else %}
+
+                <p class="complaint-pending-note">
+                    Bu Derman için bekleyen moderasyon
+                    işlemi yok.
+                </p>
+
+            {% endif %}
+
+
+            {% if derman.moderation_note %}
+
+                <section class="complaint-description">
+
+                    <h2>
+                        Moderasyon notu
+                    </h2>
+
+                    <p>
+                        {{ derman.moderation_note|linebreaksbr }}
+                    </p>
+
+                </section>
+
+            {% endif %}
+
+
+            <div class="hero-actions">
+
+                <a
+                    class="secondary-action"
+                    href="{% url 'adminx:derman_list' %}"
+                >
+                    Dermanlara Dön
+                </a>
+
+            </div>
+
+        </div>
+
+    </article>
+
+</main>
+
+{% endblock %}
