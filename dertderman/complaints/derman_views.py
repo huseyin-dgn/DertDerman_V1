@@ -1,8 +1,20 @@
 from django.contrib import messages
-from django.core.exceptions import ValidationError
+from django.core.exceptions import (
+    PermissionDenied,
+    ValidationError,
+)
+from django.db import (
+    IntegrityError,
+    transaction,
+)
 from django.http import Http404
-from django.shortcuts import redirect
-from django.views.decorators.http import require_POST
+from django.shortcuts import (
+    get_object_or_404,
+    redirect,
+)
+from django.views.decorators.http import (
+    require_POST,
+)
 
 from accounts.models import User
 from core.decorators import role_required
@@ -15,9 +27,19 @@ from .derman_services import (
     toggle_derman_reaction,
     withdraw_derman,
 )
-from .forms import DermanCreateForm
+from .forms import (
+    ContentReportForm,
+    DermanCreateForm,
+)
 from .models import (
+    ContentReport,
     DermanPost,
+)
+from .reporting_policy import (
+    check_general_reporting_allowed,
+)
+from .selectors import (
+    public_complaints_for_update,
 )
 
 
@@ -46,6 +68,27 @@ def _ensure_derman_belongs_to_complaint(
 
     if not exists:
         raise Http404
+
+
+def _locked_derman_reporter(
+    request,
+):
+    actor = (
+        User.objects
+        .select_for_update()
+        .get(
+            pk=request.user.pk
+        )
+    )
+
+    if (
+        actor.user_type
+        != User.UserType.USER
+        or not actor.can_perform_user_mutations
+    ):
+        raise PermissionDenied
+
+    return actor
 
 
 @role_required(
@@ -268,4 +311,182 @@ def derman_react(
 
     return _public_detail_redirect(
         pk
+    )
+
+
+@role_required(
+    User.UserType.USER
+)
+@require_POST
+@transaction.atomic
+def derman_report(
+    request,
+    pk,
+    derman_pk,
+):
+    """
+    Yayındaki bir Derman paylaşımını raporlar.
+
+    Güvenlik kuralları:
+    - yalnız USER,
+    - aktif ve mutation yapabilen hesap,
+    - parent complaint public olmalı,
+    - Derman exact complaint'e ait olmalı,
+    - Derman PUBLISHED olmalı,
+    - kullanıcı kendi Dermanını raporlayamaz,
+    - aynı kullanıcı aynı Dermanı yalnızca bir kez raporlayabilir,
+    - aktif reporting restriction varsa işlem engellenir.
+    """
+
+    actor = _locked_derman_reporter(
+        request
+    )
+
+    reporting_policy = (
+        check_general_reporting_allowed(
+            user=actor,
+            request=request,
+        )
+    )
+
+    if not reporting_policy.allowed:
+        messages.error(
+            request,
+            reporting_policy.message,
+        )
+
+        return _public_detail_redirect(
+            pk
+        )
+
+    complaint = get_object_or_404(
+        public_complaints_for_update(),
+        pk=pk,
+    )
+
+    derman = get_object_or_404(
+        DermanPost.objects
+        .select_for_update()
+        .select_related(
+            "author_user",
+        ),
+        pk=derman_pk,
+        complaint=complaint,
+        status=DermanPost.Status.PUBLISHED,
+    )
+
+    if (
+        derman.author_user_id
+        == actor.pk
+    ):
+        messages.warning(
+            request,
+            (
+                "Kendi Derman paylaşımınızı "
+                "raporlayamazsınız."
+            ),
+        )
+
+        return _public_detail_redirect(
+            complaint.pk
+        )
+
+    if (
+        ContentReport.objects
+        .filter(
+            reporter=actor,
+            derman=derman,
+        )
+        .exists()
+    ):
+        messages.info(
+            request,
+            (
+                "Bu Derman paylaşımını "
+                "daha önce raporladınız."
+            ),
+        )
+
+        return _public_detail_redirect(
+            complaint.pk
+        )
+
+    form = ContentReportForm(
+        request.POST
+    )
+
+    if not form.is_valid():
+        messages.error(
+            request,
+            (
+                "Rapor gönderilemedi. "
+                "Lütfen geçerli bir "
+                "neden seçin."
+            ),
+        )
+
+        return _public_detail_redirect(
+            complaint.pk
+        )
+
+    report = form.save(
+        commit=False
+    )
+
+    report.reporter = actor
+
+    report.target_type = (
+        ContentReport
+        .TargetType
+        .DERMAN
+    )
+
+    report.complaint = None
+    report.comment = None
+    report.derman = derman
+
+    report.status = (
+        ContentReport
+        .Status
+        .PENDING
+    )
+
+    try:
+        report.save()
+
+    except (
+        ValidationError,
+        IntegrityError,
+    ):
+        messages.info(
+            request,
+            (
+                "Bu Derman paylaşımını "
+                "daha önce raporladınız."
+            ),
+        )
+
+        return _public_detail_redirect(
+            complaint.pk
+        )
+
+    from notifications.services import (
+        notify_admins_content_report,
+    )
+
+    notify_admins_content_report(
+        report
+    )
+
+    messages.success(
+        request,
+        (
+            "Raporunuz alındı. "
+            "Derman paylaşımı yönetim ekibi "
+            "tarafından incelenecek."
+        ),
+    )
+
+    return _public_detail_redirect(
+        complaint.pk
     )

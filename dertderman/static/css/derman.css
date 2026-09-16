@@ -792,14 +792,136 @@
 .report-submit.derman-submit:hover {
     background: #115591;
 }
-@media (max-width: 760px) {
 
+/* =========================================================
+   DERMAN REPORT
+   ========================================================= */
+
+.derman-card__moderation-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    flex: 0 0 auto;
+}
+
+
+.derman-report-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+
+    min-height: 34px;
+    padding: 0 11px;
+
+    border: 1px solid #d8e0e9;
+    border-radius: 9px;
+
+    background: #fff;
+    color: #667085;
+
+    font: inherit;
+    font-size: .75rem;
+    font-weight: 800;
+
+    cursor: pointer;
+
+    transition:
+        border-color .18s ease,
+        background .18s ease,
+        color .18s ease;
+}
+
+
+.derman-report-button:hover {
+    border-color: #e4a3a3;
+    background: #fff7f7;
+    color: #b42318;
+}
+
+
+/* =========================================================
+   DERMAN REPORT MODAL POSITION
+   ========================================================= */
+
+.report-modal.derman-report-modal {
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+}
+
+.derman-report-modal .derman-report-modal__card {
+    width: min(580px, 100%);
+    max-height: calc(100dvh - 150px);
+    margin: 0 auto;
+
+    /*
+     * Normal merkezden biraz aşağı al.
+     */
+    transform: translateY(38px);
+
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.derman-report-help {
+    display: block;
+
+    margin-top: 6px;
+
+    color: #8090a1;
+
+    font-size: .74rem;
+}
+
+
+.derman-report-notice {
+    padding: 13px 14px;
+
+    border: 1px solid #f4d7d5;
+    border-radius: 12px;
+
+    background: #fff8f7;
+}
+
+
+.derman-report-notice strong {
+    display: block;
+
+    color: #912018;
+
+    font-size: .84rem;
+}
+
+
+.derman-report-notice p {
+    margin: 4px 0 0;
+
+    color: #7a4b47;
+
+    font-size: .8rem;
+    line-height: 1.5;
+}
+
+
+.report-submit.derman-report-submit {
+    border-color: #b42318;
+    background: #b42318;
+}
+
+
+.report-submit.derman-report-submit:hover {
+    background: #912018;
+}
+
+@media (max-width: 760px) {
     .derman-section {
         padding: 17px;
 
         border-radius: 18px;
     }
-.report-modal.derman-company-modal {
+    .report-modal.derman-company-modal {
         padding: 16px;
     }
 
@@ -840,5 +962,162 @@
 
     .derman-withdraw-button {
         padding-left: 0;
+    }
+
+    .derman-card__moderation-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+.report-modal.derman-report-modal {
+    padding: 16px;
+}
+
+.derman-report-modal .derman-report-modal__card {
+    max-height: calc(100dvh - 32px);
+    transform: none;
+}
+}
+
+/* =========================================================
+   DERMAN REPORT MODAL - RESPONSIVE FIX
+   ========================================================= */
+
+@media (max-width: 760px) {
+
+    /*
+     * Mobil header modalın üzerinde kaldığı için
+     * modalı ekranın tepesine değil header'ın altına başlat.
+     */
+    .report-modal.derman-report-modal {
+        align-items: flex-start;
+        justify-content: center;
+
+        padding:
+            calc(72px + env(safe-area-inset-top))
+            12px
+            12px;
+
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+
+
+    .derman-report-modal .derman-report-modal__card {
+        width: 100%;
+
+        max-width: 580px;
+
+        /*
+         * Üstte header alanı bırakıyoruz.
+         * Kart kendi içinde scroll olabilir.
+         */
+        max-height:
+            calc(
+                100dvh
+                - 84px
+                - env(safe-area-inset-top)
+            );
+
+        margin: 0 auto;
+
+        transform: none;
+
+        overflow-y: auto;
+
+        border-radius: 18px;
+    }
+
+
+    /*
+     * Mobilde başlık alanını biraz küçült.
+     */
+    .derman-report-modal .report-modal-head {
+        gap: 12px;
+
+        padding:
+            18px
+            16px
+            15px;
+    }
+
+
+    .derman-report-modal .report-modal-head h2 {
+        font-size: 1.18rem;
+    }
+
+
+    .derman-report-modal .report-modal-head p {
+        margin-top: 6px;
+
+        font-size: .86rem;
+        line-height: 1.5;
+    }
+
+
+    .derman-report-modal .report-modal-close {
+        width: 34px;
+        height: 34px;
+
+        font-size: 1.2rem;
+    }
+
+
+    /*
+     * Form alanı daha kompakt.
+     */
+    .derman-report-modal .report-modal-body {
+        gap: 14px;
+
+        padding:
+            16px
+            16px
+            18px;
+    }
+
+
+    .derman-report-modal
+    .report-modal-field textarea {
+        min-height: 100px;
+
+        resize: vertical;
+    }
+
+
+    .derman-report-modal
+    .derman-report-notice {
+        padding: 11px 12px;
+    }
+
+
+    .derman-report-modal
+    .derman-report-notice strong {
+        font-size: .79rem;
+    }
+
+
+    .derman-report-modal
+    .derman-report-notice p {
+        font-size: .75rem;
+    }
+
+
+    /*
+     * Mobilde ana işlem üstte,
+     * vazgeç altında kalsın.
+     */
+    .derman-report-modal
+    .report-modal-actions {
+        display: flex;
+
+        flex-direction: column-reverse;
+
+        gap: 8px;
+    }
+
+
+    .derman-report-modal
+    .report-modal-actions button {
+        width: 100%;
     }
 }

@@ -20,6 +20,7 @@ from .views import (
 from .derman_views import (
     derman_create,
     derman_react,
+    derman_report,
     derman_withdraw,
 )
 from .derman_company_views import (
@@ -35,7 +36,15 @@ urlpatterns = [
         public_complaint_list,
         name="public_list",
     ),
-
+path(
+    (
+        "sikayetler/<int:pk>/"
+        "derman/<int:derman_pk>/"
+        "raporla/"
+    ),
+    derman_report,
+    name="derman_report",
+),
     path(
         "sikayetler/<int:pk>/",
         public_complaint_detail,

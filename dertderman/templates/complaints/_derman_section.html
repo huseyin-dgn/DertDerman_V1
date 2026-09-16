@@ -201,31 +201,52 @@
 
                             </div>
 
+{% if request.user.is_authenticated and request.user.user_type == 'USER' %}
 
-                            {% if request.user.is_authenticated and request.user.user_type == 'USER' and request.user.pk == item.author_user_id %}
+    <div class="derman-card__moderation-actions">
 
-                                <form
-                                    method="post"
-                                    action="{% url 'complaints:derman_withdraw' complaint.pk item.id %}"
-                                    class="derman-withdraw-form"
-                                >
+        {% if request.user.pk == item.author_user_id %}
 
-                                    {% csrf_token %}
+            <form
+                method="post"
+                action="{% url 'complaints:derman_withdraw' complaint.pk item.id %}"
+                class="derman-withdraw-form"
+            >
 
-                                    <button
-                                        type="submit"
-                                        class="derman-withdraw-button"
-                                    >
-                                        <span aria-hidden="true">
-                                            ⌫
-                                        </span>
+                {% csrf_token %}
 
-                                        Dermanımı Geri Çek
-                                    </button>
+                <button
+                    type="submit"
+                    class="derman-withdraw-button"
+                >
+                    <span aria-hidden="true">
+                        ⌫
+                    </span>
 
-                                </form>
+                    Dermanımı Geri Çek
+                </button>
 
-                            {% endif %}
+            </form>
+
+        {% elif request.user.can_perform_user_mutations %}
+
+            <button
+                type="button"
+                class="derman-report-button"
+                data-report-open="derman-report-dialog-{{ item.id }}"
+            >
+                <span aria-hidden="true">
+                    ⚑
+                </span>
+
+                Raporla
+            </button>
+
+        {% endif %}
+
+    </div>
+
+{% endif %}
 
                         </header>
 
@@ -268,8 +289,6 @@
                                         </div>
 
                                     </div>
-
-
                                     {% if derman_visibility.can_company_respond and derman_company_response_form %}
 
                                         <button
@@ -430,6 +449,133 @@
                         </footer>
 
                     </article>
+
+
+                    {% if request.user.is_authenticated and request.user.user_type == 'USER' and request.user.pk != item.author_user_id and request.user.can_perform_user_mutations %}
+                    
+                        <div
+                            class="report-modal derman-report-modal"
+                            id="derman-report-dialog-{{ item.id }}"
+                            data-report-modal
+                            hidden
+                            aria-hidden="true"
+                            role="dialog"
+                            aria-modal="true"
+                            aria-labelledby="derman-report-title-{{ item.id }}"
+                        >
+                    
+                            <div class="report-modal-card derman-report-modal__card">
+                    
+                                <header class="report-modal-head">
+                    
+                                    <div>
+                    
+                                        <p class="report-modal-kicker">
+                                            İÇERİK RAPORU
+                                        </p>
+                    
+                                        <h2 id="derman-report-title-{{ item.id }}">
+                                            Bu Dermanı raporla
+                                        </h2>
+                    
+                                        <p>
+                                            Yalnızca topluluk kurallarını ihlal ettiğini
+                                            düşündüğünüz Derman paylaşımlarını raporlayın.
+                                        </p>
+                    
+                                    </div>
+                    
+                    
+                                    <button
+                                        type="button"
+                                        class="report-modal-close"
+                                        data-report-close
+                                        aria-label="Pencereyi kapat"
+                                    >
+                                        ×
+                                    </button>
+                    
+                                </header>
+                    
+                    
+                                <form
+                                    method="post"
+                                    action="{% url 'complaints:derman_report' complaint.pk item.id %}"
+                                    class="report-modal-body"
+                                    data-submit-form
+                                >
+                    
+                                    {% csrf_token %}
+                    
+                    
+                                    <label class="report-modal-field">
+                    
+                                        <span>
+                                            Raporlama nedeni
+                                        </span>
+                    
+                                        {{ content_report_form.reason }}
+                    
+                                    </label>
+                    
+                    
+                                    <label class="report-modal-field">
+                    
+                                        <span>
+                                            Açıklama
+                                        </span>
+                    
+                                        {{ content_report_form.description }}
+                    
+                                        <small class="derman-report-help">
+                                            İsteğe bağlıdır. En fazla 1000 karakter.
+                                        </small>
+                    
+                                    </label>
+                    
+                    
+                                    <div class="derman-report-notice">
+                    
+                                        <strong>
+                                            Raporlama sistemi kötüye kullanılmamalıdır.
+                                        </strong>
+                    
+                                        <p>
+                                            Kötü niyetli veya asılsız raporlar yönetim
+                                            incelemesinde hesabınız için ihlal kaydına
+                                            dönüşebilir.
+                                        </p>
+                    
+                                    </div>
+                    
+                    
+                                    <div class="report-modal-actions">
+                    
+                                        <button
+                                            type="button"
+                                            class="report-cancel"
+                                            data-report-close
+                                        >
+                                            Vazgeç
+                                        </button>
+                    
+                                        <button
+                                            type="submit"
+                                            class="report-submit derman-report-submit"
+                                            data-submit-label="Raporu Gönder"
+                                        >
+                                            Raporu Gönder
+                                        </button>
+                    
+                                    </div>
+                    
+                                </form>
+                    
+                            </div>
+                    
+                        </div>
+                    
+                    {% endif %}
 
 
                     {% if derman_visibility.can_company_respond and derman_company_response_form %}

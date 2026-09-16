@@ -210,32 +210,75 @@ def complaint_event(
             company=complaint.company,
         )
 
-
-def notify_admins_content_report(report):
-    if report.target_type == "COMPLAINT":
-        title = "Yeni şikayet raporu"
-
-        message = (
-            f'"{report.complaint.title}" başlıklı şikayet '
-            f"{report.get_reason_display()} nedeniyle raporlandı."
+def notify_admins_content_report(
+    report
+):
+    if (
+        report.target_type
+        == "COMPLAINT"
+    ):
+        title = (
+            "Yeni şikayet raporu"
         )
 
-    else:
-        title = "Yeni yorum raporu"
-
         message = (
-            f"Bir yorum {report.get_reason_display()} "
+            f'"{report.complaint.title}" '
+            f"başlıklı şikayet "
+            f"{report.get_reason_display()} "
             "nedeniyle raporlandı."
         )
 
+    elif (
+        report.target_type
+        == "COMMENT"
+    ):
+        title = (
+            "Yeni yorum raporu"
+        )
+
+        message = (
+            "Bir yorum "
+            f"{report.get_reason_display()} "
+            "nedeniyle raporlandı."
+        )
+
+    elif (
+        report.target_type
+        == "DERMAN"
+    ):
+        title = (
+            "Yeni Derman raporu"
+        )
+
+        message = (
+            "Bir Derman paylaşımı "
+            f"{report.get_reason_display()} "
+            "nedeniyle raporlandı."
+        )
+
+    else:
+        title = (
+            "Yeni içerik raporu"
+        )
+
+        message = (
+            "Bir içerik moderasyon "
+            "incelemesine gönderildi."
+        )
+
     send_admins(
-        kind=Notification.Type.CONTENT_REPORT,
-        event_key=f"content-report:{report.pk}:created",
+        kind=(
+            Notification.Type
+            .CONTENT_REPORT
+        ),
+        event_key=(
+            f"content-report:"
+            f"{report.pk}:created"
+        ),
         title=title,
         message=message,
         content_report=report,
     )
-
 
 def notify_admins_user_report(report):
     send_admins(
