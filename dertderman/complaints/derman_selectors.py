@@ -23,6 +23,9 @@ from .models import (
     DermanPost,
     DermanReaction,
 )
+from .selectors import (
+    public_complaint_filter,
+)
 
 
 class DermanAccessLevel:
@@ -73,6 +76,30 @@ def _empty_dermans():
             "created_at",
             "published_at",
         )
+    )
+
+
+def _complaint_is_public(
+    complaint,
+):
+    complaint_id = getattr(
+        complaint,
+        "pk",
+        None,
+    )
+
+    if not complaint_id:
+        return False
+
+    return (
+        Complaint.objects
+        .filter(
+            pk=complaint_id,
+        )
+        .filter(
+            public_complaint_filter()
+        )
+        .exists()
     )
 
 
@@ -231,6 +258,27 @@ def derman_visibility_for(
     user,
     complaint,
 ):
+    # Parent complaint public değilse hiçbir Derman
+    # bilgisi dışarı sızdırılmaz.
+    #
+    # Withdrawn / removed / violation-removed /
+    # şirketi artık public olmayan complaint gibi
+    # durumlarda fail-closed davranır.
+    if not _complaint_is_public(
+        complaint
+    ):
+        return DermanVisibility(
+            access_level=(
+                DermanAccessLevel.ANONYMOUS
+            ),
+            published_count=0,
+            can_view_content=False,
+            paywalled=False,
+            can_create=False,
+            can_react=False,
+            dermans=_empty_dermans(),
+        )
+
     count = published_derman_count(
         complaint
     )

@@ -560,3 +560,115 @@ class DermanSelectorTests(TestCase):
             visibility.published_count,
             1,
         )
+
+    def test_withdrawn_parent_exposes_no_derman_data(
+        self,
+    ):
+        self.complaint.withdrawn_at = (
+            timezone.now()
+        )
+
+        self.complaint.save(
+            update_fields=(
+                "withdrawn_at",
+                "updated_at",
+            )
+        )
+
+        visibility = derman_visibility_for(
+            user=self.viewer,
+            complaint=self.complaint,
+        )
+
+        self.assertEqual(
+            visibility.published_count,
+            0,
+        )
+
+        self.assertFalse(
+            visibility.can_view_content
+        )
+
+        self.assertFalse(
+            visibility.can_create
+        )
+
+        self.assertFalse(
+            visibility.can_react
+        )
+
+        self.assertEqual(
+            list(visibility.dermans),
+            [],
+        )
+
+    def test_violation_removed_parent_exposes_no_derman_data(
+        self,
+    ):
+        self.complaint.removed_for_violation = True
+        self.complaint.violation_removed_at = (
+            timezone.now()
+        )
+
+        self.complaint.save(
+            update_fields=(
+                "removed_for_violation",
+                "violation_removed_at",
+                "updated_at",
+            )
+        )
+
+        visibility = derman_visibility_for(
+            user=self.viewer,
+            complaint=self.complaint,
+        )
+
+        self.assertEqual(
+            visibility.published_count,
+            0,
+        )
+
+        self.assertFalse(
+            visibility.can_view_content
+        )
+
+        self.assertFalse(
+            visibility.can_create
+        )
+
+        self.assertFalse(
+            visibility.can_react
+        )
+
+        self.assertEqual(
+            list(visibility.dermans),
+            [],
+        )
+
+    def test_suspended_user_can_view_but_cannot_mutate(
+        self,
+    ):
+        self.viewer.is_suspended = True
+
+        self.viewer.save(
+            update_fields=(
+                "is_suspended",
+            )
+        )
+
+        visibility = derman_visibility_for(
+            user=self.viewer,
+            complaint=self.complaint,
+        )
+
+        self.assertTrue(
+            visibility.can_view_content
+        )
+
+        self.assertFalse(
+            visibility.can_create
+        )
+
+        self.assertFalse(
+            visibility.can_react
+        )
