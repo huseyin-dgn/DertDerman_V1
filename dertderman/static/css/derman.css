@@ -143,6 +143,123 @@
     line-height: 1.65;
 }
 
+.derman-company-response {
+    margin-top: 14px;
+    padding: 13px 14px;
+    border: 1px solid #d7e6f5;
+    border-left: 3px solid #1d5fa7;
+    border-radius: 12px;
+    background: #f7fbff;
+}
+
+.derman-company-response__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.derman-company-response__identity {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-width: 0;
+}
+
+.derman-company-response__badge {
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    background: #e7f2ff;
+    color: #1d5fa7;
+    font-size: .78rem;
+    font-weight: 900;
+}
+
+.derman-company-response__identity > div {
+    display: grid;
+    gap: 1px;
+    min-width: 0;
+}
+
+.derman-company-response__label {
+    color: #1d5fa7;
+    font-size: .68rem;
+    font-weight: 900;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+.derman-company-response__identity strong {
+    color: #22344b;
+    font-size: .86rem;
+}
+
+.derman-company-response__body {
+    margin: 10px 0 0;
+    color: #40536a;
+    font-size: .88rem;
+    line-height: 1.6;
+}
+
+.derman-company-response__meta {
+    display: block;
+    margin-top: 8px;
+    color: #8290a2;
+    font-size: .72rem;
+}
+
+.derman-company-response-empty {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-top: 14px;
+    padding: 12px 13px;
+    border: 1px dashed #cbdbea;
+    border-radius: 12px;
+    background: #f8fbff;
+}
+
+.derman-company-response-empty strong {
+    display: block;
+    color: #31445c;
+    font-size: .84rem;
+}
+
+.derman-company-response-empty p {
+    margin: 3px 0 0;
+    color: #718096;
+    font-size: .78rem;
+    line-height: 1.45;
+}
+
+.derman-company-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    min-height: 34px;
+    padding: 0 11px;
+    border: 1px solid #b7cfe7;
+    border-radius: 9px;
+    background: #fff;
+    color: #1d5fa7;
+    font: inherit;
+    font-size: .76rem;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.derman-company-action:hover {
+    border-color: #8db3d9;
+    background: #eef6ff;
+    color: #174b85;
+}
+
 .derman-card__footer {
     display: flex;
     align-items: center;
@@ -295,24 +412,34 @@
     min-height: 180px;
 }
 
-.derman-modal__warning {
+.derman-modal__warning,
+.derman-company-modal__notice {
     padding: 12px 14px;
     border: 1px solid #dce8f4;
     border-radius: 12px;
     background: #f6faff;
 }
 
-.derman-modal__warning strong {
+.derman-modal__warning strong,
+.derman-company-modal__notice strong {
     display: block;
     color: #214466;
     font-size: .88rem;
 }
 
-.derman-modal__warning p {
+.derman-modal__warning p,
+.derman-company-modal__notice p {
     margin: 4px 0 0;
     color: #60758a;
     font-size: .84rem;
     line-height: 1.5;
+}
+
+.derman-company-form-help {
+    display: block;
+    margin-top: 6px;
+    color: #7a8798;
+    font-size: .76rem;
 }
 
 .derman-confirm {
@@ -349,7 +476,8 @@
     }
 
     .derman-section__header,
-    .derman-gate {
+    .derman-gate,
+    .derman-company-response-empty {
         align-items: stretch;
         flex-direction: column;
     }
@@ -359,12 +487,14 @@
     }
 
     .derman-open-button,
-    .derman-gate > a {
+    .derman-gate > a,
+    .derman-company-response-empty .derman-company-action {
         width: 100%;
         justify-content: center;
     }
 
-    .derman-card__header {
+    .derman-card__header,
+    .derman-company-response__header {
         gap: 10px;
     }
 

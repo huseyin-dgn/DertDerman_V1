@@ -13,6 +13,7 @@ from companies.models import (
 
 from .models import (
     Complaint,
+    DermanCompanyResponse,
     DermanPost,
 )
 
@@ -80,6 +81,38 @@ class DermanTemplateTests(TestCase):
         cls.url = reverse(
             "complaints:public_detail",
             args=[cls.complaint.pk],
+        )
+
+    def _create_company_response(self):
+        return DermanCompanyResponse.objects.create(
+            derman=self.derman,
+            company=self.company,
+            author_user=self.company_user,
+            body=(
+                "Bu metin Derman için yayınlanan "
+                "benzersiz resmi şirket yanıtıdır."
+            ),
+        )
+
+    def _grant_pro(self, role):
+        CompanyMembership.objects.create(
+            user=self.company_user,
+            company=self.company,
+            role=role,
+            is_active=True,
+        )
+
+        CompanySubscription.objects.create(
+            company=self.company,
+            plan=CompanySubscription.Plan.PRO,
+            billing_period=(
+                CompanySubscription.BillingPeriod.MONTHLY
+            ),
+            is_active=True,
+            current_period_end=(
+                timezone.now()
+                + timedelta(days=30)
+            ),
         )
 
     def test_anonymous_sees_count_but_not_derman_body(self):
@@ -195,6 +228,10 @@ class DermanTemplateTests(TestCase):
         )
 
     def test_standard_company_gets_paywall_without_body(self):
+        company_response = (
+            self._create_company_response()
+        )
+
         CompanyMembership.objects.create(
             user=self.company_user,
             company=self.company,
@@ -215,6 +252,11 @@ class DermanTemplateTests(TestCase):
             self.derman.body,
         )
 
+        self.assertNotContains(
+            response,
+            company_response.body,
+        )
+
         self.assertContains(
             response,
             "DertDerman Pro",
@@ -225,23 +267,31 @@ class DermanTemplateTests(TestCase):
             "1 yayınlanmış Derman",
         )
 
-    def test_pro_company_with_exact_membership_sees_body(self):
-        CompanyMembership.objects.create(
-            user=self.company_user,
-            company=self.company,
-            role=CompanyMembership.Role.MANAGER,
-            is_active=True,
+        self.assertNotContains(
+            response,
+            reverse(
+                "complaints:"
+                "derman_company_response_create",
+                kwargs={
+                    "derman_pk": self.derman.pk,
+                },
+            ),
         )
 
-        CompanySubscription.objects.create(
-            company=self.company,
-            plan=CompanySubscription.Plan.PRO,
-            billing_period=CompanySubscription.BillingPeriod.MONTHLY,
-            is_active=True,
-            current_period_end=(
-                timezone.now()
-                + timedelta(days=30)
+        self.assertNotContains(
+            response,
+            reverse(
+                "complaints:"
+                "derman_company_response_update",
+                kwargs={
+                    "derman_pk": self.derman.pk,
+                },
             ),
+        )
+
+    def test_pro_company_with_exact_membership_sees_body(self):
+        self._grant_pro(
+            CompanyMembership.Role.MANAGER
         )
 
         self.client.force_login(
@@ -344,5 +394,277 @@ class DermanTemplateTests(TestCase):
                     self.complaint.pk,
                     self.derman.pk,
                 ],
+            ),
+        )
+
+    def test_user_sees_official_company_response_without_company_controls(
+        self,
+    ):
+        company_response = (
+            self._create_company_response()
+        )
+
+        self.client.force_login(
+            self.viewer
+        )
+
+        response = self.client.get(
+            self.url
+        )
+
+        self.assertContains(
+            response,
+            "Resmi Şirket Yanıtı",
+        )
+
+        self.assertContains(
+            response,
+            company_response.body,
+        )
+
+        self.assertNotContains(
+            response,
+            reverse(
+                "complaints:"
+                "derman_company_response_create",
+                kwargs={
+                    "derman_pk": self.derman.pk,
+                },
+            ),
+        )
+
+        self.assertNotContains(
+            response,
+            reverse(
+                "complaints:"
+                "derman_company_response_update",
+                kwargs={
+                    "derman_pk": self.derman.pk,
+                },
+            ),
+        )
+
+    def test_pro_manager_without_response_gets_create_control(
+        self,
+    ):
+        self._grant_pro(
+            CompanyMembership.Role.MANAGER
+        )
+
+        self.client.force_login(
+            self.company_user
+        )
+
+        response = self.client.get(
+            self.url
+        )
+
+        self.assertContains(
+            response,
+            "Resmi Yanıt Ver",
+        )
+
+        self.assertContains(
+            response,
+            reverse(
+                "complaints:"
+                "derman_company_response_create",
+                kwargs={
+                    "derman_pk": self.derman.pk,
+                },
+            ),
+        )
+
+        self.assertNotContains(
+            response,
+            reverse(
+                "complaints:"
+                "derman_company_response_update",
+                kwargs={
+                    "derman_pk": self.derman.pk,
+                },
+            ),
+        )
+    def test_pro_manager_with_response_gets_update_control(
+        self,
+    ):
+        company_response = (
+            self._create_company_response()
+        )
+
+        self._grant_pro(
+            CompanyMembership.Role.MANAGER
+        )
+
+        self.client.force_login(
+            self.company_user
+        )
+
+        response = self.client.get(
+            self.url
+        )
+
+        self.assertContains(
+            response,
+            company_response.body,
+        )
+
+        self.assertContains(
+            response,
+            "Yanıtı Düzenle",
+        )
+
+        update_url = reverse(
+            (
+                "complaints:"
+                "derman_company_response_update"
+            ),
+            kwargs={
+                "derman_pk": self.derman.pk,
+            },
+        )
+
+        create_url = reverse(
+            (
+                "complaints:"
+                "derman_company_response_create"
+            ),
+            kwargs={
+                "derman_pk": self.derman.pk,
+            },
+        )
+
+        self.assertContains(
+            response,
+            f'action="{update_url}"',
+            html=False,
+        )
+
+        self.assertNotContains(
+            response,
+            f'action="{create_url}"',
+            html=False,
+        )
+
+    def test_pro_support_sees_response_but_gets_no_company_controls(
+        self,
+    ):
+        company_response = (
+            self._create_company_response()
+        )
+
+        self._grant_pro(
+            CompanyMembership.Role.SUPPORT
+        )
+
+        self.client.force_login(
+            self.company_user
+        )
+
+        response = self.client.get(
+            self.url
+        )
+
+        self.assertContains(
+            response,
+            company_response.body,
+        )
+
+        self.assertNotContains(
+            response,
+            "Resmi Yanıt Ver",
+        )
+
+        self.assertNotContains(
+            response,
+            "Yanıtı Düzenle",
+        )
+
+        self.assertNotContains(
+            response,
+            reverse(
+                "complaints:"
+                "derman_company_response_create",
+                kwargs={
+                    "derman_pk": self.derman.pk,
+                },
+            ),
+        )
+
+        self.assertNotContains(
+            response,
+            reverse(
+                "complaints:"
+                "derman_company_response_update",
+                kwargs={
+                    "derman_pk": self.derman.pk,
+                },
+            ),
+        )
+
+    def test_resolved_pro_manager_sees_response_without_company_mutation_controls(
+        self,
+    ):
+        company_response = (
+            self._create_company_response()
+        )
+
+        self._grant_pro(
+            CompanyMembership.Role.MANAGER
+        )
+
+        self.complaint.status = (
+            Complaint.Status.RESOLVED
+        )
+
+        self.complaint.save(
+            update_fields=(
+                "status",
+                "updated_at",
+            )
+        )
+
+        self.client.force_login(
+            self.company_user
+        )
+
+        response = self.client.get(
+            self.url
+        )
+
+        self.assertContains(
+            response,
+            company_response.body,
+        )
+
+        self.assertNotContains(
+            response,
+            "Resmi Yanıt Ver",
+        )
+
+        self.assertNotContains(
+            response,
+            "Yanıtı Düzenle",
+        )
+
+        self.assertNotContains(
+            response,
+            reverse(
+                "complaints:"
+                "derman_company_response_create",
+                kwargs={
+                    "derman_pk": self.derman.pk,
+                },
+            ),
+        )
+
+        self.assertNotContains(
+            response,
+            reverse(
+                "complaints:"
+                "derman_company_response_update",
+                kwargs={
+                    "derman_pk": self.derman.pk,
+                },
             ),
         )

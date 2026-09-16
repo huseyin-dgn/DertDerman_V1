@@ -136,6 +136,94 @@
                         </p>
 
 
+                        {% if item.company_response_id %}
+
+                            <section
+                                class="derman-company-response"
+                                aria-label="Resmi şirket yanıtı"
+                            >
+
+                                <header class="derman-company-response__header">
+
+                                    <div class="derman-company-response__identity">
+
+                                        <span
+                                            class="derman-company-response__badge"
+                                            aria-hidden="true"
+                                        >
+                                            ✓
+                                        </span>
+
+                                        <div>
+                                            <span class="derman-company-response__label">
+                                                Resmi Şirket Yanıtı
+                                            </span>
+
+                                            <strong>
+                                                {{ complaint.company.name }}
+                                            </strong>
+                                        </div>
+
+                                    </div>
+
+
+                                    {% if derman_visibility.can_company_respond and derman_company_response_form %}
+
+                                        <button
+                                            type="button"
+                                            class="derman-company-action"
+                                            data-report-open="derman-company-response-dialog-{{ item.id }}"
+                                        >
+                                            Yanıtı Düzenle
+                                        </button>
+
+                                    {% endif %}
+
+                                </header>
+
+
+                                <p class="derman-company-response__body">
+                                    {{ item.company_response_body|linebreaksbr }}
+                                </p>
+
+
+                                <span class="derman-company-response__meta">
+                                    <time
+                                        datetime="{{ item.company_response_created_at|date:'c' }}"
+                                    >
+                                        {{ item.company_response_created_at|date:'d.m.Y H:i' }}
+                                    </time>
+                                </span>
+
+                            </section>
+
+                        {% elif derman_visibility.can_company_respond and derman_company_response_form %}
+
+                            <div class="derman-company-response-empty">
+
+                                <div>
+                                    <strong>
+                                        Şirketiniz bu Derman'a henüz resmi yanıt vermedi.
+                                    </strong>
+
+                                    <p>
+                                        Yanıtınız Derman kartı üzerinde resmi şirket açıklaması olarak gösterilir.
+                                    </p>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    class="derman-company-action"
+                                    data-report-open="derman-company-response-dialog-{{ item.id }}"
+                                >
+                                    Resmi Yanıt Ver
+                                </button>
+
+                            </div>
+
+                        {% endif %}
+
+
                         <footer class="derman-card__footer">
 
                             {% if request.user.is_authenticated and request.user.user_type == 'USER' and derman_visibility.can_react and request.user.pk != item.author_user_id %}
@@ -219,6 +307,135 @@
                         </footer>
 
                     </article>
+
+
+                    {% if derman_visibility.can_company_respond and derman_company_response_form %}
+
+                        <div
+                            class="report-modal derman-modal derman-company-modal"
+                            id="derman-company-response-dialog-{{ item.id }}"
+                            data-report-modal
+                            hidden
+                            aria-hidden="true"
+                            role="dialog"
+                            aria-modal="true"
+                            aria-labelledby="derman-company-response-title-{{ item.id }}"
+                        >
+
+                            <div class="report-modal-card derman-modal__card">
+
+                                <header class="report-modal-head">
+
+                                    <div>
+
+                                        <p class="report-modal-kicker">
+                                            DERMAN OL
+                                        </p>
+
+                                        <h2 id="derman-company-response-title-{{ item.id }}">
+                                            {% if item.company_response_id %}
+                                                Resmi yanıtı düzenleyin
+                                            {% else %}
+                                                Resmi şirket yanıtı verin
+                                            {% endif %}
+                                        </h2>
+
+                                        <p>
+                                            Yanıt doğrudan şirketiniz adına yayınlanır ve bu Derman kartında görünür.
+                                        </p>
+
+                                    </div>
+
+
+                                    <button
+                                        type="button"
+                                        class="report-modal-close"
+                                        data-report-close
+                                        aria-label="Pencereyi kapat"
+                                    >
+                                        ×
+                                    </button>
+
+                                </header>
+
+
+                                <form
+                                    method="post"
+                                    action="{% if item.company_response_id %}{% url 'complaints:derman_company_response_update' item.id %}{% else %}{% url 'complaints:derman_company_response_create' item.id %}{% endif %}"
+                                    class="report-modal-body derman-modal__body"
+                                    data-submit-form
+                                >
+
+                                    {% csrf_token %}
+
+
+                                    <label class="report-modal-field">
+
+                                        <span>
+                                            {{ derman_company_response_form.body.label }}
+                                        </span>
+
+                                        <textarea
+                                            name="body"
+                                            rows="6"
+                                            maxlength="3000"
+                                            minlength="20"
+                                            required
+                                            data-character-count=""
+                                            placeholder="Şirketinizin bu Derman hakkındaki resmi yanıtını yazın."
+                                        >{% if item.company_response_id %}{{ item.company_response_body }}{% endif %}</textarea>
+
+                                        <small class="derman-company-form-help">
+                                            En az 20, en fazla 3000 karakter.
+                                        </small>
+
+                                    </label>
+
+
+                                    <div class="derman-company-modal__notice">
+
+                                        <strong>
+                                            Resmi şirket açıklaması
+                                        </strong>
+
+                                        <p>
+                                            Bu metin şirketiniz adına görünür. Yalnızca DertDerman Pro kapsamındaki yetkili şirket hesapları bu yanıtı oluşturabilir veya güncelleyebilir.
+                                        </p>
+
+                                    </div>
+
+
+                                    <div class="report-modal-actions">
+
+                                        <button
+                                            type="button"
+                                            class="report-cancel"
+                                            data-report-close
+                                        >
+                                            Vazgeç
+                                        </button>
+
+                                        <button
+                                            type="submit"
+                                            class="report-submit derman-submit"
+                                            data-submit-label="{% if item.company_response_id %}Yanıtı Güncelle{% else %}Yanıtı Yayınla{% endif %}"
+                                        >
+                                            {% if item.company_response_id %}
+                                                Yanıtı Güncelle
+                                            {% else %}
+                                                Yanıtı Yayınla
+                                            {% endif %}
+                                        </button>
+
+                                    </div>
+
+                                </form>
+
+                            </div>
+
+                        </div>
+
+                    {% endif %}
 
                 {% endfor %}
 
@@ -307,9 +524,9 @@
 
                 <div>
 
-<span class="derman-pro-label">
-    DertDerman Pro
-</span>
+                    <span class="derman-pro-label">
+                        DertDerman Pro
+                    </span>
 
                     <strong>{{ derman_visibility.published_count }} yayınlanmış Derman var</strong>
 
@@ -320,12 +537,13 @@
 
                 </div>
 
-<a
-    class="primary-action"
-    href="{% url 'payments:checkout' %}"
->
-    DertDerman Pro'yu İncele
-</a>
+                <a
+                    class="primary-action"
+                    href="{% url 'payments:checkout' %}"
+                >
+                    DertDerman Pro'yu İncele
+                </a>
+
             </div>
 
         {% else %}
