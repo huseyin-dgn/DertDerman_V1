@@ -155,6 +155,7 @@ INSTALLED_APPS = [
     "notifications.apps.NotificationsConfig",
     "blog.apps.BlogConfig",
     "dashboard.apps.DashboardConfig",
+    "assistant.apps.AssistantConfig",
     "adminx.apps.AdminxConfig",
     "core.apps.CoreConfig",
 ]

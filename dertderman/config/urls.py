@@ -18,6 +18,7 @@ urlpatterns = [
     path("sirket-panel/", include("companies.urls")),
     path("sirketler/", include("companies.public_urls")),
     path("yonetim/", include("adminx.urls")),
+    path("asistan/", include("assistant.urls")),
 ]
 
 if settings.DEBUG:
