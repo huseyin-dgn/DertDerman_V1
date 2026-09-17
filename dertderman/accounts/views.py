@@ -23,6 +23,7 @@ from django.views.decorators.http import require_POST, require_http_methods
 from django.views.generic.edit import FormView
 
 from core.decorators import no_referrer, role_required
+from core.session_security import revoke_user_sessions
 from core.rate_limit import (
     AuthRateLimitPolicy,
     clear_auth_identity,
@@ -790,6 +791,13 @@ class SecurePasswordChangeView(
             response = super().form_valid(
                 form
             )
+
+        revoke_user_sessions(
+            account.pk,
+            keep_session_key=(
+                self.request.session.session_key
+            ),
+        )
 
         clear_rate_limit(
             scope="password-change-current-password",

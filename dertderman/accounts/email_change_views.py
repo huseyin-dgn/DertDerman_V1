@@ -245,7 +245,12 @@ def email_change_confirm(request, token):
             },
         )
 
-    changed_user = apply_email_change_token(token)
+    changed_user = apply_email_change_token(
+        token,
+        keep_session_key=(
+            request.session.session_key
+        ),
+    )
 
     if changed_user is None or changed_user.pk != request.user.pk:
         return render(

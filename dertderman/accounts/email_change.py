@@ -11,6 +11,8 @@ from django.utils.crypto import constant_time_compare
 
 from notifications.email_service import send_email
 
+from core.session_security import revoke_user_sessions
+
 from .models import User
 
 
@@ -160,7 +162,11 @@ def resolve_email_change_token(
     return user, new_email
 
 
-def apply_email_change_token(token: str) -> User | None:
+def apply_email_change_token(
+    token: str,
+    *,
+    keep_session_key=None,
+) -> User | None:
     try:
         with transaction.atomic():
             resolved = resolve_email_change_token(
@@ -178,7 +184,19 @@ def apply_email_change_token(token: str) -> User | None:
 
             user.email = new_email
             user.is_verified = True
-            user.save(update_fields=("email", "is_verified"))
+            user.save(
+                update_fields=(
+                    "email",
+                    "is_verified",
+                )
+            )
+
+            revoke_user_sessions(
+                user.pk,
+                keep_session_key=(
+                    keep_session_key
+                ),
+            )
 
             return user
     except IntegrityError:

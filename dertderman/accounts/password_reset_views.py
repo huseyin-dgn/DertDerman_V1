@@ -13,6 +13,7 @@ from django.views.generic import (
     TemplateView,
 )
 
+from core.session_security import revoke_user_sessions
 from core.rate_limit import (
     client_ip,
     consume_rate_limit,
@@ -134,7 +135,16 @@ class SecurePasswordResetConfirmView(
                 return self.render_to_response(self.get_context_data())
 
             form.user = user
-            return super().form_valid(form)
+
+            response = super().form_valid(
+                form
+            )
+
+            revoke_user_sessions(
+                user.pk
+            )
+
+            return response
 
 
 @method_decorator(

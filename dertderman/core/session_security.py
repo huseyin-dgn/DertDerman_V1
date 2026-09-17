@@ -2,6 +2,9 @@ import time
 
 from django.conf import settings
 from django.contrib.auth import SESSION_KEY, logout
+from django.contrib.sessions.backends.db import SessionStore
+from django.contrib.sessions.models import Session
+from django.core import signing
 
 
 SESSION_STARTED_AT_KEY = "_dd_auth_started_at"
@@ -68,6 +71,67 @@ def _initialize_session(
     session[SESSION_STARTED_AT_KEY] = now
     session[SESSION_LAST_SEEN_AT_KEY] = now
     session[SESSION_ROLE_KEY] = role
+
+
+def _strict_decode_session_record(session):
+    store = SessionStore(
+        session_key=session.session_key
+    )
+
+    return signing.loads(
+        session.session_data,
+        salt=store.key_salt,
+        serializer=store.serializer,
+    )
+
+
+def revoke_user_sessions(
+    user_id,
+    *,
+    keep_session_key=None,
+):
+    """
+    Immediately revoke DB-backed authenticated sessions for one
+    account.
+
+    Corrupt/unverifiable session rows are deleted fail-closed.
+    An explicitly supplied current session is preserved only when
+    it successfully decodes as belonging to the target user.
+    """
+    target = str(user_id)
+    deleted = 0
+
+    queryset = Session.objects.all().only(
+        "session_key",
+        "session_data",
+    )
+
+    for session in queryset.iterator(
+        chunk_size=500
+    ):
+        try:
+            decoded = _strict_decode_session_record(
+                session
+            )
+        except Exception:
+            session.delete()
+            deleted += 1
+            continue
+
+        if decoded.get(SESSION_KEY) != target:
+            continue
+
+        if (
+            keep_session_key
+            and session.session_key
+            == keep_session_key
+        ):
+            continue
+
+        session.delete()
+        deleted += 1
+
+    return deleted
 
 
 class SessionSecurityMiddleware:
