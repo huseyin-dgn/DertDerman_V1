@@ -57,7 +57,11 @@
                     </svg>
                 </span>
                 <div class="dd-assistant__bubble dd-assistant__bubble--assistant">
-                    <p>Merhaba. Size hangi konuda yardımcı olayım?</p>
+                    {% if request.user.is_authenticated and request.user.user_type == 'USER' %}
+                        <p>Merhaba. Hesabınız veya DertDerman hakkında neye bakalım?</p>
+                    {% else %}
+                        <p>Merhaba. Size hangi konuda yardımcı olayım?</p>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -66,18 +70,21 @@
             <div class="dd-assistant__quick-actions-grid">
                 {% if request.user.is_authenticated and request.user.user_type == 'USER' and request.user.is_active and request.user.is_verified and not request.user.is_permanently_closed %}
                     <button type="button" data-assistant-action="MY_SUMMARY">Hesap özetim</button>
-                {% endif %}
-
-                <button type="button" data-assistant-action="ABOUT_DERTDERMAN">DertDerman nedir?</button>
-                <button type="button" data-assistant-action="HOW_TO_COMPLAIN">Şikayet nasıl yazılır?</button>
-                <button type="button" data-assistant-action="WHAT_IS_DERMAN">Derman Ol nedir?</button>
-
-                {% if not request.user.is_authenticated %}
+                    <button type="button" data-assistant-action="MY_COMPLAINTS">Şikayetlerim</button>
+                    <button type="button" data-assistant-action="MY_NOTIFICATIONS">Bildirimlerim</button>
+                    <button type="button" data-assistant-action="ACCOUNT_SETTINGS">Hesap ayarları</button>
+                    <button type="button" data-assistant-action="HOW_TO_COMPLAIN">Şikayet nasıl yazılır?</button>
+                    <button type="button" data-assistant-action="WHAT_IS_DERMAN">Derman Ol nedir?</button>
+                    <button type="button" data-assistant-action="CONTACT_SUPPORT">Yardım &amp; iletişim</button>
+                {% else %}
+                    <button type="button" data-assistant-action="ABOUT_DERTDERMAN">DertDerman nedir?</button>
+                    <button type="button" data-assistant-action="HOW_TO_COMPLAIN">Şikayet nasıl yazılır?</button>
+                    <button type="button" data-assistant-action="WHAT_IS_DERMAN">Derman Ol nedir?</button>
                     <button type="button" data-assistant-action="HOW_TO_REGISTER">Nasıl kayıt olurum?</button>
                     <button type="button" data-assistant-action="HOW_TO_LOGIN">Nasıl giriş yaparım?</button>
+                    <button type="button" data-assistant-action="COMPANY_ACCOUNT_HELP">Şirket hesabı</button>
+                    <button type="button" data-assistant-action="CONTACT_SUPPORT">Yardım &amp; iletişim</button>
                 {% endif %}
-
-                <button type="button" data-assistant-action="COMPANY_ACCOUNT_HELP">Şirket hesabı</button>
             </div>
         </div>
 

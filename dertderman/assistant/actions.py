@@ -5,7 +5,11 @@ from enum import Enum
 from django.urls import reverse
 
 from .context import ActorKind, AssistantContext
-from .selectors import get_my_summary
+from .selectors import (
+    get_my_complaint_summary,
+    get_my_notification_summary,
+    get_my_summary,
+)
 
 
 class AssistantAction(str, Enum):
@@ -16,6 +20,14 @@ class AssistantAction(str, Enum):
     HOW_TO_LOGIN = "HOW_TO_LOGIN"
     COMPANY_ACCOUNT_HELP = "COMPANY_ACCOUNT_HELP"
     MY_SUMMARY = "MY_SUMMARY"
+
+    # A3 - context-aware, read-only USER helpers.
+    MY_COMPLAINTS = "MY_COMPLAINTS"
+    MY_NOTIFICATIONS = "MY_NOTIFICATIONS"
+    ACCOUNT_SETTINGS = "ACCOUNT_SETTINGS"
+
+    # A3 - public support helper.
+    CONTACT_SUPPORT = "CONTACT_SUPPORT"
 
 
 @dataclass(frozen=True)
@@ -40,6 +52,8 @@ PUBLIC_ACTORS = frozenset(
         ActorKind.ADMIN,
     }
 )
+
+PRIVATE_USER_ACTORS = frozenset({ActorKind.USER})
 
 
 def _link(label: str, route_name: str) -> dict[str, str]:
@@ -178,6 +192,97 @@ def my_summary(
     )
 
 
+def my_complaints(
+    context: AssistantContext,
+) -> AssistantReply:
+    summary = get_my_complaint_summary(context.user)
+    total = summary["total"]
+    latest = summary["latest"]
+
+    if total == 0:
+        message = (
+            "Henüz hesabınıza ait bir şikayet bulunmuyor. "
+            "Yeni bir şikayet oluşturabilir veya yayınlanan şikayetleri inceleyebilirsiniz."
+        )
+    elif latest:
+        status_label = latest["status"]
+        for item in summary["status_distribution"]:
+            if item["status"] == latest["status"]:
+                status_label = item["label"]
+                break
+
+        message = (
+            f"Hesabınızda toplam {total} şikayet bulunuyor. "
+            f"En son şikayetinizin durumu: {status_label}."
+        )
+    else:
+        message = f"Hesabınızda toplam {total} şikayet bulunuyor."
+
+    return AssistantReply(
+        message=message,
+        data=summary,
+        links=(
+            _link("Şikayetlerim", "complaints:list"),
+            _link("Yeni Şikayet", "complaints:create"),
+        ),
+    )
+
+
+def my_notifications(
+    context: AssistantContext,
+) -> AssistantReply:
+    summary = get_my_notification_summary(context.user)
+    unread_count = summary["unread_count"]
+
+    if unread_count:
+        message = (
+            f"{unread_count} okunmamış bildiriminiz bulunuyor. "
+            "Bildirimlerinizi güvenli bildirim sayfasından inceleyebilirsiniz."
+        )
+    else:
+        message = "Şu anda okunmamış bildiriminiz bulunmuyor."
+
+    return AssistantReply(
+        message=message,
+        data=summary,
+        links=(
+            _link("Bildirimlerim", "notifications:list"),
+        ),
+    )
+
+
+def account_settings(
+    context: AssistantContext,
+) -> AssistantReply:
+    return AssistantReply(
+        message=(
+            "Profil, e-posta ve parola işlemleri asistan içinde değiştirilmez. "
+            "İlgili güvenli hesap sayfasına yönlendirilirsiniz."
+        ),
+        links=(
+            _link("Profilim", "accounts:profile"),
+            _link("Profili Düzenle", "accounts:profile_edit"),
+            _link("E-posta Değiştir", "accounts:email_change"),
+            _link("Parola Değiştir", "accounts:password_change"),
+        ),
+    )
+
+
+def contact_support(
+    context: AssistantContext,
+) -> AssistantReply:
+    return AssistantReply(
+        message=(
+            "Aradığınız yanıtı bulamadıysanız sık sorulan soruları inceleyebilir "
+            "veya iletişim sayfasından DertDerman'a ulaşabilirsiniz."
+        ),
+        links=(
+            _link("Sık Sorulan Sorular", "core:faq"),
+            _link("Bize Ulaşın", "core:contact"),
+        ),
+    )
+
+
 ACTION_RULES: dict[AssistantAction, ActionRule] = {
     AssistantAction.ABOUT_DERTDERMAN: ActionRule(
         allowed_actor_kinds=PUBLIC_ACTORS,
@@ -204,10 +309,27 @@ ACTION_RULES: dict[AssistantAction, ActionRule] = {
         handler=company_account_help,
     ),
     AssistantAction.MY_SUMMARY: ActionRule(
-        allowed_actor_kinds=frozenset(
-            {ActorKind.USER}
-        ),
+        allowed_actor_kinds=PRIVATE_USER_ACTORS,
         handler=my_summary,
         requires_private_user=True,
+    ),
+    AssistantAction.MY_COMPLAINTS: ActionRule(
+        allowed_actor_kinds=PRIVATE_USER_ACTORS,
+        handler=my_complaints,
+        requires_private_user=True,
+    ),
+    AssistantAction.MY_NOTIFICATIONS: ActionRule(
+        allowed_actor_kinds=PRIVATE_USER_ACTORS,
+        handler=my_notifications,
+        requires_private_user=True,
+    ),
+    AssistantAction.ACCOUNT_SETTINGS: ActionRule(
+        allowed_actor_kinds=PRIVATE_USER_ACTORS,
+        handler=account_settings,
+        requires_private_user=True,
+    ),
+    AssistantAction.CONTACT_SUPPORT: ActionRule(
+        allowed_actor_kinds=PUBLIC_ACTORS,
+        handler=contact_support,
     ),
 }
