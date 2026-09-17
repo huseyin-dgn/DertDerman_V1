@@ -19,6 +19,14 @@ class SettingsProfileTests(SimpleTestCase):
             "https://dertderman.example,https://www.dertderman.example"
         ),
         "SITE_BASE_URL": "https://dertderman.example",
+        "POSTGRES_DB": "dertderman_settings_test",
+        "POSTGRES_USER": "dertderman_settings_test",
+        "POSTGRES_PASSWORD": (
+            "settings-test-only-db-password"
+        ),
+        "POSTGRES_HOST": "127.0.0.1",
+        "POSTGRES_PORT": "5432",
+        "REDIS_URL": "redis://127.0.0.1:6379/0",
     }
     isolated_keys = {
         "DJANGO_ENV",
@@ -35,6 +43,14 @@ class SettingsProfileTests(SimpleTestCase):
         "EMAIL_VERIFICATION_TIMEOUT",
         "EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS",
         "PASSWORD_RESET_TIMEOUT",
+        "POSTGRES_DB",
+        "POSTGRES_USER",
+        "POSTGRES_PASSWORD",
+        "POSTGRES_HOST",
+        "POSTGRES_PORT",
+        "POSTGRES_CONN_MAX_AGE",
+        "POSTGRES_CONNECT_TIMEOUT",
+        "REDIS_URL",
         "RESEND_API_KEY",
         "RESEND_TIMEOUT_SECONDS",
         "RESEND_WEBHOOK_MAX_BODY_BYTES",
@@ -70,10 +86,165 @@ class SettingsProfileTests(SimpleTestCase):
             "assert settings.SECRET_KEY.startswith('dev-only-'); "
             "assert 'localhost' in settings.ALLOWED_HOSTS; "
             "assert settings.SESSION_COOKIE_SECURE is False; "
-            "assert settings.SECURE_SSL_REDIRECT is False",
+            "assert settings.SECURE_SSL_REDIRECT is False; "
+            "assert settings.DATABASES['default']['ENGINE'] == "
+            "'django.db.backends.sqlite3'; "
+            "assert settings.CACHES['default']['BACKEND'] == "
+            "'django.core.cache.backends.locmem.LocMemCache'",
             env={"DJANGO_ENV": "development"},
         )
         self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_production_requires_postgresql_and_redis(self):
+        required_settings = (
+            "POSTGRES_DB",
+            "POSTGRES_USER",
+            "POSTGRES_PASSWORD",
+            "POSTGRES_HOST",
+            "REDIS_URL",
+        )
+
+        for missing_setting in required_settings:
+            with self.subTest(
+                missing_setting=missing_setting
+            ):
+                result = self.run_settings(
+                    "import config.settings",
+                    env=self.production_env,
+                    omitted={missing_setting},
+                )
+                self.assert_configuration_error(
+                    result,
+                    missing_setting,
+                )
+
+    def test_valid_production_profile_uses_postgresql_and_redis(self):
+        code = """
+import json
+from config import settings
+
+database = settings.DATABASES["default"]
+cache = settings.CACHES["default"]
+
+print(json.dumps({
+    "database_engine": database["ENGINE"],
+    "database_name": database["NAME"],
+    "database_host": database["HOST"],
+    "database_port": database["PORT"],
+    "conn_max_age": database["CONN_MAX_AGE"],
+    "conn_health_checks": database["CONN_HEALTH_CHECKS"],
+    "connect_timeout": database["OPTIONS"]["connect_timeout"],
+    "cache_backend": cache["BACKEND"],
+    "cache_location": cache["LOCATION"],
+}))
+"""
+
+        result = self.run_settings(
+            code,
+            env=self.production_env,
+        )
+
+        self.assertEqual(
+            result.returncode,
+            0,
+            result.stderr,
+        )
+
+        values = json.loads(result.stdout)
+
+        self.assertEqual(
+            values["database_engine"],
+            "django.db.backends.postgresql",
+        )
+        self.assertEqual(
+            values["database_name"],
+            "dertderman_settings_test",
+        )
+        self.assertEqual(
+            values["database_host"],
+            "127.0.0.1",
+        )
+        self.assertEqual(
+            values["database_port"],
+            "5432",
+        )
+        self.assertEqual(
+            values["conn_max_age"],
+            60,
+        )
+        self.assertIs(
+            values["conn_health_checks"],
+            True,
+        )
+        self.assertEqual(
+            values["connect_timeout"],
+            5,
+        )
+        self.assertEqual(
+            values["cache_backend"],
+            (
+                "django.core.cache.backends.redis."
+                "RedisCache"
+            ),
+        )
+        self.assertEqual(
+            values["cache_location"],
+            "redis://127.0.0.1:6379/0",
+        )
+
+    def test_production_rejects_invalid_redis_url(self):
+        for invalid_url in (
+            "http://127.0.0.1:6379",
+            "redis://",
+            "not-a-url",
+            "redis://127.0.0.1:bad",
+            "redis://127.0.0.1:6379/0 bad",
+        ):
+            with self.subTest(
+                invalid_url=invalid_url
+            ):
+                env = {
+                    **self.production_env,
+                    "REDIS_URL": invalid_url,
+                }
+                result = self.run_settings(
+                    "import config.settings",
+                    env=env,
+                )
+                self.assert_configuration_error(
+                    result,
+                    "REDIS_URL",
+                )
+
+    def test_production_rejects_invalid_postgres_numeric_settings(self):
+        invalid_cases = (
+            ("POSTGRES_PORT", "0"),
+            ("POSTGRES_PORT", "-1"),
+            ("POSTGRES_PORT", "invalid"),
+            ("POSTGRES_CONN_MAX_AGE", "-1"),
+            ("POSTGRES_CONN_MAX_AGE", "invalid"),
+            ("POSTGRES_CONNECT_TIMEOUT", "0"),
+            ("POSTGRES_CONNECT_TIMEOUT", "-1"),
+            ("POSTGRES_CONNECT_TIMEOUT", "invalid"),
+        )
+
+        for setting_name, invalid_value in invalid_cases:
+            with self.subTest(
+                setting_name=setting_name,
+                invalid_value=invalid_value,
+            ):
+                env = {
+                    **self.production_env,
+                    setting_name: invalid_value,
+                }
+                result = self.run_settings(
+                    "import config.settings",
+                    env=env,
+                )
+                self.assert_configuration_error(
+                    result,
+                    setting_name,
+                )
 
     def test_production_requires_secret_key(self):
         result = self.run_settings(

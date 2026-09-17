@@ -2,3 +2,5 @@ Django==5.2.13
 Pillow==12.3.0
 python-dotenv==1.2.3
 resend==2.44.0
+psycopg[binary]==3.3.5
+redis==6.4.0

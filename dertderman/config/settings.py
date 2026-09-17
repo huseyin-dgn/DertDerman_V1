@@ -113,6 +113,29 @@ def _validate_https_origin(origin, *, setting_name):
         )
 
 
+def _production_redis_url():
+    value = _required_env("REDIS_URL")
+
+    try:
+        parsed = urlsplit(value)
+        parsed.port
+    except ValueError as exc:
+        raise ImproperlyConfigured(
+            "REDIS_URL must be a valid redis:// or rediss:// URL."
+        ) from exc
+
+    if (
+        parsed.scheme not in {"redis", "rediss"}
+        or not parsed.hostname
+        or any(character.isspace() for character in value)
+    ):
+        raise ImproperlyConfigured(
+            "REDIS_URL must be a valid redis:// or rediss:// URL."
+        )
+
+    return value
+
+
 def _production_site_base_url():
     _required_env("SITE_BASE_URL")
     value = os.getenv("SITE_BASE_URL", "")
@@ -192,15 +215,71 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 
 
-# Stage 1 intentionally preserves the existing SQLite configuration. It is not
-# a production database design; an external production database remains a
-# deployment blocker to resolve in a later stage.
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+# Development remains intentionally lightweight. Production is fail-closed:
+# it must never fall back to SQLite or process-local cache.
+if IS_PRODUCTION:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": _required_env("POSTGRES_DB"),
+            "USER": _required_env("POSTGRES_USER"),
+            "PASSWORD": _required_env(
+                "POSTGRES_PASSWORD"
+            ),
+            "HOST": _required_env("POSTGRES_HOST"),
+            "PORT": str(
+                _positive_env_int(
+                    "POSTGRES_PORT",
+                    default=5432,
+                )
+            ),
+            "CONN_MAX_AGE": (
+                _nonnegative_env_int(
+                    "POSTGRES_CONN_MAX_AGE",
+                    default=60,
+                )
+            ),
+            "CONN_HEALTH_CHECKS": True,
+            "OPTIONS": {
+                "connect_timeout":
+                    _positive_env_int(
+                        "POSTGRES_CONNECT_TIMEOUT",
+                        default=5,
+                    ),
+            },
+        }
     }
-}
+
+    CACHES = {
+        "default": {
+            "BACKEND": (
+                "django.core.cache.backends.redis."
+                "RedisCache"
+            ),
+            "LOCATION": _production_redis_url(),
+            "TIMEOUT": 300,
+            "KEY_PREFIX": "dertderman",
+        }
+    }
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": (
+                "django.db.backends.sqlite3"
+            ),
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
+
+    CACHES = {
+        "default": {
+            "BACKEND": (
+                "django.core.cache.backends.locmem."
+                "LocMemCache"
+            ),
+            "LOCATION": "dertderman-development",
+        }
+    }
 
 
 AUTH_PASSWORD_VALIDATORS = [
