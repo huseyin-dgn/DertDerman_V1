@@ -2,6 +2,7 @@ from datetime import timedelta
 from .derman_selectors import (
     derman_visibility_for,
 )
+from django.views.decorators.cache import never_cache
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import IntegrityError, transaction
@@ -538,6 +539,7 @@ def _public_detail_context(
             related_complaints,
     }
 
+@never_cache
 @require_safe
 def public_complaint_detail(
     request,

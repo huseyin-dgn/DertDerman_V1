@@ -1034,6 +1034,8 @@ def report_status(request, pk):
     complaint_to_remove = None
     comment_to_remove = None
     derman_to_remove = None
+    derman_violation = None
+    derman_violation_eligible = False
 
     if (
         new_status == ContentReport.Status.RESOLVED
@@ -1070,11 +1072,42 @@ def report_status(request, pk):
             pk=report.derman_id,
         )
 
+        # Rapor yalnızca yayınlanmış bir Derman üzerinde oluşturulur.
+        # Yazar rapordan sonra paylaşımı geri çekse bile doğrulanmış
+        # ihlal kaydından kaçamamalıdır.
+        derman_violation_eligible = (
+            derman_to_remove.status
+            in {
+                DermanPost.Status.PUBLISHED,
+                DermanPost.Status.WITHDRAWN,
+                DermanPost.Status.REMOVED,
+            }
+        )
+
+        if derman_violation_eligible:
+            derman_violation = (
+                UserViolation.objects
+                .select_for_update()
+                .filter(
+                    source_type=UserViolation.SourceType.DERMAN,
+                    derman_id=derman_to_remove.pk,
+                )
+                .order_by("pk")
+                .first()
+            )
+
     # Aynı durum tekrar gönderildiyse normalde işlem yapma.
-    # Ancak eski bir RESOLVED raporda şikayet henüz kaldırılmadıysa
-    # kaldırma işlemini tamamlamaya izin ver.
+    # Ancak RESOLVED kararı verilmiş olmasına rağmen tamamlanmamış
+    # bir kaldırma/ihlal yan etkisi varsa onu tamamlamaya izin ver.
     if previous_status == new_status:
-        needs_violation_removal = (
+        derman_needs_violation = (
+            new_status == ContentReport.Status.RESOLVED
+            and derman_to_remove is not None
+            and derman_violation_eligible
+            and derman_violation is None
+        )
+
+        needs_resolved_side_effect = (
             new_status == ContentReport.Status.RESOLVED
             and (
                 (
@@ -1087,12 +1120,14 @@ def report_status(request, pk):
                 )
                 or (
                     derman_to_remove is not None
-                    and derman_to_remove.status == DermanPost.Status.PUBLISHED
+                    and derman_to_remove.status
+                    == DermanPost.Status.PUBLISHED
                 )
+                or derman_needs_violation
             )
         )
 
-        if not needs_violation_removal:
+        if not needs_resolved_side_effect:
             messages.info(
                 request,
                 "Rapor zaten bu durumda.",
@@ -1164,11 +1199,17 @@ def report_status(request, pk):
         elif (
             report.target_type == ContentReport.TargetType.DERMAN
             and derman_to_remove is not None
-            and derman_to_remove.status == DermanPost.Status.PUBLISHED
+            and derman_violation_eligible
         ):
-            violation_user = derman_to_remove.author_user
-            source_type = UserViolation.SourceType.DERMAN
-            derman_for_violation = derman_to_remove
+            if derman_violation is not None:
+                # Aynı Derman hakkında başka bir rapor daha önce
+                # doğrulandıysa ikinci bir Derman ihlali oluşturma.
+                violation = derman_violation
+
+            else:
+                violation_user = derman_to_remove.author_user
+                source_type = UserViolation.SourceType.DERMAN
+                derman_for_violation = derman_to_remove
 
         if violation_user and source_type:
             violation, violation_created = (

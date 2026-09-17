@@ -422,15 +422,17 @@ class DermanSelectorTests(TestCase):
         )
 
         self.assertEqual(
-            visibility.access_level,
-            DermanAccessLevel.COMPANY_STANDARD,
-        )
+        visibility.access_level,
+        DermanAccessLevel.COMPANY_OTHER,
+    )
         self.assertFalse(
             visibility.can_view_content
         )
-        self.assertTrue(
+
+        self.assertFalse(
             visibility.paywalled
         )
+
         self.assertEqual(
             list(visibility.dermans),
             [],

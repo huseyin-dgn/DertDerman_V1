@@ -1,5 +1,5 @@
-from dataclasses import dataclass
 
+from dataclasses import dataclass
 from django.db.models import (
     CharField,
     Count,
@@ -360,6 +360,41 @@ def derman_visibility_for(
         None,
     )
 
+    # Aktif olmayan veya kalıcı kapatılmış
+    # bireysel kullanıcı hesabına özel Derman
+    # içeriği verilmez.
+    #
+    # Normal authentication akışı da inactive
+    # kullanıcıyı engeller; bu kontrol selector'ı
+    # doğrudan kullanımda da fail-closed tutar.
+    if (
+        role == User.UserType.USER
+        and (
+            not getattr(
+                user,
+                "is_active",
+                False,
+            )
+            or getattr(
+                user,
+                "is_permanently_closed",
+                False,
+            )
+        )
+    ):
+        return DermanVisibility(
+            access_level=(
+                DermanAccessLevel.ANONYMOUS
+            ),
+            published_count=count,
+            can_view_content=False,
+            paywalled=False,
+            can_create=False,
+            can_react=False,
+            dermans=_empty_dermans(),
+            can_company_respond=False,
+        )
+
     if role == User.UserType.USER:
         can_mutate = bool(
             getattr(
@@ -502,5 +537,5 @@ def derman_visibility_for(
             can_create=False,
             can_react=False,
             dermans=_empty_dermans(),
-            can_company_respond=False,
+            can_company_respond=False
         )

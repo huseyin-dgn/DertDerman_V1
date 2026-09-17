@@ -333,23 +333,105 @@ class PublicComplaintTests(TestCase):
             response = self.client.get(url, {"page": "999999"})
             self.assertContains(response, "şikayet bulunmuyor.")
 
-    def test_navbar_and_public_access_for_all_roles_without_private_cache_policy(self):
-        self.assertEqual(self.list_url, "/sikayetler/")
-        self.assertEqual(self.detail_url, f"/sikayetler/{self.published.pk}/")
-        self.assertEqual(reverse("complaints:list"), "/sikayetlerim/")
-        for role in [None, *User.UserType.values]:
+    def test_navbar_and_public_access_for_all_roles_with_detail_private_cache_policy(self):
+        self.assertEqual(
+            self.list_url,
+            "/sikayetler/",
+        )
+        self.assertEqual(
+            self.detail_url,
+            f"/sikayetler/{self.published.pk}/",
+        )
+        self.assertEqual(
+            reverse("complaints:list"),
+            "/sikayetlerim/",
+        )
+
+        for role in [
+            None,
+            *User.UserType.values,
+        ]:
+            self.client.logout()
+
             if role is not None:
                 user = User.objects.create_user(
-                    username=f"public-viewer-{role}", email=f"viewer-{role}@example.com",
+                    username=f"public-viewer-{role}",
+                    email=f"viewer-{role}@example.com",
                     user_type=role,
                 )
                 self.client.force_login(user)
-            for url in [self.list_url, self.detail_url, self.home_url]:
-                with self.subTest(role=role, url=url):
-                    response = self.client.get(url)
-                    self.assertContains(response, '<a href="/sikayetler/">Şikayetler</a>', html=True)
-                    self.assertNotIn("no-store", response.headers.get("Cache-Control", ""))
 
+            # Liste ve ana sayfa kullanıcıya özel
+            # Derman içeriği taşımıyor.
+            for url in [
+                self.list_url,
+                self.home_url,
+            ]:
+                with self.subTest(
+                    role=role,
+                    url=url,
+                ):
+                    response = self.client.get(url)
+
+                    self.assertContains(
+                        response,
+                        '<a href="/sikayetler/">'
+                        "Şikayetler"
+                        "</a>",
+                        html=True,
+                    )
+
+                    cache_control = (
+                        response.headers
+                        .get(
+                            "Cache-Control",
+                            "",
+                        )
+                        .lower()
+                    )
+
+                    self.assertNotIn(
+                        "no-store",
+                        cache_control,
+                    )
+
+            # Şikayet detayındaki Derman verisi
+            # kullanıcı rolü ve şirket yetkisine göre
+            # değişebildiğinden shared cache'e
+            # kesinlikle girmemeli.
+            response = self.client.get(
+                self.detail_url
+            )
+
+            self.assertContains(
+                response,
+                '<a href="/sikayetler/">'
+                "Şikayetler"
+                "</a>",
+                html=True,
+            )
+
+            cache_control = (
+                response.headers
+                .get(
+                    "Cache-Control",
+                    "",
+                )
+                .lower()
+            )
+
+            self.assertIn(
+                "no-cache",
+                cache_control,
+            )
+            self.assertIn(
+                "no-store",
+                cache_control,
+            )
+            self.assertIn(
+                "private",
+                cache_control,
+            )
     def test_public_views_are_read_only(self):
         for url in [self.list_url, self.detail_url]:
             self.assertEqual(self.client.head(url).status_code, 200)
