@@ -1,5 +1,7 @@
 from django.contrib import messages
+from django.contrib.sessions.backends.db import SessionStore
 from django.contrib.sessions.models import Session
+from django.core import signing
 from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
@@ -24,17 +26,41 @@ MIN_REASON_LENGTH = 10
 MAX_REASON_LENGTH = 1000
 
 
+def _strict_decode_session(session):
+    store = SessionStore(
+        session_key=session.session_key
+    )
+
+    return signing.loads(
+        session.session_data,
+        salt=store.key_salt,
+        serializer=store.serializer,
+    )
+
+
 def _delete_user_sessions(user_id):
     target = str(user_id)
 
-    for session in Session.objects.all().iterator(chunk_size=500):
+    for session in Session.objects.all().iterator(
+        chunk_size=500
+    ):
         try:
-            auth_user_id = session.get_decoded().get("_auth_user_id")
+            decoded = _strict_decode_session(
+                session
+            )
         except Exception:
-            continue
-
-        if auth_user_id == target:
+            # Django's normal Session.decode() converts corrupt
+            # session payloads to {}. Revocation code must instead
+            # fail closed: an unverifiable session is deleted.
             session.delete()
+        else:
+            if (
+                decoded.get(
+                    "_auth_user_id"
+                )
+                == target
+            ):
+                session.delete()
 
 
 def _soft_remove_user_complaints(account, actor, closed_at):

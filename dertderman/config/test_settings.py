@@ -46,6 +46,14 @@ class SettingsProfileTests(SimpleTestCase):
         "DJANGO_SECURE_HSTS_PRELOAD",
         "DJANGO_TRUST_X_FORWARDED_PROTO",
         "DJANGO_SESSION_COOKIE_AGE",
+        "DJANGO_AUTH_SESSION_SECURITY_ENABLED",
+        "DJANGO_SESSION_ACTIVITY_TOUCH_SECONDS",
+        "DJANGO_USER_SESSION_IDLE_SECONDS",
+        "DJANGO_USER_SESSION_ABSOLUTE_SECONDS",
+        "DJANGO_COMPANY_SESSION_IDLE_SECONDS",
+        "DJANGO_COMPANY_SESSION_ABSOLUTE_SECONDS",
+        "DJANGO_ADMIN_SESSION_IDLE_SECONDS",
+        "DJANGO_ADMIN_SESSION_ABSOLUTE_SECONDS",
         "EMAIL_PROVIDER",
         "EMAIL_SENDING_ENABLED",
         "EMAIL_CHANGE_TIMEOUT",
@@ -449,7 +457,7 @@ print(json.dumps({
         self.assertIs(settings_values["csrf_cookie_secure"], True)
         self.assertIs(settings_values["ssl_redirect"], True)
         self.assertIsNone(settings_values["proxy_header"])
-        self.assertEqual(settings_values["hsts_seconds"], 3600)
+        self.assertEqual(settings_values["hsts_seconds"], 0)
         self.assertEqual(
             settings_values["site_base_url"],
             "https://dertderman.example",
@@ -501,6 +509,24 @@ assert settings.CSRF_COOKIE_SAMESITE == "Lax"
 assert settings.SESSION_COOKIE_AGE == 28800
 assert settings.SESSION_EXPIRE_AT_BROWSER_CLOSE is True
 assert settings.SESSION_SAVE_EVERY_REQUEST is False
+
+assert settings.AUTH_SESSION_SECURITY_ENABLED is True
+assert settings.AUTH_SESSION_ACTIVITY_TOUCH_SECONDS == 60
+
+assert settings.AUTH_SESSION_SECURITY_POLICIES["USER"] == {
+    "idle_seconds": 28800,
+    "absolute_seconds": 28800,
+}
+
+assert settings.AUTH_SESSION_SECURITY_POLICIES["COMPANY"] == {
+    "idle_seconds": 7200,
+    "absolute_seconds": 28800,
+}
+
+assert settings.AUTH_SESSION_SECURITY_POLICIES["ADMIN"] == {
+    "idle_seconds": 1800,
+    "absolute_seconds": 14400,
+}
 
 assert settings.USE_X_FORWARDED_HOST is False
 assert settings.USE_X_FORWARDED_PORT is False

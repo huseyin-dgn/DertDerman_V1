@@ -224,6 +224,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "core.session_security.SessionSecurityMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -473,6 +474,66 @@ CSRF_COOKIE_PATH = "/"
 SESSION_COOKIE_DOMAIN = None
 CSRF_COOKIE_DOMAIN = None
 
+# Server-side authentication session limits.
+#
+# Cookie expiry alone is not a strict absolute login lifetime:
+# application code may modify/save sessions during normal use.
+# The middleware keeps an independent fixed login timestamp.
+AUTH_SESSION_SECURITY_ENABLED = _strict_env_bool(
+    "DJANGO_AUTH_SESSION_SECURITY_ENABLED",
+    default=IS_PRODUCTION,
+)
+
+AUTH_SESSION_ACTIVITY_TOUCH_SECONDS = _positive_env_int(
+    "DJANGO_SESSION_ACTIVITY_TOUCH_SECONDS",
+    default=60,
+)
+
+AUTH_SESSION_SECURITY_POLICIES = {
+    "USER": {
+        "idle_seconds": _positive_env_int(
+            "DJANGO_USER_SESSION_IDLE_SECONDS",
+            default=8 * 60 * 60,
+        ),
+        "absolute_seconds": _positive_env_int(
+            "DJANGO_USER_SESSION_ABSOLUTE_SECONDS",
+            default=8 * 60 * 60,
+        ),
+    },
+    "COMPANY": {
+        "idle_seconds": _positive_env_int(
+            "DJANGO_COMPANY_SESSION_IDLE_SECONDS",
+            default=2 * 60 * 60,
+        ),
+        "absolute_seconds": _positive_env_int(
+            "DJANGO_COMPANY_SESSION_ABSOLUTE_SECONDS",
+            default=8 * 60 * 60,
+        ),
+    },
+    "ADMIN": {
+        "idle_seconds": _positive_env_int(
+            "DJANGO_ADMIN_SESSION_IDLE_SECONDS",
+            default=30 * 60,
+        ),
+        "absolute_seconds": _positive_env_int(
+            "DJANGO_ADMIN_SESSION_ABSOLUTE_SECONDS",
+            default=4 * 60 * 60,
+        ),
+    },
+}
+
+for _role, _policy in (
+    AUTH_SESSION_SECURITY_POLICIES.items()
+):
+    if (
+        _policy["idle_seconds"]
+        > _policy["absolute_seconds"]
+    ):
+        raise ImproperlyConfigured(
+            f"{_role} session idle timeout "
+            "cannot exceed its absolute timeout."
+        )
+
 CSRF_FAILURE_VIEW = "core.error_views.csrf_failure"
 
 if IS_PRODUCTION:
@@ -485,7 +546,9 @@ if IS_PRODUCTION:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
 
-    # Absolute production login lifetime: 8 hours by default.
+    # Production session cookie lifetime: 8 hours by default.
+    # Strict role-specific idle/absolute login lifetimes are
+    # enforced independently by SessionSecurityMiddleware.
     # Closing the browser also expires the browser cookie.
     SESSION_COOKIE_AGE = _positive_env_int(
         "DJANGO_SESSION_COOKIE_AGE",
@@ -493,8 +556,9 @@ if IS_PRODUCTION:
     )
     SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
-    # Do not silently extend the absolute lifetime on every
-    # request. More sensitive roles get tighter rules later.
+    # Do not force Django to save the whole session on every
+    # request. SessionSecurityMiddleware touches activity at a
+    # bounded interval instead.
     SESSION_SAVE_EVERY_REQUEST = False
 
     SECURE_SSL_REDIRECT = True
@@ -507,9 +571,9 @@ if IS_PRODUCTION:
         if TRUST_X_FORWARDED_PROTO
         else None
     )
-    SECURE_HSTS_SECONDS = _positive_env_int(
+    SECURE_HSTS_SECONDS = _nonnegative_env_int(
         "DJANGO_SECURE_HSTS_SECONDS",
-        default=3600,
+        default=0,
     )
     SECURE_HSTS_INCLUDE_SUBDOMAINS = _strict_env_bool(
         "DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS",
