@@ -78,6 +78,10 @@
 
     <link rel="stylesheet" href="{% static 'css/experience-v2.css' %}">
     <link rel="stylesheet" href="{% static 'css/identity-v1.css' %}">
+
+    {# A2 - DertDerman Assistant widget assets #}
+    <link rel="stylesheet" href="{% static 'css/assistant-widget.css' %}">
+    <script src="{% static 'js/assistant-widget.js' %}" defer></script>
 </head>
 
 <body class="{% block body_class %}{% endblock %}">
@@ -281,6 +285,11 @@
 </footer>
 
 {% endblock %}
+
+{# A2 - Public and individual USER surfaces only. #}
+{% if not request.user.is_authenticated or request.user.user_type == 'USER' %}
+    {% include 'components/assistant_widget.html' %}
+{% endif %}
 
 </body>
 </html>

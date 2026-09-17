@@ -44,3 +44,4 @@ templates/dashboard/dermans.html
 templates/companies/panel/dermans.html
 templates/layouts/company_base.html
 templates/components/derman_promo.html
+templates/components/assistant_widget.html
