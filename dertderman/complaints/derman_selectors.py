@@ -537,5 +537,21 @@ def derman_visibility_for(
             can_create=False,
             can_react=False,
             dermans=_empty_dermans(),
-            can_company_respond=False
+            can_company_respond=False,
         )
+
+    # Tanınmayan / desteklenmeyen authenticated roller için
+    # fail-closed davran. Public şikayet sayfası erişilebilir
+    # kalır ancak Derman içeriği veya işlem yetkisi verilmez.
+    return DermanVisibility(
+        access_level=(
+            DermanAccessLevel.ANONYMOUS
+        ),
+        published_count=count,
+        can_view_content=False,
+        paywalled=False,
+        can_create=False,
+        can_react=False,
+        dermans=_empty_dermans(),
+        can_company_respond=False,
+    )

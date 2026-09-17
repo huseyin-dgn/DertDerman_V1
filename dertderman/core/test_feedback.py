@@ -31,6 +31,7 @@ class FeedbackTests(TestCase):
         cls.user = User.objects.create_user(
             username="feedback-user", email="feedback@example.com",
             password="FeedbackPassword2026!", user_type="USER",
+            is_verified=True,
         )
         cls.company = Company.objects.create(name="Feedback Company")
 
@@ -57,8 +58,23 @@ class FeedbackTests(TestCase):
         self.assertTrue(self.user.check_password("NewFeedbackPassword2027!"))
 
     def test_complaint_submission_feedback_and_pending_state(self):
+        # Gerçek kullanıcı akışında form önce GET ile açılır.
+        self.client.get(
+            reverse("complaints:create")
+        )
+
+        # Anti-bot minimum form doldurma süresini deterministik
+        # şekilde geçmiş kabul et.
+        session = self.client.session
+        session["complaint_form_opened_at"] = (
+            session["complaint_form_opened_at"] - 2.0
+        )
+        session.save()
+
         response = self.client.post(reverse("complaints:create"), {
-            "company": self.company.pk, "title": "Feedback complaint",
+            "company": self.company.pk,
+            "category": "OTHER",
+            "title": "Feedback complaint",
             "description": "A complaint created to check the submission feedback.",
         }, follow=True)
         self.assertContains(response, "Şikayetiniz incelemeye alındı.")
@@ -81,19 +97,48 @@ class FeedbackTests(TestCase):
             self.assertNotContains(response, "wrong-password")
 
     def test_field_errors_are_associated_and_success_is_not_shown_on_failure(self):
-        response = self.client.post(reverse("accounts:profile_edit"), {"email": "invalid-address"})
-        self.assertContains(response, 'aria-invalid="true"')
-        self.assertContains(response, 'id="id_email_error"')
-        self.assertContains(response, 'aria-describedby="id_email_error"')
-        self.assertNotContains(response, 'data-feedback="success"')
+        response = self.client.post(
+            reverse("accounts:profile_edit"),
+            {
+                "first_name": self.user.first_name,
+                "last_name": self.user.last_name,
+                "phone": self.user.phone or "",
+                "selected_avatar": "invalid-avatar",
+            },
+        )
+
+        self.assertEqual(
+            response.status_code,
+            200,
+        )
+
+        self.assertContains(
+            response,
+            'aria-invalid="true"',
+        )
+
+        self.assertContains(
+            response,
+            'id="id_selected_avatar_error"',
+        )
+
+        self.assertContains(
+            response,
+            'aria-describedby="id_selected_avatar_error"',
+        )
+
+        self.assertNotContains(
+            response,
+            'data-feedback="success"',
+        )
 
     @override_settings(DEBUG=False, ROOT_URLCONF=__name__)
     def test_production_error_templates_do_not_expose_details(self):
         cases = [
             ("/yonetim/", 403, "403.html", "Bu alana erişim yetkiniz bulunmuyor."),
             ("/missing-private-url/", 404, "404.html", "Aradığınız sayfayı bulamadık."),
-            ("/test-failure/", 500, "500.html", "Bir şeyler yolunda gitmedi."),
-            ("/test-bad-request/", 400, "400.html", "İsteğinizi tamamlayamadık."),
+            ("/test-failure/", 500, "500.html", "Bir şeyler ters gitti."),
+            ("/test-bad-request/", 400, "400.html", "İsteğiniz işlenemedi."),
         ]
         self.client.raise_request_exception = False
         for url, code, template, message in cases:

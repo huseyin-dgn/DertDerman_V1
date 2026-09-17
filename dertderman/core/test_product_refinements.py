@@ -88,11 +88,64 @@ class ProductRefinementSecurityTests(TestCase):
         self.assertEqual(ComplaintReaction.objects.get(complaint=self.complaint, user=self.other).reaction_type, "😂")
         self.assertEqual(ComplaintReaction.objects.filter(complaint=self.complaint, user=self.other).count(), 1)
         self.assertEqual(Notification.objects.filter(recipient_user=self.owner, notification_type="REACTION").count(), 1)
-        self.client.post(url, {"reaction_type": "😂"})
-        self.assertFalse(ComplaintReaction.objects.filter(complaint=self.complaint, user=self.other).exists())
-        for invalid in ("hello", "<script>", "😀😂", "🖕"):
-            self.client.post(url, {"reaction_type": invalid})
-            self.assertFalse(ComplaintReaction.objects.filter(complaint=self.complaint, user=self.other).exists())
+        self.client.post(
+            url,
+            {"reaction_type": "😂"},
+        )
+
+        reaction = ComplaintReaction.objects.get(
+            complaint=self.complaint,
+            user=self.other,
+        )
+
+        self.assertEqual(
+            reaction.reaction_type,
+            "😂",
+        )
+
+        # Aynı emoji yeniden gönderildiğinde mevcut reaction korunur.
+        self.assertEqual(
+            ComplaintReaction.objects.filter(
+                complaint=self.complaint,
+                user=self.other,
+            ).count(),
+            1,
+        )
+
+        for invalid in (
+            "hello",
+            "<script>",
+            "😀😂",
+            "🖕",
+        ):
+            self.client.post(
+                url,
+                {"reaction_type": invalid},
+            )
+
+            reaction.refresh_from_db()
+
+            self.assertEqual(
+                reaction.reaction_type,
+                "😂",
+            )
+
+            self.assertEqual(
+                ComplaintReaction.objects.filter(
+                    complaint=self.complaint,
+                    user=self.other,
+                ).count(),
+                1,
+            )
+
+        # Güncelleme / tekrar gönderim yeni notification üretmemeli.
+        self.assertEqual(
+            Notification.objects.filter(
+                recipient_user=self.owner,
+                notification_type="REACTION",
+            ).count(),
+            1,
+        )
 
     def test_reaction_never_self_notifies(self):
         self.client.force_login(self.owner)

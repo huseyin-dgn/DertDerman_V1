@@ -171,7 +171,10 @@ class CategoryAndPresentationTests(TestCase):
         home = self.client.get(reverse("core:home"))
         self.assertContains(home, "DertDerman Kimdir?")
         self.assertContains(home, "DertDerman'ı Tanıyın")
-        self.assertContains(home, 'class="primary-action" href="/hakkimizda/"')
+        self.assertRegex(
+            home.content.decode(),
+            r'class="primary-action"\s+href="/hakkimizda/"',
+        )
         about = self.client.get(reverse("core:about"))
         for heading in ("DERTDERMAN KİMDİR?", "NEDEN DERTDERMAN?", "NASIL ÇALIŞIR?", "KULLANICI İÇİN", "ŞİRKET İÇİN", "ŞEFFAFLIK VE TARAFSIZLIK", "PAYLAŞMADAN OLMAZ"):
             self.assertContains(about, heading, html=False)

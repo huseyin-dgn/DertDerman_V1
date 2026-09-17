@@ -56,7 +56,6 @@ from .selectors import (
 )
 from .plans import (
     active_pro_subscriptions,
-    company_has_active_pro,
 )
 
 
@@ -195,7 +194,15 @@ def public_company_detail(
     slug,
 ):
     company = get_object_or_404(
-        public_companies(),
+        public_companies()
+        .annotate(
+            has_active_pro=Exists(
+                active_pro_subscriptions()
+                .filter(
+                    company_id=OuterRef("pk"),
+                )
+            )
+        ),
         slug=slug,
     )
 
@@ -368,9 +375,7 @@ def public_company_detail(
                 ),
 
             "company_is_pro":
-                company_has_active_pro(
-                    company
-                ),
+                company.has_active_pro,
 
             "company_report_form":
                 CompanyReportForm(),

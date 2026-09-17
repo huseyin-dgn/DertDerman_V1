@@ -139,6 +139,16 @@ class CompanyImageControlUiTests(TestCase):
         CompanyMembership.objects.create(user=cls.support, company=cls.company, role=CompanyMembership.Role.SUPPORT)
 
     def test_manager_upload_ui_upload_remove_and_fallback_order(self):
+        # Görsel kimliği daha önce seçilmiş bir şirkette logo/avatar
+        # alanları kilitlidir. Upload akışını test etmek için şirketi
+        # henüz görsel kimliği seçilmemiş durumda başlatıyoruz.
+        Company.objects.filter(
+            pk=self.company.pk
+        ).update(
+            selected_avatar=""
+        )
+        self.company.refresh_from_db()
+
         self.client.force_login(self.manager)
         page = self.client.get(reverse("companies:profile"))
         self.assertContains(page, "Şirket Görseli")
@@ -146,7 +156,7 @@ class CompanyImageControlUiTests(TestCase):
         self.assertContains(page, 'class="cp-logo-native-input"')
         response = self.client.post(reverse("companies:profile"), {
             "name": self.company.name,
-            "selected_avatar": "company-4",
+            "selected_avatar": "",
             "logo": logo_upload(),
         })
         self.assertRedirects(response, reverse("companies:profile"))

@@ -173,8 +173,26 @@ class CompanyDomainTests(TestCase):
         response = self.client.get(reverse("companies_public:company_list"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, active_company.name)
-        self.assertNotContains(response, inactive_company.name)
+        self.assertContains(
+            response,
+            active_company.name,
+        )
+
+        company_ids = {
+            company.pk
+            for company
+            in response.context["page_obj"]
+        }
+
+        self.assertIn(
+            active_company.pk,
+            company_ids,
+        )
+
+        self.assertNotIn(
+            inactive_company.pk,
+            company_ids,
+        )
 
     def test_public_company_detail_shows_only_active_companies(self):
         active_company = self.create_company("Active Detail Company")

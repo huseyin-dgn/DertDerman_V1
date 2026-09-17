@@ -3,8 +3,15 @@ from django.contrib.messages import get_messages
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from .forms import COMPANY_LOGIN_ERROR
-from .models import Company, CompanyMembership
+from .forms import (
+    COMPANY_LOGIN_ERROR,
+    COMPANY_REGISTRATION_ERROR,
+)
+from .models import (
+    Company,
+    CompanyCategory,
+    CompanyMembership,
+)
 
 
 User = get_user_model()
@@ -15,6 +22,7 @@ class CompanyAuthenticationFlowTests(TestCase):
     def registration_data(self, suffix="one"):
         return {
             "company_name": f"Kurumsal {suffix}",
+            "category": self.category.pk,
             "first_name": "Yetkili",
             "last_name": "Kişi",
             "email": f"company-{suffix}@example.com",
@@ -60,6 +68,10 @@ class CompanyAuthenticationFlowTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
+        cls.category = CompanyCategory.objects.create(
+            name="Company Auth Test Category",
+        )
+
         cls.admin = User.objects.create_user(
             username="approval-admin",
             email="approval-admin@example.com",
@@ -126,7 +138,10 @@ class CompanyAuthenticationFlowTests(TestCase):
         duplicate["email"] = "COMPANY-NORMALIZED@EXAMPLE.COM"
         response = self.client.post(reverse("company_auth:register"), duplicate)
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Bu e-posta adresiyle daha önce bir hesap oluşturulmuş.")
+        self.assertContains(
+            response,
+            COMPANY_REGISTRATION_ERROR,
+        )
         self.assertEqual(User.objects.filter(email__iexact=duplicate["email"]).count(), 1)
 
     def test_pending_company_login_is_denied_with_generic_error(self):
@@ -145,8 +160,13 @@ class CompanyAuthenticationFlowTests(TestCase):
 
     def test_admin_approval_activates_all_required_records_and_enables_login(self):
         _, user, company, membership = self.register("approved")
-        user.is_active = False
-        user.save(update_fields=["is_active"])
+
+        # Başvuru sahibi kayıt akışında aktif kullanıcı olarak
+        # oluşturulur. Admin approval inactive hesabı yeniden
+        # aktive eden bir mekanizma değildir.
+        self.assertTrue(
+            user.is_active
+        )
 
         response, detail_url = self.approve(company)
 

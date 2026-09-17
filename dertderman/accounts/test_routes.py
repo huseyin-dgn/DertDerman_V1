@@ -78,8 +78,23 @@ class RouteAccessTests(TestCase):
             for url in self.public_routes:
                 with self.subTest(role=role, public_url=url):
                     response = client.get(url)
-                    self.assertEqual(response.status_code, 200)
-                    self.assertNotIn("no-store", response.headers.get("Cache-Control", ""))
+                    self.assertEqual(
+                        response.status_code,
+                        200,
+                    )
+
+                    if url == f"/sikayetler/{self.published.pk}/":
+                        self.assert_private_cache(
+                            response
+                        )
+                    else:
+                        self.assertNotIn(
+                            "no-store",
+                            response.headers.get(
+                                "Cache-Control",
+                                "",
+                            ),
+                        )
             for url in ["/hesap/giris/", "/hesap/kayit/"]:
                 response = client.get(url)
                 if role is None:

@@ -40,11 +40,39 @@ class AvatarFinalizationTests(TestCase):
 
     def test_valid_registration_and_profile_avatar_change_ignore_badge_and_upload(self):
         self.assertRedirects(
-            self.client.post(reverse("accounts:register"), self.registration_data()),
-            reverse("dashboard:home"),
+            self.client.post(
+                reverse("accounts:register"),
+                self.registration_data(),
+            ),
+            reverse("accounts:email_verification_pending"),
         )
-        user = User.objects.get(username="avatar-user")
-        self.assertEqual(user.selected_avatar, "avatar-12")
+
+        user = User.objects.get(
+            username="avatar-user"
+        )
+
+        # Registration intentionally creates an unverified account.
+        self.assertFalse(
+            user.is_verified
+        )
+
+        self.assertEqual(
+            user.selected_avatar,
+            "avatar-12",
+        )
+
+        # Bu test email verification mekanizmasını değil,
+        # doğrulama sonrasındaki avatar düzenleme akışını test ediyor.
+        User.objects.filter(
+            pk=user.pk
+        ).update(
+            is_verified=True
+        )
+        user.refresh_from_db()
+
+        self.client.force_login(
+            user
+        )
         response = self.client.post(reverse("accounts:profile_edit"), {
             "email": user.email, "selected_avatar": "avatar-20",
             "profile_image": "users/profile-images/injected.svg", "badge": "solution-focused",

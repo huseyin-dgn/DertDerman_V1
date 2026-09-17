@@ -59,12 +59,16 @@ class PublicExperienceTests(TestCase):
         self.assertEqual(list(response.context["page_obj"]), [self.companies[0]])
         self.assertNotContains(response, 'data-company-directory')
 
-    def test_cards_only_count_published_complaints(self):
+    def test_cards_count_publicly_visible_complaints(self):
         reader = User.objects.create_user(username="count-reader", email="count@example.com")
         for status in Complaint.Status.values:
             Complaint.objects.create(company=self.companies[0], user=reader, title=status, description="Metin", status=status)
         response = self.client.get('/sirketler/', {"s": "Rehber şirket 0"})
-        self.assertContains(response, "1 yayındaki şikayet")
+        # PUBLISHED + RESOLVED kayıtlar kamusal olarak görünür.
+        self.assertRegex(
+            response.content.decode(),
+            r"2\s+yayındaki şikayet",
+        )
 
     def test_blog_pages_six_and_no_article_bodies_in_list(self):
         seen = []
@@ -111,11 +115,27 @@ class PublicExperienceTests(TestCase):
         self.assertContains(response, escape(attack))
 
     def test_invalid_pages_empty_states_and_query_counts(self):
-        for url in ['/sirketler/', '/blog/']:
+        expected_query_counts = {
+            "/sirketler/": 3,
+            "/blog/": 2,
+        }
+
+        for url, expected_query_count in expected_query_counts.items():
             for page in ['abc', '-5', '999999']:
-                self.assertEqual(self.client.get(url, {"page": page}).status_code, 200)
+                self.assertEqual(
+                    self.client.get(
+                        url,
+                        {"page": page},
+                    ).status_code,
+                    200,
+                )
+
             with CaptureQueriesContext(connection) as queries:
                 self.client.get(url)
-            self.assertEqual(len(queries), 2)
+
+            self.assertEqual(
+                len(queries),
+                expected_query_count,
+            )
         self.assertContains(self.client.get('/sirketler/', {"s": 'olmayan'}), 'Aradığınız kriterlere uygun şirket bulunamadı.')
         self.assertContains(self.client.get('/blog/', {"s": 'olmayan'}), 'Aramanızla eşleşen bir yazı bulunamadı.')

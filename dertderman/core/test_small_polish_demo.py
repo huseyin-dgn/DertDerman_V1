@@ -31,9 +31,20 @@ class SmallPolishLayoutTests(TestCase):
         positions = [html.index(marker) for marker in ordered_markers]
         self.assertEqual(positions, sorted(positions))
         for number in (1, 2, 3, 4, 7):
-            self.assertContains(response, f'class="section-index">{number:02d}</p>', count=1)
-        self.assertContains(response, 'class="business-mark"><span>05</span> DD / KURUM', count=1)
-        self.assertContains(response, 'class="section-index corporate-discovery-index">06</p>', count=1)
+            self.assertRegex(
+                html,
+                rf'class="section-index">\s*{number:02d}\s*</p>',
+            )
+
+        self.assertRegex(
+            html,
+            r'class="business-mark">\s*<span>\s*05\s*</span>\s*DD / KURUM',
+        )
+
+        self.assertRegex(
+            html,
+            r'class="section-index corporate-discovery-index">\s*06\s*</p>',
+        )
         self.assertNotContains(response, 'class="content-section reasons-section"')
         self.assertNotContains(response, 'class="trust-section"')
 
@@ -65,10 +76,26 @@ class SmallPolishLayoutTests(TestCase):
     def test_public_card_ctas_have_only_requested_visible_copy(self):
         call_command("seed_demo_data", stdout=StringIO())
         response = self.client.get(reverse("core:home"))
-        self.assertContains(response, ">İncele →</a>")
-        self.assertContains(response, ">Yazıyı Oku →</a>")
-        self.assertNotContains(response, "İncele<span class=\"visually-hidden\">")
-        self.assertNotContains(response, "Yazıyı Oku<span class=\"visually-hidden\">")
+
+        # Görünür CTA metnini doğrula; template indentation'ına
+        # bağımlı olma.
+        self.assertContains(
+            response,
+            "İncele →",
+        )
+        self.assertContains(
+            response,
+            "Yazıyı Oku →",
+        )
+
+        self.assertNotContains(
+            response,
+            "İncele<span class=\"visually-hidden\">",
+        )
+        self.assertNotContains(
+            response,
+            "Yazıyı Oku<span class=\"visually-hidden\">",
+        )
 
 
 @override_settings(DEBUG=True)

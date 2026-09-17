@@ -7,7 +7,16 @@ from django.urls import reverse
 from django.utils import timezone
 
 from complaints.models import Complaint
-from .models import Company, CompanyCategory, CompanyMembership, CompanyNotification, CompanyNotificationRead, CompanyResponse, InternalCompanyNote
+from .models import (
+    Company,
+    CompanyCategory,
+    CompanyMembership,
+    CompanyNotification,
+    CompanyNotificationRead,
+    CompanyResponse,
+    CompanySubscription,
+    InternalCompanyNote,
+)
 from .panel_permissions import COMPANY_SESSION_KEY
 from .panel_services import create_company_entry
 from .services import active_company_memberships_for
@@ -30,7 +39,18 @@ class CompanyPanelTests(TestCase):
         cls.membership = CompanyMembership.objects.create(user=cls.owner, company=cls.a, role="OWNER")
         CompanyMembership.objects.create(user=cls.other_owner, company=cls.b, role="OWNER")
         CompanyMembership.objects.create(user=cls.manager, company=cls.a, role="MANAGER")
-        CompanyMembership.objects.create(user=cls.support, company=cls.a, role="SUPPORT")
+        CompanyMembership.objects.create(
+            user=cls.support,
+            company=cls.a,
+            role="SUPPORT",
+        )
+
+        CompanySubscription.objects.create(
+            company=cls.a,
+            plan=CompanySubscription.Plan.PRO,
+            is_active=True,
+        )
+
         cls.own = Complaint.objects.create(user=cls.reader, company=cls.a, title="Alpha teslimat sorunu", description="Alpha paket teslimat deneyimi ayrıntıları.", status="PUBLISHED")
         cls.pending = Complaint.objects.create(user=cls.reader, company=cls.a, title="Alpha bekleyen inceleme", description="İnceleme aşamasındaki deneyim ayrıntıları.")
         cls.resolved = Complaint.objects.create(user=cls.reader, company=cls.a, title="Alpha çözülmüş kayıt", description="Çözüme ulaşan deneyimin ayrıntıları.", status="RESOLVED")
@@ -250,7 +270,11 @@ class CompanyPanelTests(TestCase):
 
     def test_search_filters_and_pagination_stay_in_company(self):
         CompanyResponse.objects.create(company=self.a, complaint=self.own, author_user=self.owner, body="Reply")
-        for state, expected in (("waiting", [self.pending.pk]), ("answered", [self.own.pk]), ("resolved", [self.resolved.pk])):
+        for state, expected in (
+            ("waiting", []),
+            ("answered", [self.own.pk]),
+            ("resolved", [self.resolved.pk]),
+        ):
             response = self.client.get(self.route("complaint_list"), {"state": state})
             self.assertEqual([x.pk for x in response.context["page_obj"]], expected)
         self.assertEqual(self.client.get(self.route("complaint_list"), {"q": "BETA"}).context["page_obj"].paginator.count, 0)
@@ -259,7 +283,13 @@ class CompanyPanelTests(TestCase):
         self.assertTrue(invalid.context["filter_form"].errors)
         self.assertEqual(invalid.context["page_obj"].paginator.count, 0)
         for i in range(15):
-            Complaint.objects.create(user=self.reader, company=self.a, title=f"Page item {i}", description="Pagination content.")
+            Complaint.objects.create(
+                user=self.reader,
+                company=self.a,
+                title=f"Page item {i}",
+                description="Pagination content.",
+                status=Complaint.Status.PUBLISHED,
+            )
         first = self.client.get(self.route("complaint_list"), {"q": "Page", "page": 1})
         second = self.client.get(self.route("complaint_list"), {"q": "Page", "page": 2})
         self.assertEqual(len(first.context["page_obj"]), 6)
@@ -275,7 +305,15 @@ class CompanyPanelTests(TestCase):
         CompanyResponse.objects.filter(pk=second.pk).update(created_at=created + timedelta(hours=3))
         response = self.client.get(self.route("company_panel"))
         stats = response.context["metrics"]
-        self.assertEqual((stats["total"], stats["waiting"], stats["answered"], stats["resolved"]), (3, 1, 1, 1))
+        self.assertEqual(
+            (
+                stats["total"],
+                stats["waiting"],
+                stats["answered"],
+                stats["resolved"],
+            ),
+            (2, 0, 1, 1),
+        )
         self.assertEqual(stats["average_response"], timedelta(hours=2))
         self.assertEqual(response.context["average_label"], "2.0 sa")
 
@@ -288,7 +326,12 @@ class CompanyPanelTests(TestCase):
         self.assertTrue(CompanyNotificationRead.objects.filter(notification=notification, user=self.owner).exists())
         self.assertFalse(CompanyNotificationRead.objects.filter(notification=notification, user=self.manager).exists())
         self.client.force_login(self.manager)
-        self.assertEqual(self.client.get(self.route("notifications")).context["unread_count"], 3)
+        self.assertEqual(
+            self.client.get(
+                self.route("notifications")
+            ).context["unread_count"],
+            2,
+        )
         self.assertNotContains(self.client.get(self.route("notifications")), self.foreign.title)
 
     def test_company_selection_checks_membership_and_ignores_external_next(self):

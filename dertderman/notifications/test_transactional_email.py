@@ -143,7 +143,14 @@ class TransactionalNotificationProducerTests(NotificationFixtureMixin, TestCase)
             notification = self.send_event()
 
         outbox = EmailOutbox.objects.get()
-        self.assertEqual(Notification.objects.count(), 1)
+
+        self.assertEqual(
+            Notification.objects.filter(
+                event_key=notification.event_key,
+            ).count(),
+            1,
+        )
+
         self.assertEqual(outbox.kind, EmailOutbox.Kind.NOTIFICATION)
         self.assertEqual(outbox.status, EmailOutbox.Status.PENDING)
         self.assertEqual(outbox.recipient_user, self.user)
@@ -173,7 +180,14 @@ class TransactionalNotificationProducerTests(NotificationFixtureMixin, TestCase)
             second = self.send_event(event_key="duplicate:1")
 
         self.assertEqual(first.pk, second.pk)
-        self.assertEqual(Notification.objects.count(), 1)
+
+        self.assertEqual(
+            Notification.objects.filter(
+                event_key="duplicate:1",
+            ).count(),
+            1,
+        )
+
         self.assertEqual(EmailOutbox.objects.count(), 1)
         enqueue.assert_called_once_with(first)
 
@@ -182,7 +196,13 @@ class TransactionalNotificationProducerTests(NotificationFixtureMixin, TestCase)
         for kind in kinds:
             with self.subTest(kind=kind):
                 self.send_event(kind=kind, event_key=f"not-emailed:{kind}")
-        self.assertEqual(Notification.objects.count(), len(kinds))
+        self.assertEqual(
+            Notification.objects.filter(
+                event_key__startswith="not-emailed:",
+            ).count(),
+            len(kinds),
+        )
+
         self.assertFalse(EmailOutbox.objects.exists())
 
     def test_admin_recipient_creates_notification_without_outbox(self):

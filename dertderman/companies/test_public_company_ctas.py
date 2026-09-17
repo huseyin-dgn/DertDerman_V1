@@ -16,7 +16,7 @@ class PublicCompanyCtaTests(TestCase):
         self.assertContains(home, "Kurumsal")
         self.assertContains(home, f'href="{reverse("company_auth:login")}"')
         self.assertContains(home, f'href="{reverse("company_auth:register")}"')
-        self.assertContains(home, "Şirketler için DertDerman")
+        self.assertContains(home, "Firmalar İçin DertDerman")
         self.assertContains(companies, "Şirketiniz de DertDerman’da yerini alsın.")
         self.assertContains(companies, "Şirket Ağına Katıl")
         self.assertContains(companies, "Şirket Girişi")
@@ -55,7 +55,7 @@ class PublicCompanyCtaTests(TestCase):
         self.assertNotContains(response, f'href="{reverse("company_auth:login")}"')
         self.assertNotContains(response, f'href="{reverse("company_auth:register")}"')
         self.assertNotContains(response, "Şirket Ağına Katıl")
-        self.assertNotContains(response, "Şirketler için DertDerman")
+        self.assertNotContains(response, "Firmalar İçin DertDerman")
         self.assertNotContains(response, f'href="{reverse("companies:company_panel")}"')
         self.assertEqual(self.client.get(reverse("companies:company_panel")).status_code, 403)
 

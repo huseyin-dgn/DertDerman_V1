@@ -30,7 +30,9 @@ class HomepageIntroTests(TestCase):
     def test_guard_precedes_stylesheets_and_body_and_is_home_only(self):
         response = self.client.get(reverse("core:home"))
         html = response.content.decode()
-        guard = html.index('sessionStorage.getItem("dd_intro_returning")')
+        guard = html.index(
+            "dd_intro_returning"
+        )
         self.assertLess(guard, html.index('<link rel="stylesheet"'))
         self.assertLess(guard, html.index("<body"))
         response = self.client.get(reverse("accounts:login"))

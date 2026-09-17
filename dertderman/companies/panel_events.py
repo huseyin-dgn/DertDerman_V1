@@ -147,10 +147,16 @@ def notify_company_of_complaint(
     kind = None
 
     if created:
-        # Moderasyon bekleyen/reddedilen icerik
-        # sirkete bildirilmez.
+        # Yeni bir PENDING şikayet şirkete gösterilmez.
+        # Ancak şikayet sahibinin RECEIVED ve yöneticilerin
+        # MODERATION bildirimleri yine oluşturulmalıdır.
+        #
+        # record_complaint_notification() PENDING durumda
+        # company inbox kaydı üretmeden yalnız kullanıcı/admin
+        # event'lerini oluşturur.
         if (
-            instance.status
+            instance.status == Complaint.Status.PENDING
+            or instance.status
             in COMPANY_VISIBLE_COMPLAINT_STATUSES
         ):
             kind = CompanyNotification.Kind.NEW

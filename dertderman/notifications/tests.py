@@ -14,6 +14,7 @@ from companies.models import (
     CompanyNotification,
     CompanyNotificationRead,
     CompanyResponse,
+    CompanySubscription,
 )
 from companies.panel_events import record_complaint_notification
 from companies.panel_selectors import company_notifications
@@ -47,12 +48,65 @@ class NotificationCenterTests(TestCase):
         cls.foreign = Complaint.objects.create(user=cls.other, company=cls.foreign_company,
             title='Foreign complaint', description='Another complaint description for security tests.')
 
+        # Company response / internal note tests require an active Pro entitlement.
+        CompanySubscription.objects.create(
+            company=cls.company,
+        )
+
+        # Notification-center authorization tests need deterministic inbox
+        # fixtures. Do not rely on PENDING complaint creation to leak a
+        # complaint into the company inbox.
+        Notification.objects.create(
+            recipient_user=cls.user,
+            recipient_role=Notification.Scope.USER,
+            notification_type=Notification.Type.EDITED,
+            title='User seed notification',
+            event_key='notification-tests:user-seed',
+            complaint=cls.complaint,
+        )
+
+        Notification.objects.create(
+            recipient_user=cls.other,
+            recipient_role=Notification.Scope.USER,
+            notification_type=Notification.Type.EDITED,
+            title='Other user seed notification',
+            event_key='notification-tests:other-user-seed',
+            complaint=cls.foreign,
+        )
+
+        Notification.objects.create(
+            recipient_user=cls.admin,
+            recipient_role=Notification.Scope.ADMIN,
+            notification_type=Notification.Type.PENDING,
+            title='Admin seed notification',
+            event_key='notification-tests:admin-seed',
+            complaint=cls.complaint,
+        )
+
+        Notification.objects.create(
+            recipient_user=cls.admin2,
+            recipient_role=Notification.Scope.ADMIN,
+            notification_type=Notification.Type.PENDING,
+            title='Other admin seed notification',
+            event_key='notification-tests:admin2-seed',
+            complaint=cls.foreign,
+        )
+
     def login(self, user):
         self.client.force_login(user)
         if user.user_type == 'COMPANY':
             session = self.client.session
             session['company_panel_company_id'] = self.company.pk
             session.save()
+
+    def publish_for_company(self, complaint):
+        complaint.status = Complaint.Status.PUBLISHED
+        complaint.save(
+            update_fields=[
+                "status",
+            ]
+        )
+        complaint.refresh_from_db()
 
     def test_create_workflow_and_rapid_repeated_post(self):
         self.user.is_verified = True
@@ -150,7 +204,7 @@ class NotificationCenterTests(TestCase):
             complaint.company_notifications.filter(
                 kind="NEW"
             ).count(),
-            1,
+            0,
         )
     def test_publish_real_workflow_notifies_owner_company_and_retry_is_noop(self):
         self.login(self.admin)
@@ -177,13 +231,16 @@ class NotificationCenterTests(TestCase):
     def test_event_service_retries_and_partial_saves(self):
         record_complaint_notification(self.complaint, 'NEW')
         record_complaint_notification(self.complaint, 'NEW')
-        self.assertEqual(self.complaint.company_notifications.filter(kind='NEW').count(), 1)
+        self.assertEqual(self.complaint.company_notifications.filter(kind='NEW').count(), 0)
         self.assertEqual(Notification.objects.filter(complaint=self.complaint, notification_type='RECEIVED').count(), 1)
         self.complaint.status = 'RESOLVED'
         self.complaint.save(update_fields=['title'])
         self.assertFalse(Notification.objects.filter(complaint=self.complaint, notification_type='RESOLVED').exists())
 
     def test_response_post_notifies_owner_once_and_later_same_text_is_allowed(self):
+        self.publish_for_company(
+            self.complaint
+        )
         self.login(self.agent)
         route = reverse('companies:response_create', args=[self.complaint.pk])
         for _ in range(2):
@@ -198,6 +255,10 @@ class NotificationCenterTests(TestCase):
         self.assertContains(self.client.get(notice.target_url), response.body)
 
     def test_internal_notes_never_notify_consumers(self):
+        self.publish_for_company(
+            self.complaint
+        )
+
         count = Notification.objects.count()
         create_company_entry(user=self.agent, company_id=self.company.pk, complaint_id=self.complaint.pk,
                              body='Sadece ekip içinde kalacak not.', internal=True)
@@ -247,6 +308,13 @@ class NotificationCenterTests(TestCase):
         self.assertEqual(mine.read_at, first_read)
 
     def test_company_idor_and_mark_all_selected_scope_personal_reads(self):
+        self.publish_for_company(
+            self.complaint
+        )
+        self.publish_for_company(
+            self.foreign
+        )
+
         self.login(self.agent)
         mine = self.complaint.company_notifications.first()
         foreign = self.foreign.company_notifications.first()
@@ -260,6 +328,10 @@ class NotificationCenterTests(TestCase):
         self.assertFalse(CompanyNotificationRead.objects.filter(user=self.colleague).exists())
 
     def test_revoked_company_access_and_transferred_complaint_are_hidden(self):
+        self.publish_for_company(
+            self.complaint
+        )
+
         self.login(self.agent)
         mine = self.complaint.company_notifications.first()
         Complaint.objects.filter(pk=self.complaint.pk).update(company=self.foreign_company)
@@ -297,6 +369,10 @@ class NotificationCenterTests(TestCase):
             self.client.logout()
 
     def test_csrf_and_post_for_all_read_actions(self):
+        self.publish_for_company(
+            self.complaint
+        )
+
         for user, namespace, single, all_name, pk in [
             (self.user, 'notifications', 'read', 'read_all', inbox(self.user, 'USER').first().pk),
             (self.admin, 'adminx', 'notification_read', 'notifications_read_all', inbox(self.admin, 'ADMIN').first().pk),

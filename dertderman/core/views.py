@@ -8,7 +8,10 @@ from django.views.decorators.http import require_http_methods, require_safe
 from django.views.decorators.cache import never_cache
 from companies.models import CompanyCategory
 from complaints.models import Complaint
-from complaints.selectors import public_complaint_records, public_complaints
+from complaints.selectors import (
+    public_complaint_filter,
+    public_complaints,
+)
 from blog.selectors import published_posts
 from .presentation import HERO_BRAND_MESSAGES
 from .forms import ContactRequestForm
@@ -22,14 +25,42 @@ def home(request):
 
     from companies.selectors import public_companies
     popular_companies = public_companies().order_by("name", "pk")[:6]
-    public_counts = public_complaint_records().aggregate(
-        published=Count("pk", filter=Q(status=Complaint.Status.PUBLISHED)),
-        resolved=Count("pk", filter=Q(status=Complaint.Status.RESOLVED)),
+    metric_complaints = (
+        Complaint.objects
+        .filter(
+            company__is_active=True,
+            company__approval_status=(
+                Company.ApprovalStatus.APPROVED
+            ),
+            company__archived_at__isnull=True,
+        )
     )
-    counts = {
-        "total_complaints": Complaint.objects.count(),
-        **public_counts,
-    }
+
+    public_record_filter = (
+        public_complaint_filter()
+    )
+
+    counts = metric_complaints.aggregate(
+        total_complaints=Count("pk"),
+        published=Count(
+            "pk",
+            filter=(
+                public_record_filter
+                & Q(
+                    status=Complaint.Status.PUBLISHED
+                )
+            ),
+        ),
+        resolved=Count(
+            "pk",
+            filter=(
+                public_record_filter
+                & Q(
+                    status=Complaint.Status.RESOLVED
+                )
+            ),
+        ),
+    )
     context = {
         "hero_brand_messages": HERO_BRAND_MESSAGES,
         "stats": {
