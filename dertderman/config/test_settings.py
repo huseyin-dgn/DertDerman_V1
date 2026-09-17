@@ -45,6 +45,7 @@ class SettingsProfileTests(SimpleTestCase):
         "DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS",
         "DJANGO_SECURE_HSTS_PRELOAD",
         "DJANGO_TRUST_X_FORWARDED_PROTO",
+        "DJANGO_SESSION_COOKIE_AGE",
         "EMAIL_PROVIDER",
         "EMAIL_SENDING_ENABLED",
         "EMAIL_CHANGE_TIMEOUT",
@@ -448,10 +449,134 @@ print(json.dumps({
         self.assertIs(settings_values["csrf_cookie_secure"], True)
         self.assertIs(settings_values["ssl_redirect"], True)
         self.assertIsNone(settings_values["proxy_header"])
-        self.assertEqual(settings_values["hsts_seconds"], 0)
+        self.assertEqual(settings_values["hsts_seconds"], 3600)
         self.assertEqual(
             settings_values["site_base_url"],
             "https://dertderman.example",
+        )
+
+    def test_production_rejects_weak_secret_keys(self):
+        invalid_secrets = (
+            "too-short",
+            "a" * 49,
+            "dev-only-" + ("x" * 60),
+            "django-insecure-" + ("x" * 60),
+        )
+
+        for secret in invalid_secrets:
+            with self.subTest(secret_prefix=secret[:16]):
+                env = {
+                    **self.production_env,
+                    "DJANGO_SECRET_KEY": secret,
+                }
+                result = self.run_settings(
+                    "import config.settings",
+                    env=env,
+                )
+                self.assert_configuration_error(
+                    result,
+                    "DJANGO_SECRET_KEY",
+                )
+
+    def test_production_session_security_profile(self):
+        code = """
+from config import settings
+
+assert settings.SESSION_COOKIE_NAME == "__Host-dd_session"
+assert settings.CSRF_COOKIE_NAME == "__Host-dd_csrf"
+
+assert settings.SESSION_COOKIE_SECURE is True
+assert settings.CSRF_COOKIE_SECURE is True
+assert settings.SESSION_COOKIE_HTTPONLY is True
+assert settings.CSRF_COOKIE_HTTPONLY is True
+
+assert settings.SESSION_COOKIE_PATH == "/"
+assert settings.CSRF_COOKIE_PATH == "/"
+assert settings.SESSION_COOKIE_DOMAIN is None
+assert settings.CSRF_COOKIE_DOMAIN is None
+
+assert settings.SESSION_COOKIE_SAMESITE == "Lax"
+assert settings.CSRF_COOKIE_SAMESITE == "Lax"
+
+assert settings.SESSION_COOKIE_AGE == 28800
+assert settings.SESSION_EXPIRE_AT_BROWSER_CLOSE is True
+assert settings.SESSION_SAVE_EVERY_REQUEST is False
+
+assert settings.USE_X_FORWARDED_HOST is False
+assert settings.USE_X_FORWARDED_PORT is False
+
+assert settings.SECURE_REFERRER_POLICY == "same-origin"
+assert settings.SECURE_CROSS_ORIGIN_OPENER_POLICY == "same-origin"
+assert settings.X_FRAME_OPTIONS == "DENY"
+"""
+        result = self.run_settings(
+            code,
+            env=self.production_env,
+        )
+        self.assertEqual(
+            result.returncode,
+            0,
+            result.stderr,
+        )
+
+    def test_production_session_cookie_age_must_be_positive(self):
+        for invalid_value in (
+            "0",
+            "-1",
+            "invalid",
+            "1.5",
+        ):
+            with self.subTest(
+                invalid_value=invalid_value
+            ):
+                env = {
+                    **self.production_env,
+                    "DJANGO_SESSION_COOKIE_AGE":
+                        invalid_value,
+                }
+
+                result = self.run_settings(
+                    "import config.settings",
+                    env=env,
+                )
+
+                self.assert_configuration_error(
+                    result,
+                    "DJANGO_SESSION_COOKIE_AGE",
+                )
+
+    def test_production_password_hashing_prefers_argon2_and_accepts_pbkdf2(self):
+        code = """
+from django.contrib.auth.hashers import (
+    PBKDF2PasswordHasher,
+    check_password,
+    identify_hasher,
+    make_password,
+)
+
+password = "SecurityRegressionPassword2026!"
+
+encoded = make_password(password)
+assert identify_hasher(encoded).algorithm == "argon2"
+assert check_password(password, encoded)
+
+legacy = PBKDF2PasswordHasher().encode(
+    password,
+    "fixed-test-salt",
+)
+assert identify_hasher(legacy).algorithm == "pbkdf2_sha256"
+assert check_password(password, legacy)
+"""
+
+        result = self.run_settings(
+            code,
+            env=self.production_env,
+        )
+
+        self.assertEqual(
+            result.returncode,
+            0,
+            result.stderr,
         )
 
     def test_production_can_trust_sanitized_forwarded_proto(self):
@@ -479,7 +604,10 @@ print(json.dumps({
         )
 
     def test_production_configuration_error_does_not_expose_secret(self):
-        secret = "never-expose-this-settings-test-secret"
+        secret = (
+            "never-expose-this-settings-test-secret-"
+            + ("x" * 32)
+        )
         env = {**self.production_env, "DJANGO_SECRET_KEY": secret}
         result = self.run_settings(
             "import config.settings",

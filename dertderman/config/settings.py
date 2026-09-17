@@ -40,6 +40,29 @@ def _required_env(name):
     return value
 
 
+def _production_secret_key():
+    value = _required_env("DJANGO_SECRET_KEY")
+
+    if len(value) < 50:
+        raise ImproperlyConfigured(
+            "DJANGO_SECRET_KEY must be at least 50 characters "
+            "in production."
+        )
+
+    unsafe_prefixes = (
+        "dev-only-",
+        "django-insecure-",
+    )
+
+    if value.startswith(unsafe_prefixes):
+        raise ImproperlyConfigured(
+            "DJANGO_SECRET_KEY must not use a development "
+            "or generated insecure placeholder in production."
+        )
+
+    return value
+
+
 def _required_absolute_path_env(name):
     raw_value = _required_env(name)
     path_value = Path(raw_value).expanduser()
@@ -160,7 +183,7 @@ def _production_site_base_url():
 
 
 if IS_PRODUCTION:
-    SECRET_KEY = _required_env("DJANGO_SECRET_KEY")
+    SECRET_KEY = _production_secret_key()
     DEBUG = False
     ALLOWED_HOSTS = _env_csv("DJANGO_ALLOWED_HOSTS", required=True)
     CSRF_TRUSTED_ORIGINS = _env_csv("DJANGO_CSRF_TRUSTED_ORIGINS")
@@ -300,6 +323,9 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {
+            "min_length": 12,
+        },
     },
     {
         "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
@@ -308,6 +334,29 @@ AUTH_PASSWORD_VALIDATORS = [
         "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
+
+
+# Production stores new passwords with Argon2id.
+# Existing PBKDF2 hashes remain verifiable and Django can
+# transparently upgrade them after a successful authentication.
+if IS_PRODUCTION:
+    PASSWORD_HASHERS = [
+        "django.contrib.auth.hashers.Argon2PasswordHasher",
+        "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+        "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
+        "django.contrib.auth.hashers.BCryptSHA256PasswordHasher",
+        "django.contrib.auth.hashers.ScryptPasswordHasher",
+    ]
+else:
+    # Keep local development and the large regression suite
+    # lightweight while retaining Django's secure PBKDF2 default.
+    PASSWORD_HASHERS = [
+        "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+        "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
+        "django.contrib.auth.hashers.Argon2PasswordHasher",
+        "django.contrib.auth.hashers.BCryptSHA256PasswordHasher",
+        "django.contrib.auth.hashers.ScryptPasswordHasher",
+    ]
 
 
 LANGUAGE_CODE = "tr-tr"
@@ -403,16 +452,51 @@ LOGIN_REDIRECT_URL = "dashboard:home"
 LOGOUT_REDIRECT_URL = "core:home"
 
 SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = "same-origin"
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
 X_FRAME_OPTIONS = "DENY"
+
+# Do not trust client-controlled forwarded host/port headers.
+# Proxy protocol trust is handled separately and must only be
+# enabled when the origin can be reached exclusively through
+# a trusted reverse proxy.
+USE_X_FORWARDED_HOST = False
+USE_X_FORWARDED_PORT = False
+
 SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SAMESITE = "Lax"
+
+SESSION_COOKIE_PATH = "/"
+CSRF_COOKIE_PATH = "/"
+SESSION_COOKIE_DOMAIN = None
+CSRF_COOKIE_DOMAIN = None
+
 CSRF_FAILURE_VIEW = "core.error_views.csrf_failure"
 
 if IS_PRODUCTION:
+    # __Host- cookies must be Secure, host-only and Path=/.
+    # This prevents sibling/subdomains from planting or
+    # overwriting the application's authentication cookies.
+    SESSION_COOKIE_NAME = "__Host-dd_session"
+    CSRF_COOKIE_NAME = "__Host-dd_csrf"
+
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+
+    # Absolute production login lifetime: 8 hours by default.
+    # Closing the browser also expires the browser cookie.
+    SESSION_COOKIE_AGE = _positive_env_int(
+        "DJANGO_SESSION_COOKIE_AGE",
+        default=8 * 60 * 60,
+    )
+    SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+
+    # Do not silently extend the absolute lifetime on every
+    # request. More sensitive roles get tighter rules later.
+    SESSION_SAVE_EVERY_REQUEST = False
+
     SECURE_SSL_REDIRECT = True
     TRUST_X_FORWARDED_PROTO = _strict_env_bool(
         "DJANGO_TRUST_X_FORWARDED_PROTO",
@@ -423,9 +507,9 @@ if IS_PRODUCTION:
         if TRUST_X_FORWARDED_PROTO
         else None
     )
-    SECURE_HSTS_SECONDS = _nonnegative_env_int(
+    SECURE_HSTS_SECONDS = _positive_env_int(
         "DJANGO_SECURE_HSTS_SECONDS",
-        default=0,
+        default=3600,
     )
     SECURE_HSTS_INCLUDE_SUBDOMAINS = _strict_env_bool(
         "DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS",
@@ -436,8 +520,16 @@ if IS_PRODUCTION:
         default=False,
     )
 else:
+    SESSION_COOKIE_NAME = "sessionid"
+    CSRF_COOKIE_NAME = "csrftoken"
+
     SESSION_COOKIE_SECURE = False
     CSRF_COOKIE_SECURE = False
+
+    SESSION_COOKIE_AGE = 14 * 24 * 60 * 60
+    SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+    SESSION_SAVE_EVERY_REQUEST = False
+
     SECURE_SSL_REDIRECT = False
     SECURE_HSTS_SECONDS = 0
     SECURE_HSTS_INCLUDE_SUBDOMAINS = False
