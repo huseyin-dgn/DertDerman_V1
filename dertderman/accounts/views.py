@@ -24,8 +24,12 @@ from django.views.generic.edit import FormView
 
 from core.decorators import no_referrer, role_required
 from core.rate_limit import (
+    AuthRateLimitPolicy,
+    clear_auth_identity,
     clear_rate_limit,
     client_ip,
+    auth_rate_limit_status,
+    consume_auth_failure,
     consume_rate_limit,
     rate_limit_status,
 )
@@ -62,8 +66,21 @@ REGISTER_RATE_LIMIT_MESSAGE = (
     "Çok fazla kayıt denemesi yapıldı. Lütfen daha sonra tekrar deneyin."
 )
 LOGIN_IDENTITY_LIMIT = 5
-LOGIN_IP_LIMIT = 20
+LOGIN_IP_LIMIT = 30
 LOGIN_WINDOW_SECONDS = 15 * 60
+LOGIN_ACCOUNT_LIMIT = 15
+LOGIN_ACCOUNT_WINDOW_SECONDS = 60 * 60
+
+USER_LOGIN_POLICY = AuthRateLimitPolicy(
+    pair_limit=LOGIN_IDENTITY_LIMIT,
+    pair_window_seconds=LOGIN_WINDOW_SECONDS,
+    identity_limit=LOGIN_ACCOUNT_LIMIT,
+    identity_window_seconds=(
+        LOGIN_ACCOUNT_WINDOW_SECONDS
+    ),
+    ip_limit=LOGIN_IP_LIMIT,
+    ip_window_seconds=LOGIN_WINDOW_SECONDS,
+)
 REGISTER_IP_LIMIT = 10
 REGISTER_WINDOW_SECONDS = 60 * 60
 PASSWORD_CHANGE_ATTEMPT_LIMIT = 5
@@ -304,51 +321,101 @@ class SecureLoginView(LoginView):
 
     def _rate_identifiers(self):
         ip = client_ip(self.request)
-        username = (self.request.POST.get("username", "") or "").strip().casefold()
-        return ip, f"{ip}\0{username}"
+        username = (
+            self.request.POST.get(
+                "username",
+                "",
+            )
+            or ""
+        ).strip().casefold()
 
-    def post(self, request, *args, **kwargs):
+        return ip, username
+
+    def post(
+        self,
+        request,
+        *args,
+        **kwargs,
+    ):
         ip, identity = self._rate_identifiers()
-        identity_status = rate_limit_status(
-            scope="user-login-identity",
-            identifier=identity,
-            limit=LOGIN_IDENTITY_LIMIT,
-            window_seconds=LOGIN_WINDOW_SECONDS,
+
+        decision = auth_rate_limit_status(
+            scope="user-login",
+            ip_address=ip,
+            identity=identity,
+            policy=USER_LOGIN_POLICY,
         )
-        ip_status = rate_limit_status(
-            scope="user-login-ip",
-            identifier=ip,
-            limit=LOGIN_IP_LIMIT,
-            window_seconds=LOGIN_WINDOW_SECONDS,
-        )
-        if not identity_status.allowed or not ip_status.allowed:
-            form = self.get_form()
-            form.add_error(None, AUTH_RATE_LIMIT_MESSAGE)
-            response = super().form_invalid(form)
-            response.status_code = 429
-            response["Retry-After"] = str(LOGIN_WINDOW_SECONDS)
+
+        if not decision.allowed:
+            # Do not bind or validate AuthenticationForm here.
+            # Binding/validation would execute authentication and
+            # password hashing even though the request is already
+            # rejected by the security limiter.
+            form = self.get_form_class()(
+                request=request,
+            )
+
+            response = self.render_to_response(
+                self.get_context_data(
+                    form=form,
+                    auth_rate_limit_message=(
+                        AUTH_RATE_LIMIT_MESSAGE
+                    ),
+                ),
+                status=429,
+            )
+            response["Retry-After"] = str(
+                decision.retry_after
+            )
             return response
-        return super().post(request, *args, **kwargs)
+
+        return super().post(
+            request,
+            *args,
+            **kwargs,
+        )
 
     def form_invalid(self, form):
         ip, identity = self._rate_identifiers()
-        consume_rate_limit(
-            scope="user-login-identity",
-            identifier=identity,
-            limit=LOGIN_IDENTITY_LIMIT,
-            window_seconds=LOGIN_WINDOW_SECONDS,
+
+        decision = consume_auth_failure(
+            scope="user-login",
+            ip_address=ip,
+            identity=identity,
+            policy=USER_LOGIN_POLICY,
         )
-        consume_rate_limit(
-            scope="user-login-ip",
-            identifier=ip,
-            limit=LOGIN_IP_LIMIT,
-            window_seconds=LOGIN_WINDOW_SECONDS,
-        )
+
+        # Eşzamanlı isteklerde birkaç request pre-check'i aynı
+        # anda geçmiş olabilir. Atomic cache increment sonucunda
+        # limit aşılırsa bu request de 429 ile kapatılır.
+        if not decision.allowed:
+            response = self.render_to_response(
+                self.get_context_data(
+                    form=form,
+                    auth_rate_limit_message=(
+                        AUTH_RATE_LIMIT_MESSAGE
+                    ),
+                ),
+                status=429,
+            )
+
+            response["Retry-After"] = str(
+                decision.retry_after
+            )
+
+            return response
+
         return super().form_invalid(form)
 
     def form_valid(self, form):
-        _, identity = self._rate_identifiers()
-        clear_rate_limit(scope="user-login-identity", identifier=identity)
+        ip, identity = self._rate_identifiers()
+
+        clear_auth_identity(
+            scope="user-login",
+            ip_address=ip,
+            identity=identity,
+        )
+
         return super().form_valid(form)
 
     def get_success_url(self):

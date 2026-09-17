@@ -1,3 +1,19 @@
-{% if form.errors %}<div class="ax-error-summary" role="alert" tabindex="-1" data-auth-errors>
-{% if form.non_field_errors %}{{ form.non_field_errors }}{% else %}<p>İşaretli alanları kontrol ederek tekrar deneyin.</p>{% endif %}
-</div>{% endif %}
+{% if auth_rate_limit_message %}
+<div class="ax-error-summary"
+     role="alert"
+     tabindex="-1"
+     data-auth-errors>
+  <p>{{ auth_rate_limit_message }}</p>
+</div>
+{% elif form.errors %}
+<div class="ax-error-summary"
+     role="alert"
+     tabindex="-1"
+     data-auth-errors>
+  {% if form.non_field_errors %}
+    {{ form.non_field_errors }}
+  {% else %}
+    <p>İşaretli alanları kontrol ederek tekrar deneyin.</p>
+  {% endif %}
+</div>
+{% endif %}

@@ -12,8 +12,12 @@ from django.views.decorators.http import require_http_methods
 from accounts.models import User
 from accounts.redirects import safe_role_next
 from core.rate_limit import (
+    AuthRateLimitPolicy,
+    clear_auth_identity,
     clear_rate_limit,
     client_ip,
+    auth_rate_limit_status,
+    consume_auth_failure,
     consume_rate_limit,
     rate_limit_status,
 )
@@ -39,8 +43,21 @@ REGISTER_RATE_LIMIT_MESSAGE = (
 )
 
 LOGIN_IDENTITY_LIMIT = 5
-LOGIN_IP_LIMIT = 20
+LOGIN_IP_LIMIT = 30
 LOGIN_WINDOW_SECONDS = 15 * 60
+LOGIN_ACCOUNT_LIMIT = 15
+LOGIN_ACCOUNT_WINDOW_SECONDS = 60 * 60
+
+COMPANY_LOGIN_POLICY = AuthRateLimitPolicy(
+    pair_limit=LOGIN_IDENTITY_LIMIT,
+    pair_window_seconds=LOGIN_WINDOW_SECONDS,
+    identity_limit=LOGIN_ACCOUNT_LIMIT,
+    identity_window_seconds=(
+        LOGIN_ACCOUNT_WINDOW_SECONDS
+    ),
+    ip_limit=LOGIN_IP_LIMIT,
+    ip_window_seconds=LOGIN_WINDOW_SECONDS,
+)
 
 REGISTER_IP_LIMIT = 10
 REGISTER_WINDOW_SECONDS = 60 * 60
@@ -172,43 +189,42 @@ class CompanyLoginView(LoginView):
             or ""
         ).strip().casefold()
 
-        return (
-            ip,
-            f"{ip}\0{email}",
-        )
+        return ip, email
 
-    def post(self, request, *args, **kwargs):
+    def post(
+        self,
+        request,
+        *args,
+        **kwargs,
+    ):
         ip, identity = self._rate_identifiers()
 
-        identity_status = rate_limit_status(
-            scope="company-login-identity",
-            identifier=identity,
-            limit=LOGIN_IDENTITY_LIMIT,
-            window_seconds=LOGIN_WINDOW_SECONDS,
+        decision = auth_rate_limit_status(
+            scope="company-login",
+            ip_address=ip,
+            identity=identity,
+            policy=COMPANY_LOGIN_POLICY,
         )
 
-        ip_status = rate_limit_status(
-            scope="company-login-ip",
-            identifier=ip,
-            limit=LOGIN_IP_LIMIT,
-            window_seconds=LOGIN_WINDOW_SECONDS,
-        )
-
-        if (
-            not identity_status.allowed
-            or not ip_status.allowed
-        ):
-            form = self.get_form()
-
-            form.add_error(
-                None,
-                AUTH_RATE_LIMIT_MESSAGE,
+        if not decision.allowed:
+            # Keep the throttled path independent from credential
+            # verification. The unbound form is display-only.
+            form = self.get_form_class()(
+                request=request,
             )
 
-            response = super().form_invalid(form)
-            response.status_code = 429
+            response = self.render_to_response(
+                self.get_context_data(
+                    form=form,
+                    auth_rate_limit_message=(
+                        AUTH_RATE_LIMIT_MESSAGE
+                    ),
+                ),
+                status=429,
+            )
+
             response["Retry-After"] = str(
-                LOGIN_WINDOW_SECONDS
+                decision.retry_after
             )
 
             return response
@@ -222,28 +238,42 @@ class CompanyLoginView(LoginView):
     def form_invalid(self, form):
         ip, identity = self._rate_identifiers()
 
-        consume_rate_limit(
-            scope="company-login-identity",
-            identifier=identity,
-            limit=LOGIN_IDENTITY_LIMIT,
-            window_seconds=LOGIN_WINDOW_SECONDS,
+        decision = consume_auth_failure(
+            scope="company-login",
+            ip_address=ip,
+            identity=identity,
+            policy=COMPANY_LOGIN_POLICY,
         )
 
-        consume_rate_limit(
-            scope="company-login-ip",
-            identifier=ip,
-            limit=LOGIN_IP_LIMIT,
-            window_seconds=LOGIN_WINDOW_SECONDS,
-        )
+        # Eşzamanlı isteklerde birkaç request pre-check'i aynı
+        # anda geçmiş olabilir. Atomic cache increment sonucunda
+        # limit aşılırsa bu request de 429 ile kapatılır.
+        if not decision.allowed:
+            response = self.render_to_response(
+                self.get_context_data(
+                    form=form,
+                    auth_rate_limit_message=(
+                        AUTH_RATE_LIMIT_MESSAGE
+                    ),
+                ),
+                status=429,
+            )
+
+            response["Retry-After"] = str(
+                decision.retry_after
+            )
+
+            return response
 
         return super().form_invalid(form)
 
     def form_valid(self, form):
-        _, identity = self._rate_identifiers()
+        ip, identity = self._rate_identifiers()
 
-        clear_rate_limit(
-            scope="company-login-identity",
-            identifier=identity,
+        clear_auth_identity(
+            scope="company-login",
+            ip_address=ip,
+            identity=identity,
         )
 
         return super().form_valid(form)

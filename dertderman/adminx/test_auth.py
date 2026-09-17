@@ -1,7 +1,16 @@
 from django.contrib.auth import get_user_model
-from django.test import Client, TestCase
+from django.core.cache import cache
+from django.test import (
+    Client,
+    TestCase,
+    override_settings,
+)
 
-from .auth_views import LOGIN_ERROR
+from .auth_views import (
+    ADMIN_LOGIN_POLICY,
+    AUTH_RATE_LIMIT_MESSAGE,
+    LOGIN_ERROR,
+)
 
 
 class AdminLoginTests(TestCase):
@@ -98,3 +107,81 @@ class AdminLoginTests(TestCase):
             response = self.client.get("/django-admin/")
             self.assertEqual(response.status_code, 404)
             self.assertTemplateUsed(response, "404.html")
+
+
+
+@override_settings(RATE_LIMIT_ENABLED=True)
+class AdminLoginThrottleTests(TestCase):
+    password = "AdminThrottlePassword2026!"
+
+    def setUp(self):
+        cache.clear()
+
+        self.admin = (
+            get_user_model()
+            .objects.create_user(
+                username="throttle-admin",
+                email=(
+                    "throttle-admin@example.com"
+                ),
+                user_type="ADMIN",
+                password=self.password,
+            )
+        )
+
+    def test_admin_login_is_rate_limited_across_rotating_ips(self):
+        url = "/yonetim/giris/"
+
+        for index in range(
+            ADMIN_LOGIN_POLICY.identity_limit
+        ):
+            response = self.client.post(
+                url,
+                {
+                    "username":
+                        self.admin.username,
+                    "password":
+                        "wrong-password",
+                },
+                REMOTE_ADDR=(
+                    f"198.51.100.{index + 1}"
+                ),
+            )
+
+            self.assertEqual(
+                response.status_code,
+                200,
+            )
+            self.assertNotIn(
+                "_auth_user_id",
+                self.client.session,
+            )
+
+        blocked = self.client.post(
+            url,
+            {
+                "username":
+                    self.admin.username,
+                "password":
+                    "wrong-password",
+            },
+            REMOTE_ADDR="203.0.113.250",
+        )
+
+        self.assertEqual(
+            blocked.status_code,
+            429,
+        )
+        self.assertContains(
+            blocked,
+            AUTH_RATE_LIMIT_MESSAGE,
+            status_code=429,
+        )
+        self.assertIn(
+            "Retry-After",
+            blocked.headers,
+        )
+        self.assertNotIn(
+            "_auth_user_id",
+            self.client.session,
+        )
