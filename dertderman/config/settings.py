@@ -40,6 +40,18 @@ def _required_env(name):
     return value
 
 
+def _required_absolute_path_env(name):
+    raw_value = _required_env(name)
+    path_value = Path(raw_value).expanduser()
+
+    if not path_value.is_absolute():
+        raise ImproperlyConfigured(
+            f"{name} must be an absolute filesystem path."
+        )
+
+    return path_value.resolve()
+
+
 def _env_csv(name, *, required=False):
     raw_value = os.getenv(name, "")
     values = [value.strip() for value in raw_value.split(",") if value.strip()]
@@ -307,11 +319,79 @@ USE_I18N = True
 USE_TZ = True
 
 
-STATIC_URL = "static/"
-STATICFILES_DIRS = [BASE_DIR / "static"]
+STATIC_URL = "/static/"
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+]
 
-MEDIA_URL = "media/"
-MEDIA_ROOT = BASE_DIR / "media"
+MEDIA_URL = "/media/"
+
+if IS_PRODUCTION:
+    STATIC_ROOT = _required_absolute_path_env(
+        "DJANGO_STATIC_ROOT"
+    )
+    MEDIA_ROOT = _required_absolute_path_env(
+        "DJANGO_MEDIA_ROOT"
+    )
+
+    if (
+        STATIC_ROOT == MEDIA_ROOT
+        or STATIC_ROOT in MEDIA_ROOT.parents
+        or MEDIA_ROOT in STATIC_ROOT.parents
+    ):
+        raise ImproperlyConfigured(
+            "DJANGO_STATIC_ROOT and DJANGO_MEDIA_ROOT "
+            "must not overlap."
+        )
+
+    STORAGES = {
+        "default": {
+            "BACKEND": (
+                "django.core.files.storage."
+                "FileSystemStorage"
+            ),
+        },
+        "staticfiles": {
+            "BACKEND": (
+                "django.contrib.staticfiles.storage."
+                "ManifestStaticFilesStorage"
+            ),
+        },
+    }
+else:
+    STATIC_ROOT = (
+        BASE_DIR / "staticfiles"
+    )
+    MEDIA_ROOT = (
+        BASE_DIR / "media"
+    )
+
+    STORAGES = {
+        "default": {
+            "BACKEND": (
+                "django.core.files.storage."
+                "FileSystemStorage"
+            ),
+        },
+        "staticfiles": {
+            "BACKEND": (
+                "django.contrib.staticfiles.storage."
+                "StaticFilesStorage"
+            ),
+        },
+    }
+
+
+# Uploaded files larger than 1 MiB are streamed to a
+# temporary file rather than being retained entirely in RAM.
+FILE_UPLOAD_MAX_MEMORY_SIZE = 1024 * 1024
+
+# Limit non-file POST body memory consumption.
+DATA_UPLOAD_MAX_MEMORY_SIZE = 2 * 1024 * 1024
+
+# Current application flows accept a single image at a time.
+# Keep a small safety margin for future multipart forms.
+DATA_UPLOAD_MAX_NUMBER_FILES = 4
 
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

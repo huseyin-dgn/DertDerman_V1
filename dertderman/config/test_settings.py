@@ -27,6 +27,14 @@ class SettingsProfileTests(SimpleTestCase):
         "POSTGRES_HOST": "127.0.0.1",
         "POSTGRES_PORT": "5432",
         "REDIS_URL": "redis://127.0.0.1:6379/0",
+        "DJANGO_STATIC_ROOT": str(
+            PROJECT_ROOT
+            / "_settings-test-static"
+        ),
+        "DJANGO_MEDIA_ROOT": str(
+            PROJECT_ROOT
+            / "_settings-test-media"
+        ),
     }
     isolated_keys = {
         "DJANGO_ENV",
@@ -51,6 +59,8 @@ class SettingsProfileTests(SimpleTestCase):
         "POSTGRES_CONN_MAX_AGE",
         "POSTGRES_CONNECT_TIMEOUT",
         "REDIS_URL",
+        "DJANGO_STATIC_ROOT",
+        "DJANGO_MEDIA_ROOT",
         "RESEND_API_KEY",
         "RESEND_TIMEOUT_SECONDS",
         "RESEND_WEBHOOK_MAX_BODY_BYTES",
@@ -94,6 +104,124 @@ class SettingsProfileTests(SimpleTestCase):
             env={"DJANGO_ENV": "development"},
         )
         self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_production_requires_storage_roots(self):
+        for setting_name in (
+            "DJANGO_STATIC_ROOT",
+            "DJANGO_MEDIA_ROOT",
+        ):
+            with self.subTest(
+                setting_name=setting_name
+            ):
+                result = self.run_settings(
+                    "import config.settings",
+                    env=self.production_env,
+                    omitted={setting_name},
+                )
+
+                self.assert_configuration_error(
+                    result,
+                    setting_name,
+                )
+
+    def test_production_storage_roots_must_be_absolute_and_separate(self):
+        for setting_name in (
+            "DJANGO_STATIC_ROOT",
+            "DJANGO_MEDIA_ROOT",
+        ):
+            with self.subTest(
+                setting_name=setting_name
+            ):
+                env = {
+                    **self.production_env,
+                    setting_name:
+                        "relative/storage/path",
+                }
+
+                result = self.run_settings(
+                    "import config.settings",
+                    env=env,
+                )
+
+                self.assert_configuration_error(
+                    result,
+                    setting_name,
+                )
+
+        shared_path = str(
+            PROJECT_ROOT
+            / "_settings-overlap"
+        )
+
+        env = {
+            **self.production_env,
+            "DJANGO_STATIC_ROOT":
+                shared_path,
+            "DJANGO_MEDIA_ROOT":
+                shared_path,
+        }
+
+        result = self.run_settings(
+            "import config.settings",
+            env=env,
+        )
+
+        self.assert_configuration_error(
+            result,
+            "DJANGO_MEDIA_ROOT",
+        )
+
+    def test_storage_profiles_are_explicit_and_safe(self):
+        development = self.run_settings(
+            """
+from config import settings
+
+assert settings.STATIC_URL == "/static/"
+assert settings.MEDIA_URL == "/media/"
+assert settings.STATIC_ROOT == settings.BASE_DIR / "staticfiles"
+assert settings.MEDIA_ROOT == settings.BASE_DIR / "media"
+assert settings.STORAGES["staticfiles"]["BACKEND"] == (
+    "django.contrib.staticfiles.storage.StaticFilesStorage"
+)
+""",
+            env={
+                "DJANGO_ENV": "development",
+            },
+        )
+
+        self.assertEqual(
+            development.returncode,
+            0,
+            development.stderr,
+        )
+
+        production = self.run_settings(
+            """
+from config import settings
+
+assert settings.STATIC_URL == "/static/"
+assert settings.MEDIA_URL == "/media/"
+assert settings.STATIC_ROOT.is_absolute()
+assert settings.MEDIA_ROOT.is_absolute()
+assert settings.STATIC_ROOT != settings.MEDIA_ROOT
+assert settings.STORAGES["default"]["BACKEND"] == (
+    "django.core.files.storage.FileSystemStorage"
+)
+assert settings.STORAGES["staticfiles"]["BACKEND"] == (
+    "django.contrib.staticfiles.storage.ManifestStaticFilesStorage"
+)
+assert settings.FILE_UPLOAD_MAX_MEMORY_SIZE == 1024 * 1024
+assert settings.DATA_UPLOAD_MAX_MEMORY_SIZE == 2 * 1024 * 1024
+assert settings.DATA_UPLOAD_MAX_NUMBER_FILES == 4
+""",
+            env=self.production_env,
+        )
+
+        self.assertEqual(
+            production.returncode,
+            0,
+            production.stderr,
+        )
 
     def test_production_requires_postgresql_and_redis(self):
         required_settings = (
