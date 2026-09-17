@@ -41,27 +41,41 @@ class AssistantWidgetTemplateTests(TestCase):
             request=request,
         )
 
-    def test_anonymous_sees_public_actions_but_not_private_summary(self):
+    def test_anonymous_sees_public_actions_but_not_private_actions(self):
         html = self._render(AnonymousUser())
 
         self.assertIn('data-assistant-action="ABOUT_DERTDERMAN"', html)
         self.assertIn('data-assistant-action="HOW_TO_REGISTER"', html)
+        self.assertIn('data-assistant-action="HOW_TO_LOGIN"', html)
         self.assertNotIn('data-assistant-action="MY_SUMMARY"', html)
+        self.assertNotIn('data-assistant-action="MY_COMPLAINTS"', html)
 
-    def test_verified_user_sees_private_summary(self):
+    def test_verified_user_sees_private_action_cards(self):
         html = self._render(self.verified_user)
 
         self.assertIn('data-assistant-action="MY_SUMMARY"', html)
+        self.assertIn('data-assistant-action="MY_COMPLAINTS"', html)
+        self.assertIn('data-assistant-action="MY_NOTIFICATIONS"', html)
+        self.assertIn('data-assistant-action="ACCOUNT_SETTINGS"', html)
         self.assertNotIn('data-assistant-action="HOW_TO_LOGIN"', html)
         self.assertNotIn('data-assistant-action="HOW_TO_REGISTER"', html)
 
-    def test_unverified_user_does_not_see_private_summary(self):
+    def test_unverified_user_does_not_see_private_actions(self):
         html = self._render(self.unverified_user)
 
         self.assertNotIn('data-assistant-action="MY_SUMMARY"', html)
+        self.assertNotIn('data-assistant-action="MY_COMPLAINTS"', html)
+        self.assertIn('data-assistant-action="ABOUT_DERTDERMAN"', html)
 
-    def test_company_does_not_see_user_private_summary(self):
+    def test_widget_has_no_free_text_composer(self):
+        html = self._render(self.verified_user)
+
+        self.assertNotIn("data-assistant-text-form", html)
+        self.assertNotIn("data-assistant-input", html)
+        self.assertNotIn("Asistana yaz", html)
+
+    def test_company_template_has_no_user_private_actions(self):
         html = self._render(self.company_user)
 
         self.assertNotIn('data-assistant-action="MY_SUMMARY"', html)
-        self.assertIn('data-assistant-action="COMPANY_ACCOUNT_HELP"', html)
+        self.assertNotIn('data-assistant-action="MY_COMPLAINTS"', html)

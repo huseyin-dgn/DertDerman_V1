@@ -30,7 +30,10 @@ class AssistantRequestError(ValueError):
         status_code=400,
         code="INVALID_REQUEST",
     ):
-        super().__init__(message)
+        super().__init__(
+            message
+        )
+
         self.status_code = status_code
         self.code = code
 
@@ -47,16 +50,21 @@ def _json_response(
             "ensure_ascii": False,
         },
     )
+
     response["Cache-Control"] = (
         "private, no-store, no-cache, "
         "max-age=0, must-revalidate"
     )
+
     response["Pragma"] = "no-cache"
     response["Expires"] = "0"
+
     return response
 
 
-def _load_action(request):
+def _load_action(
+    request,
+):
     if request.content_type != "application/json":
         raise AssistantRequestError(
             "Asistan isteği JSON olmalıdır.",
@@ -79,32 +87,57 @@ def _load_action(request):
         )
 
     try:
-        decoded = raw_body.decode("utf-8")
-        payload = json.loads(decoded)
-    except (UnicodeDecodeError, JSONDecodeError):
+        decoded = raw_body.decode(
+            "utf-8"
+        )
+
+        payload = json.loads(
+            decoded
+        )
+
+    except (
+        UnicodeDecodeError,
+        JSONDecodeError,
+    ):
         raise AssistantRequestError(
             "Geçersiz JSON isteği."
         ) from None
 
-    if not isinstance(payload, dict):
+    if not isinstance(
+        payload,
+        dict,
+    ):
         raise AssistantRequestError(
             "Asistan isteği nesne olmalıdır."
         )
 
-    if set(payload) != {"action"}:
+    # A4.2:
+    # Sadece buton tabanlı action kabul edilir.
+    if set(payload) != {
+        "action",
+    }:
         raise AssistantRequestError(
             "Asistan isteğinde desteklenmeyen alan var."
         )
 
-    action = payload.get("action")
-    if not isinstance(action, str):
+    action = payload.get(
+        "action"
+    )
+
+    if not isinstance(
+        action,
+        str,
+    ):
         raise AssistantRequestError(
             "Asistan action alanı metin olmalıdır."
         )
 
     action = action.strip()
 
-    if not action or len(action) > MAX_ACTION_LENGTH:
+    if (
+        not action
+        or len(action) > MAX_ACTION_LENGTH
+    ):
         raise AssistantRequestError(
             "Geçersiz asistan action değeri."
         )
@@ -112,13 +145,27 @@ def _load_action(request):
     return action
 
 
-def _consume_assistant_rate_limit(request):
-    user = getattr(request, "user", None)
+def _consume_assistant_rate_limit(
+    request,
+):
+    user = getattr(
+        request,
+        "user",
+        None,
+    )
 
     if (
         user is not None
-        and getattr(user, "is_authenticated", False)
-        and getattr(user, "pk", None)
+        and getattr(
+            user,
+            "is_authenticated",
+            False,
+        )
+        and getattr(
+            user,
+            "pk",
+            None,
+        )
     ):
         return consume_rate_limit(
             scope="assistant-auth-user",
@@ -129,7 +176,9 @@ def _consume_assistant_rate_limit(request):
 
     return consume_rate_limit(
         scope="assistant-anon-ip",
-        identifier=client_ip(request),
+        identifier=client_ip(
+            request
+        ),
         limit=ANONYMOUS_RATE_LIMIT,
         window_seconds=RATE_LIMIT_WINDOW_SECONDS,
     )
@@ -137,9 +186,13 @@ def _consume_assistant_rate_limit(request):
 
 @never_cache
 @require_POST
-def interact(request):
-    rate_limit = _consume_assistant_rate_limit(
-        request
+def interact(
+    request,
+):
+    rate_limit = (
+        _consume_assistant_rate_limit(
+            request
+        )
     )
 
     if not rate_limit.allowed:
@@ -154,19 +207,26 @@ def interact(request):
             },
             status=429,
         )
+
         response["Retry-After"] = str(
             rate_limit.retry_after
         )
+
         return response
 
     try:
-        action = _load_action(request)
+        action = _load_action(
+            request
+        )
+
     except AssistantRequestError as error:
         return _json_response(
             {
                 "ok": False,
                 "error": error.code,
-                "message": str(error),
+                "message": str(
+                    error
+                ),
             },
             status=error.status_code,
         )

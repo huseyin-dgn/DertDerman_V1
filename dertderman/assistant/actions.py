@@ -19,14 +19,12 @@ class AssistantAction(str, Enum):
     HOW_TO_REGISTER = "HOW_TO_REGISTER"
     HOW_TO_LOGIN = "HOW_TO_LOGIN"
     COMPANY_ACCOUNT_HELP = "COMPANY_ACCOUNT_HELP"
-    MY_SUMMARY = "MY_SUMMARY"
 
-    # A3 - context-aware, read-only USER helpers.
+    MY_SUMMARY = "MY_SUMMARY"
     MY_COMPLAINTS = "MY_COMPLAINTS"
     MY_NOTIFICATIONS = "MY_NOTIFICATIONS"
     ACCOUNT_SETTINGS = "ACCOUNT_SETTINGS"
 
-    # A3 - public support helper.
     CONTACT_SUPPORT = "CONTACT_SUPPORT"
 
 
@@ -53,13 +51,25 @@ PUBLIC_ACTORS = frozenset(
     }
 )
 
-PRIVATE_USER_ACTORS = frozenset({ActorKind.USER})
+PRIVATE_USER_ACTORS = frozenset(
+    {
+        ActorKind.USER,
+    }
+)
 
 
-def _link(label: str, route_name: str) -> dict[str, str]:
+def _link(
+    label: str,
+    route_name: str,
+    *,
+    kwargs: dict[str, object] | None = None,
+) -> dict[str, str]:
     return {
         "label": label,
-        "url": reverse(route_name),
+        "url": reverse(
+            route_name,
+            kwargs=kwargs,
+        ),
     }
 
 
@@ -69,12 +79,18 @@ def about_dertderman(
     return AssistantReply(
         message=(
             "DertDerman, kullanıcıların şikayetlerini paylaşabildiği, "
-            "şirketlerin yetkili panel üzerinden süreçleri takip edebildiği "
-            "bir şikayet platformudur."
+            "şirketlerin yanıt verebildiği ve çözüm süreçlerinin takip "
+            "edilebildiği bir tüketici deneyimleri platformudur."
         ),
         links=(
-            _link("Hakkımızda", "core:about"),
-            _link("Sık Sorulan Sorular", "core:faq"),
+            _link(
+                "Hakkımızda",
+                "core:about",
+            ),
+            _link(
+                "Sık Sorulan Sorular",
+                "core:faq",
+            ),
         ),
     )
 
@@ -84,8 +100,8 @@ def how_to_complain(
 ) -> AssistantReply:
     return AssistantReply(
         message=(
-            "Şikayet oluşturma işlemi asistan içinde yapılmaz. "
-            "Güvenli şikayet oluşturma sayfasına yönlendirilirsiniz."
+            "Yeni bir şikayet oluşturmak için güvenli şikayet formunu "
+            "kullanabilirsiniz."
         ),
         links=(
             _link(
@@ -101,9 +117,8 @@ def what_is_derman(
 ) -> AssistantReply:
     return AssistantReply(
         message=(
-            "Derman Ol, yayınlanmış şikayetlerde kullanıcıların çözüm veya "
-            "deneyim paylaşmasına ayrılan alandır. Asistan Derman oluşturmaz "
-            "veya değiştirmez; yalnızca ilgili sayfalara yönlendirir."
+            "Derman Ol, yayınlanan şikayetlerde kullanıcıların çözüm ve "
+            "deneyim paylaşabildiği alandır."
         ),
         links=(
             _link(
@@ -119,8 +134,8 @@ def how_to_register(
 ) -> AssistantReply:
     return AssistantReply(
         message=(
-            "Bireysel kullanıcı kaydı hesap kayıt sayfasından yapılır. "
-            "Asistan kayıt işlemini kendi içinde gerçekleştirmez."
+            "Bireysel hesap oluşturmak için kayıt sayfasını "
+            "kullanabilirsiniz."
         ),
         links=(
             _link(
@@ -136,7 +151,8 @@ def how_to_login(
 ) -> AssistantReply:
     return AssistantReply(
         message=(
-            "Bireysel kullanıcı girişi güvenli giriş sayfasından yapılır."
+            "Bireysel hesabınıza güvenli giriş sayfasından "
+            "ulaşabilirsiniz."
         ),
         links=(
             _link(
@@ -153,8 +169,7 @@ def company_account_help(
     return AssistantReply(
         message=(
             "Şirket hesabı için kurumsal kayıt veya kurumsal giriş "
-            "sayfalarını kullanabilirsiniz. Asistan şirket hesabı oluşturmaz "
-            "ve şirket ayarlarını değiştirmez."
+            "sayfasını kullanabilirsiniz."
         ),
         links=(
             _link(
@@ -177,8 +192,12 @@ def my_summary(
     context: AssistantContext,
 ) -> AssistantReply:
     return AssistantReply(
-        message="Hesabınıza ait güvenli özet bilgileri aşağıdadır.",
-        data=get_my_summary(context.user),
+        message=(
+            "Hesabınıza ait güvenli özet bilgileri aşağıdadır."
+        ),
+        data=get_my_summary(
+            context.user
+        ),
         links=(
             _link(
                 "Şikayetlerim",
@@ -195,58 +214,97 @@ def my_summary(
 def my_complaints(
     context: AssistantContext,
 ) -> AssistantReply:
-    summary = get_my_complaint_summary(context.user)
+    summary = get_my_complaint_summary(
+        context.user
+    )
+
     total = summary["total"]
     latest = summary["latest"]
+
+    # ÖNEMLİ:
+    # A3 regression testi ilk linkin complaints:list olmasını bekliyor.
+    links = [
+        _link(
+            "Tüm Şikayetlerim",
+            "complaints:list",
+        ),
+    ]
 
     if total == 0:
         message = (
             "Henüz hesabınıza ait bir şikayet bulunmuyor. "
-            "Yeni bir şikayet oluşturabilir veya yayınlanan şikayetleri inceleyebilirsiniz."
+            "Yeni bir şikayet oluşturabilirsiniz."
         )
+
     elif latest:
         status_label = latest["status"]
+
         for item in summary["status_distribution"]:
             if item["status"] == latest["status"]:
                 status_label = item["label"]
                 break
 
+        # "toplam 2" ifadesi mevcut A3 regression testiyle uyumlu.
         message = (
             f"Hesabınızda toplam {total} şikayet bulunuyor. "
             f"En son şikayetinizin durumu: {status_label}."
         )
+
+        links.append(
+            _link(
+                "Son Şikayeti Aç",
+                "complaints:detail",
+                kwargs={
+                    "pk": latest["id"],
+                },
+            )
+        )
+
     else:
-        message = f"Hesabınızda toplam {total} şikayet bulunuyor."
+        message = (
+            f"Hesabınızda toplam {total} şikayet bulunuyor."
+        )
+
+    links.append(
+        _link(
+            "Yeni Şikayet",
+            "complaints:create",
+        )
+    )
 
     return AssistantReply(
         message=message,
         data=summary,
-        links=(
-            _link("Şikayetlerim", "complaints:list"),
-            _link("Yeni Şikayet", "complaints:create"),
-        ),
+        links=tuple(links),
     )
 
 
 def my_notifications(
     context: AssistantContext,
 ) -> AssistantReply:
-    summary = get_my_notification_summary(context.user)
+    summary = get_my_notification_summary(
+        context.user
+    )
+
     unread_count = summary["unread_count"]
 
     if unread_count:
         message = (
-            f"{unread_count} okunmamış bildiriminiz bulunuyor. "
-            "Bildirimlerinizi güvenli bildirim sayfasından inceleyebilirsiniz."
+            f"{unread_count} okunmamış bildiriminiz bulunuyor."
         )
     else:
-        message = "Şu anda okunmamış bildiriminiz bulunmuyor."
+        message = (
+            "Şu anda okunmamış bildiriminiz bulunmuyor."
+        )
 
     return AssistantReply(
         message=message,
         data=summary,
         links=(
-            _link("Bildirimlerim", "notifications:list"),
+            _link(
+                "Bildirimlerim",
+                "notifications:list",
+            ),
         ),
     )
 
@@ -256,14 +314,25 @@ def account_settings(
 ) -> AssistantReply:
     return AssistantReply(
         message=(
-            "Profil, e-posta ve parola işlemleri asistan içinde değiştirilmez. "
-            "İlgili güvenli hesap sayfasına yönlendirilirsiniz."
+            "Hangi hesap işlemini yapmak istediğinizi seçebilirsiniz."
         ),
         links=(
-            _link("Profilim", "accounts:profile"),
-            _link("Profili Düzenle", "accounts:profile_edit"),
-            _link("E-posta Değiştir", "accounts:email_change"),
-            _link("Parola Değiştir", "accounts:password_change"),
+            _link(
+                "Profilim",
+                "accounts:profile",
+            ),
+            _link(
+                "Profili Düzenle",
+                "accounts:profile_edit",
+            ),
+            _link(
+                "E-posta Değiştir",
+                "accounts:email_change",
+            ),
+            _link(
+                "Parola Değiştir",
+                "accounts:password_change",
+            ),
         ),
     )
 
@@ -273,61 +342,80 @@ def contact_support(
 ) -> AssistantReply:
     return AssistantReply(
         message=(
-            "Aradığınız yanıtı bulamadıysanız sık sorulan soruları inceleyebilir "
-            "veya iletişim sayfasından DertDerman'a ulaşabilirsiniz."
+            "Sık sorulan soruları inceleyebilir veya iletişim "
+            "sayfasından DertDerman'a ulaşabilirsiniz."
         ),
         links=(
-            _link("Sık Sorulan Sorular", "core:faq"),
-            _link("Bize Ulaşın", "core:contact"),
+            _link(
+                "Sık Sorulan Sorular",
+                "core:faq",
+            ),
+            _link(
+                "Bize Ulaşın",
+                "core:contact",
+            ),
         ),
     )
 
 
-ACTION_RULES: dict[AssistantAction, ActionRule] = {
+ACTION_RULES: dict[
+    AssistantAction,
+    ActionRule,
+] = {
     AssistantAction.ABOUT_DERTDERMAN: ActionRule(
         allowed_actor_kinds=PUBLIC_ACTORS,
         handler=about_dertderman,
     ),
+
     AssistantAction.HOW_TO_COMPLAIN: ActionRule(
         allowed_actor_kinds=PUBLIC_ACTORS,
         handler=how_to_complain,
     ),
+
     AssistantAction.WHAT_IS_DERMAN: ActionRule(
         allowed_actor_kinds=PUBLIC_ACTORS,
         handler=what_is_derman,
     ),
+
     AssistantAction.HOW_TO_REGISTER: ActionRule(
         allowed_actor_kinds=PUBLIC_ACTORS,
         handler=how_to_register,
     ),
+
     AssistantAction.HOW_TO_LOGIN: ActionRule(
         allowed_actor_kinds=PUBLIC_ACTORS,
         handler=how_to_login,
     ),
+
     AssistantAction.COMPANY_ACCOUNT_HELP: ActionRule(
         allowed_actor_kinds=PUBLIC_ACTORS,
         handler=company_account_help,
     ),
+
     AssistantAction.MY_SUMMARY: ActionRule(
         allowed_actor_kinds=PRIVATE_USER_ACTORS,
         handler=my_summary,
         requires_private_user=True,
     ),
+
     AssistantAction.MY_COMPLAINTS: ActionRule(
         allowed_actor_kinds=PRIVATE_USER_ACTORS,
         handler=my_complaints,
         requires_private_user=True,
     ),
+
     AssistantAction.MY_NOTIFICATIONS: ActionRule(
         allowed_actor_kinds=PRIVATE_USER_ACTORS,
         handler=my_notifications,
         requires_private_user=True,
     ),
+
     AssistantAction.ACCOUNT_SETTINGS: ActionRule(
         allowed_actor_kinds=PRIVATE_USER_ACTORS,
         handler=account_settings,
         requires_private_user=True,
     ),
+
     AssistantAction.CONTACT_SUPPORT: ActionRule(
         allowed_actor_kinds=PUBLIC_ACTORS,
         handler=contact_support,

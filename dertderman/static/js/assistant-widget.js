@@ -64,9 +64,11 @@
   const setBusy = (busy) => {
     requestInFlight = busy;
     actions.setAttribute("aria-busy", busy ? "true" : "false");
+
     actionButtons().forEach((button) => {
       button.disabled = busy;
     });
+
     status.textContent = busy ? "Yanıt hazırlanıyor…" : "";
   };
 
@@ -110,9 +112,11 @@
   const appendError = (text) => {
     const row = makeBubble(text, "assistant");
     const bubble = row.querySelector(".dd-assistant__bubble");
+
     if (bubble) {
       bubble.classList.add("dd-assistant__bubble--error");
     }
+
     transcript.appendChild(row);
     scrollTranscript();
   };
@@ -121,6 +125,7 @@
     if (typingIndicator && typingIndicator.parentNode) {
       typingIndicator.parentNode.removeChild(typingIndicator);
     }
+
     typingIndicator = null;
   };
 
@@ -150,7 +155,9 @@
 
     try {
       const parsed = new URL(rawUrl, window.location.origin);
+
       if (parsed.origin !== window.location.origin) return null;
+
       return `${parsed.pathname}${parsed.search}${parsed.hash}`;
     } catch (_error) {
       return null;
@@ -162,7 +169,7 @@
     return value;
   };
 
-  const renderSummary = (data) => {
+  const renderAccountSummary = (data) => {
     if (!data || typeof data !== "object") return null;
 
     const complaints = data.complaints;
@@ -230,33 +237,32 @@
       }
     }
 
-    const latest = complaints.latest;
-    if (latest && typeof latest === "object") {
-      const latestBlock = document.createElement("div");
-      latestBlock.className = "dd-assistant__summary-latest";
+    return card;
+  };
 
-      const heading = document.createElement("strong");
-      heading.textContent = "Son şikayet";
-      latestBlock.appendChild(heading);
+  const renderComplaintSummary = (data) => {
+    if (!data || typeof data !== "object") return null;
 
-      if (typeof latest.title === "string" && latest.title.trim()) {
-        const title = document.createElement("p");
-        title.textContent = latest.title;
-        latestBlock.appendChild(title);
-      }
+    const total = asNonNegativeInteger(data.total);
 
-      if (
-        typeof latest.company_name === "string" &&
-        latest.company_name.trim()
-      ) {
-        const company = document.createElement("p");
-        company.textContent = latest.company_name;
-        latestBlock.appendChild(company);
-      }
+    if (total === null) return null;
 
-      card.appendChild(latestBlock);
+    const card = document.createElement("div");
+    card.className = "dd-assistant__complaint-summary";
+
+    const totalNode = document.createElement("strong");
+    totalNode.textContent = `${total} şikayet`;
+
+    const latest = data.latest;
+    const detail = document.createElement("span");
+
+    if (latest && typeof latest === "object" && typeof latest.title === "string") {
+      detail.textContent = `Son kayıt: ${latest.title}`;
+    } else {
+      detail.textContent = "Henüz kayıt bulunmuyor.";
     }
 
+    card.append(totalNode, detail);
     return card;
   };
 
@@ -291,7 +297,12 @@
     transcript.appendChild(makeBubble(message, "assistant"));
 
     if (payload && payload.action === "MY_SUMMARY") {
-      const summary = renderSummary(payload.data);
+      const summary = renderAccountSummary(payload.data);
+      if (summary) transcript.appendChild(summary);
+    }
+
+    if (payload && payload.action === "MY_COMPLAINTS") {
+      const summary = renderComplaintSummary(payload.data);
       if (summary) transcript.appendChild(summary);
     }
 
@@ -303,6 +314,7 @@
 
   const parseResponse = async (response) => {
     const contentType = response.headers.get("content-type") || "";
+
     if (!contentType.includes("application/json")) return null;
 
     try {
@@ -352,10 +364,12 @@
           const suffix = retryAfter
             ? ` (${retryAfter} sn sonra tekrar deneyin.)`
             : "";
+
           appendError(`${message}${suffix}`);
         } else {
           appendError(message);
         }
+
         return;
       }
 
@@ -383,10 +397,15 @@
 
   actions.addEventListener("click", (event) => {
     const button = event.target.closest("[data-assistant-action]");
+
     if (!button || !actions.contains(button)) return;
 
     const action = button.dataset.assistantAction;
-    const label = button.textContent.trim();
+    const strong = button.querySelector("strong");
+    const label = strong
+      ? strong.textContent.trim()
+      : button.textContent.trim();
+
     sendAction(action, label);
   });
 
