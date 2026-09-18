@@ -224,7 +224,9 @@ if IS_PRODUCTION:
             setting_name="DJANGO_CSRF_TRUSTED_ORIGINS",
         )
 else:
-    SECRET_KEY = "dev-only-dertderman-secret-key-replace-before-production-2026"
+    # Fixed local-development key only.
+    # Production never reaches this branch and requires DJANGO_SECRET_KEY.
+    SECRET_KEY = "dev-only-dertderman-secret-key-replace-before-production-2026"  # nosec B105
     DEBUG = True
     ALLOWED_HOSTS = ["localhost", "127.0.0.1", "[::1]", "testserver"]
     CSRF_TRUSTED_ORIGINS = []
