@@ -1,10 +1,12 @@
-FROM python:3.10.18-slim-bookworm
+FROM python:3.10.21-slim-bookworm@sha256:68d914ec641a0b69267ce65184d000a2bc3a9ee2590ab702b82250ab2385735a
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV PIP_NO_CACHE_DIR=1
 
 WORKDIR /app
+
+RUN apt-get update     && apt-get upgrade -y     && rm -rf /var/lib/apt/lists/*
 
 RUN groupadd --system dertderman \
     && useradd \
@@ -15,7 +17,10 @@ RUN groupadd --system dertderman \
 
 COPY requirements.txt /app/requirements.txt
 
-RUN python -m pip install --upgrade pip \
+RUN python -m pip install --upgrade \
+        pip \
+        setuptools==78.1.1 \
+        wheel==0.46.2 \
     && python -m pip install \
         -r /app/requirements.txt
 

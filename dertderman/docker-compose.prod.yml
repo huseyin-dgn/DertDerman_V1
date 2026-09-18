@@ -3,7 +3,7 @@ name: dertderman-prod
 services:
 
   db:
-    image: postgres:16
+    image: postgres:16.15-alpine3.24@sha256:3c5c8892d184f738f4fe282d14ddaa613a38f00f4189d2d94725ebe6f2909ddb
     restart: unless-stopped
 
     environment:
@@ -71,7 +71,7 @@ services:
 
 
   redis:
-    image: redis:7
+    image: redis:7.4.11-alpine@sha256:520775a41a63e77e06c73e35d2fd9cc15921a609516818796b4ecbb813078bc7
     restart: unless-stopped
 
     command:
@@ -149,6 +149,17 @@ services:
 
     restart: unless-stopped
 
+    read_only: true
+
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+
+    security_opt:
+      - no-new-privileges:true
+
+    cap_drop:
+      - ALL
+
     env_file:
       - .env.production
 
@@ -196,7 +207,7 @@ services:
 
 
   nginx:
-    image: nginx:1.28-alpine
+    image: nginx:1.30.5-alpine3.24-slim@sha256:0ae85631d55f78b0ad8e8468baadd7fa82c1a1285152c63055fd6333dded4e06
     restart: unless-stopped
 
     depends_on:
@@ -221,7 +232,7 @@ services:
 
 
   db-tools:
-    image: postgres:16
+    image: postgres:16.15-alpine3.24@sha256:3c5c8892d184f738f4fe282d14ddaa613a38f00f4189d2d94725ebe6f2909ddb
 
     profiles:
       - tools
@@ -253,7 +264,7 @@ services:
 
 
   certbot:
-    image: certbot/certbot:latest
+    image: certbot/certbot:v5.8.0@sha256:f70ad0adbb7e117f0fe42a63c553f28ea451edabc0148757b6efcd9735acaa20
 
     profiles:
       - tools
