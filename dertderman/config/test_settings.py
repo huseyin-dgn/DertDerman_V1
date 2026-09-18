@@ -38,6 +38,7 @@ class SettingsProfileTests(SimpleTestCase):
     }
     isolated_keys = {
         "DJANGO_ENV",
+        "DJANGO_LOG_LEVEL",
         "DJANGO_SECRET_KEY",
         "DJANGO_ALLOWED_HOSTS",
         "DJANGO_CSRF_TRUSTED_ORIGINS",
@@ -774,3 +775,122 @@ assert check_password(password, legacy)
                     result,
                     "EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS",
                 )
+
+    def test_production_logging_uses_stdout_and_safe_levels(
+        self,
+    ):
+        code = """
+from config import settings
+
+assert settings.APP_LOG_LEVEL == "INFO"
+
+logging_config = settings.LOGGING
+
+assert (
+    logging_config["handlers"]["console"]["stream"]
+    == "ext://sys.stdout"
+)
+
+assert (
+    logging_config["root"]["level"]
+    == "INFO"
+)
+
+assert (
+    logging_config["loggers"]["django.request"]["level"]
+    == "WARNING"
+)
+
+assert (
+    logging_config["loggers"]["django.security"]["level"]
+    == "WARNING"
+)
+
+assert (
+    logging_config["loggers"]["django.db.backends"]["level"]
+    == "WARNING"
+)
+
+assert (
+    logging_config["loggers"]["httpx"]["level"]
+    == "WARNING"
+)
+
+assert (
+    logging_config["loggers"]["httpcore"]["level"]
+    == "WARNING"
+)
+
+assert (
+    logging_config["loggers"]["urllib3"]["level"]
+    == "WARNING"
+)
+"""
+
+        result = self.run_settings(
+            code,
+            env=self.production_env,
+        )
+
+        self.assertEqual(
+            result.returncode,
+            0,
+            result.stderr,
+        )
+
+    def test_production_log_level_is_configurable_without_enabling_sql_debug(
+        self,
+    ):
+        env = {
+            **self.production_env,
+            "DJANGO_LOG_LEVEL":
+                "DEBUG",
+        }
+
+        code = """
+from config import settings
+
+assert settings.APP_LOG_LEVEL == "DEBUG"
+assert settings.LOGGING["root"]["level"] == "DEBUG"
+
+assert (
+    settings.LOGGING[
+        "loggers"
+    ][
+        "django.db.backends"
+    ][
+        "level"
+    ]
+    == "WARNING"
+)
+"""
+
+        result = self.run_settings(
+            code,
+            env=env,
+        )
+
+        self.assertEqual(
+            result.returncode,
+            0,
+            result.stderr,
+        )
+
+    def test_production_rejects_invalid_log_level(
+        self,
+    ):
+        env = {
+            **self.production_env,
+            "DJANGO_LOG_LEVEL":
+                "VERBOSE",
+        }
+
+        result = self.run_settings(
+            "import config.settings",
+            env=env,
+        )
+
+        self.assert_configuration_error(
+            result,
+            "DJANGO_LOG_LEVEL",
+        )

@@ -125,6 +125,37 @@ def _positive_env_int(name, *, default):
     return value
 
 
+
+def _env_log_level(
+    name,
+    *,
+    default="INFO",
+):
+    value = (
+        os.getenv(
+            name,
+            default,
+        )
+        or ""
+    ).strip().upper()
+
+    allowed = {
+        "DEBUG",
+        "INFO",
+        "WARNING",
+        "ERROR",
+        "CRITICAL",
+    }
+
+    if value not in allowed:
+        raise ImproperlyConfigured(
+            f"{name} must be one of: "
+            "DEBUG, INFO, WARNING, ERROR, CRITICAL."
+        )
+
+    return value
+
+
 def _validate_https_origin(origin, *, setting_name):
     try:
         parsed = urlsplit(origin)
@@ -729,3 +760,110 @@ TRUST_CLOUDFLARE_CONNECTING_IP = _env_bool(
     "TRUST_CLOUDFLARE_CONNECTING_IP",
     default=False,
 )
+
+
+# Production logging.
+#
+# Logs are emitted to stdout for collection by the process supervisor,
+# container runtime or hosting platform.
+#
+# Request bodies, cookies, authorization headers and secrets must not
+# be written to application logs.
+APP_LOG_LEVEL = _env_log_level(
+    "DJANGO_LOG_LEVEL",
+    default="INFO",
+)
+
+if IS_PRODUCTION:
+    LOGGING = {
+        "version": 1,
+        "disable_existing_loggers": False,
+
+        "formatters": {
+            "standard": {
+                "format": (
+                    "%(asctime)s "
+                    "%(levelname)s "
+                    "%(name)s "
+                    "%(message)s"
+                ),
+            },
+        },
+
+        "handlers": {
+            "console": {
+                "class": "logging.StreamHandler",
+                "formatter": "standard",
+                "stream": "ext://sys.stdout",
+            },
+        },
+
+        "root": {
+            "handlers": [
+                "console",
+            ],
+            "level": APP_LOG_LEVEL,
+        },
+
+        "loggers": {
+            "django": {
+                "handlers": [
+                    "console",
+                ],
+                "level": APP_LOG_LEVEL,
+                "propagate": False,
+            },
+
+            "django.request": {
+                "handlers": [
+                    "console",
+                ],
+                "level": "WARNING",
+                "propagate": False,
+            },
+
+            "django.security": {
+                "handlers": [
+                    "console",
+                ],
+                "level": "WARNING",
+                "propagate": False,
+            },
+
+            # SQL query logging may expose values supplied by users.
+            # Keep it disabled at DEBUG even if application logging
+            # is temporarily made verbose.
+            "django.db.backends": {
+                "handlers": [
+                    "console",
+                ],
+                "level": "WARNING",
+                "propagate": False,
+            },
+
+            # HTTP client debug logs can include request metadata.
+            "httpx": {
+                "handlers": [
+                    "console",
+                ],
+                "level": "WARNING",
+                "propagate": False,
+            },
+
+            "httpcore": {
+                "handlers": [
+                    "console",
+                ],
+                "level": "WARNING",
+                "propagate": False,
+            },
+
+            "urllib3": {
+                "handlers": [
+                    "console",
+                ],
+                "level": "WARNING",
+                "propagate": False,
+            },
+        },
+    }
