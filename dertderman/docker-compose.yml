@@ -1,0 +1,97 @@
+﻿services:
+
+  db:
+    image: postgres:16
+    restart: unless-stopped
+
+    env_file:
+      - .env.docker
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+
+    command:
+      [
+        "redis-server",
+        "--appendonly",
+        "yes"
+      ]
+
+    volumes:
+      - redis_data:/data
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "redis-cli",
+          "ping"
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  web:
+    build:
+      context: .
+
+    restart: unless-stopped
+
+    env_file:
+      - .env.docker
+
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
+      REDIS_URL: redis://redis:6379/0
+
+    depends_on:
+      db:
+        condition: service_healthy
+
+      redis:
+        condition: service_healthy
+
+    ports:
+      - "8000:8000"
+
+    volumes:
+      - static_data:/var/lib/dertderman/static
+      - media_data:/var/lib/dertderman/media
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/live/', timeout=3)"
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+
+volumes:
+
+  postgres_data:
+
+  redis_data:
+
+  static_data:
+
+  media_data:

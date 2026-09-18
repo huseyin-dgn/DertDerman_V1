@@ -185,8 +185,11 @@ class FeedbackTests(TestCase):
                         if debug:
                             self.assertEqual(response.status_code, 200)
                             self.assertIs(response.resolver_match.func, serve)
-                            self.assertEqual(b"".join(response.streaming_content), b"development media")
-                            response.close()
+                            self.assertEqual(
+                                b"".join(response.streaming_content),
+                                b"development media",
+                            )
+                            self.assertTrue(response.closed)
                         else:
                             self.assertEqual(response.status_code, 404)
                             self.assertTemplateUsed(response, "404.html")

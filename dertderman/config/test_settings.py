@@ -116,9 +116,15 @@ class SettingsProfileTests(SimpleTestCase):
             "assert settings.SESSION_COOKIE_SECURE is False; "
             "assert settings.SECURE_SSL_REDIRECT is False; "
             "assert settings.DATABASES['default']['ENGINE'] == "
-            "'django.db.backends.sqlite3'; "
+            "'django.db.backends.postgresql'; "
+            "assert settings.DATABASES['default']['NAME'] == "
+            "'dertderman'; "
+            "assert settings.DATABASES['default']['HOST'] == "
+            "'127.0.0.1'; "
             "assert settings.CACHES['default']['BACKEND'] == "
-            "'django.core.cache.backends.locmem.LocMemCache'",
+            "'django.core.cache.backends.redis.RedisCache'; "
+            "assert settings.CACHES['default']['LOCATION'] == "
+            "'redis://127.0.0.1:6379/0'",
             env={"DJANGO_ENV": "development"},
         )
         self.assertEqual(result.returncode, 0, result.stderr)

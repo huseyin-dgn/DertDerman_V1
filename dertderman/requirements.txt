@@ -6,3 +6,4 @@ psycopg[binary]==3.3.5
 redis==6.4.0
 argon2-cffi==25.1.0
 sentry-sdk==2.69.2
+gunicorn==26.2.0

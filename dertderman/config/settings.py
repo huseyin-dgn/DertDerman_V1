@@ -284,71 +284,127 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 
 
-# Development remains intentionally lightweight. Production is fail-closed:
-# it must never fall back to SQLite or process-local cache.
+# PostgreSQL and Redis are the canonical runtime stores in both
+# development and production. SQLite is retained only as a historical
+# migration/backup artifact and is never used by the running application.
 if IS_PRODUCTION:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": _required_env("POSTGRES_DB"),
-            "USER": _required_env("POSTGRES_USER"),
-            "PASSWORD": _required_env(
-                "POSTGRES_PASSWORD"
-            ),
-            "HOST": _required_env("POSTGRES_HOST"),
-            "PORT": str(
+    POSTGRES_DATABASE_NAME = _required_env(
+        "POSTGRES_DB"
+    )
+    POSTGRES_DATABASE_USER = _required_env(
+        "POSTGRES_USER"
+    )
+    POSTGRES_DATABASE_PASSWORD = _required_env(
+        "POSTGRES_PASSWORD"
+    )
+    POSTGRES_DATABASE_HOST = _required_env(
+        "POSTGRES_HOST"
+    )
+    REDIS_LOCATION = _production_redis_url()
+else:
+    POSTGRES_DATABASE_NAME = (
+        os.getenv(
+            "POSTGRES_DB",
+            "dertderman",
+        )
+        or "dertderman"
+    ).strip()
+
+    POSTGRES_DATABASE_USER = (
+        os.getenv(
+            "POSTGRES_USER",
+            "dertderman",
+        )
+        or "dertderman"
+    ).strip()
+
+    POSTGRES_DATABASE_PASSWORD = (
+        os.getenv(
+            "POSTGRES_PASSWORD",
+            "dertderman-local-dev",
+        )
+        or "dertderman-local-dev"
+    ).strip()
+
+    POSTGRES_DATABASE_HOST = (
+        os.getenv(
+            "POSTGRES_HOST",
+            "127.0.0.1",
+        )
+        or "127.0.0.1"
+    ).strip()
+
+    REDIS_LOCATION = (
+        os.getenv(
+            "REDIS_URL",
+            "redis://127.0.0.1:6379/0",
+        )
+        or "redis://127.0.0.1:6379/0"
+    ).strip()
+
+
+DATABASES = {
+    "default": {
+        "ENGINE":
+            "django.db.backends.postgresql",
+
+        "NAME":
+            POSTGRES_DATABASE_NAME,
+
+        "USER":
+            POSTGRES_DATABASE_USER,
+
+        "PASSWORD":
+            POSTGRES_DATABASE_PASSWORD,
+
+        "HOST":
+            POSTGRES_DATABASE_HOST,
+
+        "PORT":
+            str(
                 _positive_env_int(
                     "POSTGRES_PORT",
                     default=5432,
                 )
             ),
-            "CONN_MAX_AGE": (
-                _nonnegative_env_int(
-                    "POSTGRES_CONN_MAX_AGE",
-                    default=60,
-                )
-            ),
-            "CONN_HEALTH_CHECKS": True,
-            "OPTIONS": {
-                "connect_timeout":
-                    _positive_env_int(
-                        "POSTGRES_CONNECT_TIMEOUT",
-                        default=5,
-                    ),
-            },
-        }
-    }
 
-    CACHES = {
-        "default": {
-            "BACKEND": (
-                "django.core.cache.backends.redis."
-                "RedisCache"
+        "CONN_MAX_AGE":
+            _nonnegative_env_int(
+                "POSTGRES_CONN_MAX_AGE",
+                default=60,
             ),
-            "LOCATION": _production_redis_url(),
-            "TIMEOUT": 300,
-            "KEY_PREFIX": "dertderman",
-        }
-    }
-else:
-    DATABASES = {
-        "default": {
-            "ENGINE": (
-                "django.db.backends.sqlite3"
-            ),
-            "NAME": BASE_DIR / "db.sqlite3",
-        }
-    }
 
-    CACHES = {
-        "default": {
-            "BACKEND": (
-                "django.core.cache.backends.locmem."
-                "LocMemCache"
-            ),
-            "LOCATION": "dertderman-development",
-        }
+        "CONN_HEALTH_CHECKS":
+            True,
+
+        "OPTIONS": {
+            "connect_timeout":
+                _positive_env_int(
+                    "POSTGRES_CONNECT_TIMEOUT",
+                    default=5,
+                ),
+        },
     }
+}
+
+
+CACHES = {
+    "default": {
+        "BACKEND": (
+            "django.core.cache.backends.redis."
+            "RedisCache"
+        ),
+
+        "LOCATION":
+            REDIS_LOCATION,
+
+        "TIMEOUT":
+            300,
+
+        "KEY_PREFIX":
+            "dertderman",
+    }
+}
 
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -442,12 +498,22 @@ if IS_PRODUCTION:
         },
     }
 else:
-    STATIC_ROOT = (
-        BASE_DIR / "staticfiles"
-    )
-    MEDIA_ROOT = (
-        BASE_DIR / "media"
-    )
+    # Local host development keeps the project-local defaults.
+    # Docker development can override these paths so media/static
+    # are backed by persistent named volumes.
+    STATIC_ROOT = Path(
+        os.getenv(
+            "DJANGO_STATIC_ROOT",
+            str(BASE_DIR / "staticfiles"),
+        )
+    ).expanduser().resolve()
+
+    MEDIA_ROOT = Path(
+        os.getenv(
+            "DJANGO_MEDIA_ROOT",
+            str(BASE_DIR / "media"),
+        )
+    ).expanduser().resolve()
 
     STORAGES = {
         "default": {
