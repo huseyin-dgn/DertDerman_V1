@@ -1,13 +1,21 @@
 from django.urls import path
 from . import blog_views, content_views, views
 from . import permanent_closure
-from .auth_views import AdminLoginView
+from .auth_views import (
+    AdminLoginView,
+    admin_reauthenticate,
+)
 
 
 app_name = "adminx"
 
 urlpatterns = [
     path("giris/", AdminLoginView.as_view(), name="login"),
+    path(
+        "yeniden-dogrula/",
+        admin_reauthenticate,
+        name="reauth",
+    ),
 
     path("sirketler/", content_views.company_list, name="company_list"),
     path(

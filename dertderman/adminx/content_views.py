@@ -5,6 +5,7 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Count, OuterRef, Q, Subquery
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import (
     require_http_methods,
@@ -35,6 +36,9 @@ from .filters import (
 )
 from .forms import CompanyApprovalActionForm, CompanyContentForm
 from .models import AdminAuditLog
+from .reauth import (
+    recent_admin_reauthentication_required,
+)
 from .services import archive_company, record_admin_audit
 
 
@@ -218,6 +222,19 @@ def company_application_detail(
         request.method == "POST"
         and form.is_valid()
     ):
+        reauth_response = (
+            recent_admin_reauthentication_required(
+                request,
+                next_url=reverse(
+                    "adminx:company_application_detail",
+                    args=[company.pk],
+                ),
+            )
+        )
+
+        if reauth_response is not None:
+            return reauth_response
+
         status_by_action = {
             CompanyApprovalActionForm.Action.APPROVE:
                 Company.ApprovalStatus.APPROVED,
@@ -876,6 +893,19 @@ def security_event_detail(
 @require_POST
 @transaction.atomic
 def user_suspend(request, pk):
+    reauth_response = (
+        recent_admin_reauthentication_required(
+            request,
+            next_url=reverse(
+                "adminx:user_detail",
+                args=[pk],
+            ),
+        )
+    )
+
+    if reauth_response is not None:
+        return reauth_response
+
     account = get_object_or_404(
         User.objects.select_for_update(),
         pk=pk,
@@ -990,6 +1020,19 @@ def user_suspend(request, pk):
 @require_POST
 @transaction.atomic
 def user_unsuspend(request, pk):
+    reauth_response = (
+        recent_admin_reauthentication_required(
+            request,
+            next_url=reverse(
+                "adminx:user_detail",
+                args=[pk],
+            ),
+        )
+    )
+
+    if reauth_response is not None:
+        return reauth_response
+
     account = get_object_or_404(
         User.objects.select_for_update(),
         pk=pk,
@@ -1083,6 +1126,19 @@ def company_archive(
     request,
     pk,
 ):
+    reauth_response = (
+        recent_admin_reauthentication_required(
+            request,
+            next_url=reverse(
+                "adminx:company_edit",
+                args=[pk],
+            ),
+        )
+    )
+
+    if reauth_response is not None:
+        return reauth_response
+
     changed = archive_company(
         pk=pk,
         actor=request.user,

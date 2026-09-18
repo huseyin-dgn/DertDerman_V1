@@ -16,6 +16,7 @@ from .models import AuthenticatedSession
 SESSION_STARTED_AT_KEY = "_dd_auth_started_at"
 SESSION_LAST_SEEN_AT_KEY = "_dd_auth_last_seen_at"
 SESSION_ROLE_KEY = "_dd_auth_role"
+SESSION_REAUTH_AT_KEY = "_dd_auth_reauth_at"
 
 
 def _positive_int(value):
@@ -28,6 +29,63 @@ def _positive_int(value):
         return None
 
     return value if value > 0 else None
+
+
+def mark_reauthenticated(
+    session,
+    *,
+    now=None,
+):
+    timestamp = (
+        int(time.time())
+        if now is None
+        else _positive_int(now)
+    )
+
+    if timestamp is None or timestamp <= 0:
+        return False
+
+    session[SESSION_REAUTH_AT_KEY] = timestamp
+    return True
+
+
+def has_recent_reauthentication(
+    session,
+    *,
+    now=None,
+):
+    max_age = _positive_int(
+        getattr(
+            settings,
+            "AUTH_SESSION_REAUTH_MAX_AGE_SECONDS",
+            5 * 60,
+        )
+    )
+
+    authenticated_at = _positive_int(
+        session.get(
+            SESSION_REAUTH_AT_KEY
+        )
+    )
+
+    current_time = (
+        int(time.time())
+        if now is None
+        else _positive_int(now)
+    )
+
+    if (
+        max_age is None
+        or authenticated_at is None
+        or current_time is None
+        or current_time < authenticated_at
+    ):
+        return False
+
+    return (
+        current_time - authenticated_at
+        < max_age
+    )
 
 
 def _policy_for(user):
@@ -306,6 +364,13 @@ class SessionSecurityMiddleware:
                     session,
                     role=role,
                     now=int(time.time()),
+                )
+
+                # Bu branch gercek bir login isteginin hemen
+                # sonrasidir. Legacy session initialization ise
+                # yeniden kimlik dogrulamis kabul edilmez.
+                mark_reauthenticated(
+                    session
                 )
 
                 if not _register_authenticated_session(

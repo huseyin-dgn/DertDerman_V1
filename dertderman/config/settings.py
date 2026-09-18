@@ -489,6 +489,13 @@ AUTH_SESSION_ACTIVITY_TOUCH_SECONDS = _positive_env_int(
     default=60,
 )
 
+# Kritik islemler icin step-up authentication penceresi.
+# Son parola dogrulamasindan itibaren varsayilan 5 dakika.
+AUTH_SESSION_REAUTH_MAX_AGE_SECONDS = _positive_env_int(
+    "DJANGO_AUTH_SESSION_REAUTH_MAX_AGE_SECONDS",
+    default=5 * 60,
+)
+
 AUTH_SESSION_SECURITY_POLICIES = {
     "USER": {
         "idle_seconds": _positive_env_int(

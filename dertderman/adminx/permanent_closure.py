@@ -2,6 +2,7 @@ from django.contrib import messages
 from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST, require_safe
@@ -17,6 +18,9 @@ from core.session_security import revoke_user_sessions
 
 from .decorators import admin_required
 from .models import AdminAuditLog
+from .reauth import (
+    recent_admin_reauthentication_required,
+)
 from .services import record_admin_audit
 
 
@@ -59,6 +63,19 @@ def _soft_remove_user_complaints(account, actor, closed_at):
 @never_cache
 @transaction.atomic
 def permanently_close_user(request, pk):
+    reauth_response = (
+        recent_admin_reauthentication_required(
+            request,
+            next_url=reverse(
+                "adminx:user_detail",
+                args=[pk],
+            ),
+        )
+    )
+
+    if reauth_response is not None:
+        return reauth_response
+
     account = get_object_or_404(
         User.objects.select_for_update(),
         pk=pk,

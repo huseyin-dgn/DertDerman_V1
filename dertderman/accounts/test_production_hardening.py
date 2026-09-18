@@ -264,7 +264,19 @@ class PermanentClosureLifecycleTests(TestCase):
         )
 
         admin_client = Client()
-        admin_client.force_login(self.admin)
+
+        admin_login = admin_client.post(
+            reverse("adminx:login"),
+            {
+                "username": self.admin.username,
+                "password": PASSWORD,
+            },
+        )
+
+        self.assertRedirects(
+            admin_login,
+            reverse("adminx:home"),
+        )
 
         with self.captureOnCommitCallbacks(execute=True):
             response = admin_client.post(
