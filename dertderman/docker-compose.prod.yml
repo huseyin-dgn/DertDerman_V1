@@ -220,6 +220,38 @@ services:
       - frontend
 
 
+  db-tools:
+    image: postgres:16
+
+    profiles:
+      - tools
+
+    volumes:
+      - ./deploy/postgres/db-tools-entrypoint.sh:/usr/local/bin/db-tools-entrypoint.sh:ro
+
+    entrypoint:
+      - /bin/sh
+      - /usr/local/bin/db-tools-entrypoint.sh
+
+    environment:
+      PGHOST: db
+      PGPORT: "5432"
+      PGDATABASE: ${POSTGRES_DB:?POSTGRES_DB is required}
+      PGUSER: ${POSTGRES_MIGRATOR_USER:?POSTGRES_MIGRATOR_USER is required}
+
+      POSTGRES_MIGRATOR_PASSWORD_FILE: /run/secrets/postgres_migrator_password
+
+    secrets:
+      - postgres_migrator_password
+
+    depends_on:
+      db-bootstrap:
+        condition: service_completed_successfully
+
+    networks:
+      - backend
+
+
   certbot:
     image: certbot/certbot:latest
 
