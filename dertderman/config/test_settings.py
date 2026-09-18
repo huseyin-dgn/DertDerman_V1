@@ -54,6 +54,9 @@ class SettingsProfileTests(SimpleTestCase):
         "DJANGO_COMPANY_SESSION_ABSOLUTE_SECONDS",
         "DJANGO_ADMIN_SESSION_IDLE_SECONDS",
         "DJANGO_ADMIN_SESSION_ABSOLUTE_SECONDS",
+        "DJANGO_USER_MAX_ACTIVE_SESSIONS",
+        "DJANGO_COMPANY_MAX_ACTIVE_SESSIONS",
+        "DJANGO_ADMIN_MAX_ACTIVE_SESSIONS",
         "EMAIL_PROVIDER",
         "EMAIL_SENDING_ENABLED",
         "EMAIL_CHANGE_TIMEOUT",
@@ -526,6 +529,12 @@ assert settings.AUTH_SESSION_SECURITY_POLICIES["COMPANY"] == {
 assert settings.AUTH_SESSION_SECURITY_POLICIES["ADMIN"] == {
     "idle_seconds": 1800,
     "absolute_seconds": 14400,
+}
+
+assert settings.AUTH_SESSION_MAX_ACTIVE_SESSIONS == {
+    "USER": 5,
+    "COMPANY": 3,
+    "ADMIN": 2,
 }
 
 assert settings.USE_X_FORWARDED_HOST is False

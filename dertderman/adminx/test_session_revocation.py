@@ -5,29 +5,54 @@ from django.contrib.sessions.models import Session
 from django.test import TestCase
 from django.utils import timezone
 
+from accounts.models import User
+from core.models import AuthenticatedSession
+
 from .permanent_closure import (
     _delete_user_sessions,
 )
 
 
 class SessionRevocationTests(TestCase):
-    def test_corrupt_session_is_deleted_fail_closed(self):
+    def test_registered_session_is_revoked_without_decoding_payload(self):
+        user = User.objects.create_user(
+            username="revocation-user",
+            email="revocation-user@example.com",
+            password="RevocationPassword2026!",
+            user_type=User.UserType.USER,
+            is_verified=True,
+        )
+
         session = Session.objects.create(
             session_key="a" * 32,
-            session_data="definitely-not-valid-session-data",
+            session_data=(
+                "definitely-not-valid-session-data"
+            ),
             expire_date=(
                 timezone.now()
                 + timedelta(hours=1)
             ),
         )
 
+        AuthenticatedSession.objects.create(
+            session=session,
+            user=user,
+            role=User.UserType.USER,
+        )
+
         _delete_user_sessions(
-            user_id=999999
+            user_id=user.pk
         )
 
         self.assertFalse(
             Session.objects.filter(
                 pk=session.pk
+            ).exists()
+        )
+
+        self.assertFalse(
+            AuthenticatedSession.objects.filter(
+                session_id=session.pk
             ).exists()
         )
 

@@ -1,10 +1,16 @@
 import time
 
 from django.conf import settings
-from django.contrib.auth import SESSION_KEY, logout
-from django.contrib.sessions.backends.db import SessionStore
+from django.contrib.auth import (
+    SESSION_KEY,
+    get_user_model,
+    logout,
+)
 from django.contrib.sessions.models import Session
-from django.core import signing
+from django.db import transaction
+from django.utils import timezone
+
+from .models import AuthenticatedSession
 
 
 SESSION_STARTED_AT_KEY = "_dd_auth_started_at"
@@ -62,6 +68,21 @@ def _policy_for(user):
     )
 
 
+def _max_active_sessions_for(role):
+    policies = getattr(
+        settings,
+        "AUTH_SESSION_MAX_ACTIVE_SESSIONS",
+        {},
+    )
+
+    if not isinstance(policies, dict):
+        return None
+
+    return _positive_int(
+        policies.get(role)
+    )
+
+
 def _initialize_session(
     session,
     *,
@@ -73,16 +94,116 @@ def _initialize_session(
     session[SESSION_ROLE_KEY] = role
 
 
-def _strict_decode_session_record(session):
-    store = SessionStore(
-        session_key=session.session_key
+def _register_authenticated_session(
+    *,
+    user,
+    session,
+    role,
+    touch=False,
+):
+    session_key = session.session_key
+
+    if not session_key:
+        return False
+
+    max_active = _max_active_sessions_for(
+        role
     )
 
-    return signing.loads(
-        session.session_data,
-        salt=store.key_salt,
-        serializer=store.serializer,
-    )
+    if max_active is None:
+        return False
+
+    now = timezone.now()
+    User = get_user_model()
+
+    with transaction.atomic():
+        current_user = (
+            User.objects
+            .select_for_update()
+            .filter(pk=user.pk)
+            .only("pk")
+            .first()
+        )
+
+        if current_user is None:
+            return False
+
+        if not Session.objects.filter(
+            session_key=session_key,
+            expire_date__gt=now,
+        ).exists():
+            return False
+
+        registered = (
+            AuthenticatedSession.objects
+            .select_for_update()
+            .filter(session_id=session_key)
+            .first()
+        )
+
+        if registered is None:
+            AuthenticatedSession.objects.create(
+                session_id=session_key,
+                user_id=user.pk,
+                role=role,
+            )
+
+        elif (
+            registered.user_id != user.pk
+            or registered.role != role
+        ):
+            return False
+
+        elif touch:
+            AuthenticatedSession.objects.filter(
+                session_id=session_key
+            ).update(
+                last_seen_at=now
+            )
+
+        # Limit yalnız yeni loginlerde değil, migration ile
+        # backfill edilmiş mevcut oturumlarda da uygulanır. Böylece
+        # deployment öncesinden limit üstü session'lar ilk kullanımda
+        # güvenli biçimde limite yakınsar.
+        active = (
+            AuthenticatedSession.objects
+            .filter(
+                user_id=user.pk,
+                session__expire_date__gt=now,
+            )
+        )
+
+        overflow = (
+            active.count()
+            - max_active
+        )
+
+        if overflow <= 0:
+            return True
+
+        victim_keys = list(
+            active
+            .exclude(
+                session_id=session_key
+            )
+            .order_by(
+                "created_at",
+                "session_id",
+            )
+            .values_list(
+                "session_id",
+                flat=True,
+            )[:overflow]
+        )
+
+        if len(victim_keys) != overflow:
+            return False
+
+        Session.objects.filter(
+            session_key__in=victim_keys
+        ).delete()
+
+    return True
 
 
 def revoke_user_sessions(
@@ -91,56 +212,42 @@ def revoke_user_sessions(
     keep_session_key=None,
 ):
     """
-    Immediately revoke DB-backed authenticated sessions for one
-    account.
+    Revoke sessions through the indexed ownership registry.
 
-    Corrupt/unverifiable session rows are deleted fail-closed.
-    An explicitly supplied current session is preserved only when
-    it successfully decodes as belonging to the target user.
+    This is O(number of sessions owned by the target account),
+    rather than O(all sessions in the application).
     """
-    target = str(user_id)
-    deleted = 0
-
-    queryset = Session.objects.all().only(
-        "session_key",
-        "session_data",
+    registry = (
+        AuthenticatedSession.objects
+        .filter(user_id=user_id)
     )
 
-    for session in queryset.iterator(
-        chunk_size=500
-    ):
-        try:
-            decoded = _strict_decode_session_record(
-                session
-            )
-        except Exception:
-            session.delete()
-            deleted += 1
-            continue
+    if keep_session_key:
+        registry = registry.exclude(
+            session_id=keep_session_key
+        )
 
-        if decoded.get(SESSION_KEY) != target:
-            continue
+    session_keys = list(
+        registry.values_list(
+            "session_id",
+            flat=True,
+        )
+    )
 
-        if (
-            keep_session_key
-            and session.session_key
-            == keep_session_key
-        ):
-            continue
+    if not session_keys:
+        return 0
 
-        session.delete()
-        deleted += 1
+    Session.objects.filter(
+        session_key__in=session_keys
+    ).delete()
 
-    return deleted
+    return len(session_keys)
 
 
 class SessionSecurityMiddleware:
     """
-    Enforces server-side authentication-session limits.
-
-    SESSION_COOKIE_AGE is not treated as an absolute login
-    lifetime. These timestamps remain fixed independently of
-    ordinary session modifications.
+    Enforces server-side authentication-session limits and
+    maintains the indexed authenticated-session registry.
     """
 
     def __init__(self, get_response):
@@ -170,19 +277,13 @@ class SessionSecurityMiddleware:
             return self.get_response(request)
 
         if not user.is_authenticated:
-            # AuthenticationMiddleware may reject an inactive user
-            # while stale auth keys remain in the session. Do not
-            # keep such an authenticated-looking session around.
             if SESSION_KEY in session:
                 session.flush()
 
-            response = self.get_response(request)
+            response = self.get_response(
+                request
+            )
 
-            # A successful login can happen inside the view, after
-            # this middleware has already observed AnonymousUser.
-            # Initialize the fixed security timestamps on that same
-            # request so absolute lifetime starts at login time,
-            # not at the next page request.
             post_user = getattr(
                 request,
                 "user",
@@ -207,15 +308,23 @@ class SessionSecurityMiddleware:
                     now=int(time.time()),
                 )
 
+                if not _register_authenticated_session(
+                    user=post_user,
+                    session=session,
+                    role=role,
+                    touch=True,
+                ):
+                    logout(request)
+
             return response
 
         role, policy = _policy_for(user)
 
         if policy is None:
-            # Unknown or invalid authentication role/policy:
-            # fail closed.
             logout(request)
-            return self.get_response(request)
+            return self.get_response(
+                request
+            )
 
         now = int(time.time())
 
@@ -231,20 +340,32 @@ class SessionSecurityMiddleware:
         )
 
         if not any(present):
-            # Legacy sessions created before deployment of this
-            # middleware are upgraded on their first request.
+            # Pre-hardening sessions are registered on their first
+            # authenticated request. The migration also backfills
+            # already-persisted authenticated sessions.
             _initialize_session(
                 session,
                 role=role,
                 now=now,
             )
 
-            return self.get_response(request)
+            if not _register_authenticated_session(
+                user=user,
+                session=session,
+                role=role,
+                touch=True,
+            ):
+                logout(request)
+
+            return self.get_response(
+                request
+            )
 
         if not all(present):
-            # Partial/corrupt security metadata is not trusted.
             logout(request)
-            return self.get_response(request)
+            return self.get_response(
+                request
+            )
 
         started_at = _positive_int(
             session.get(
@@ -273,7 +394,9 @@ class SessionSecurityMiddleware:
             or now < last_seen_at
         ):
             logout(request)
-            return self.get_response(request)
+            return self.get_response(
+                request
+            )
 
         (
             idle_seconds,
@@ -285,7 +408,9 @@ class SessionSecurityMiddleware:
             or now - last_seen_at >= idle_seconds
         ):
             logout(request)
-            return self.get_response(request)
+            return self.get_response(
+                request
+            )
 
         touch_seconds = _positive_int(
             getattr(
@@ -297,16 +422,75 @@ class SessionSecurityMiddleware:
 
         if touch_seconds is None:
             logout(request)
-            return self.get_response(request)
+            return self.get_response(
+                request
+            )
 
-        # Avoid a DB-backed session write on every single HTTP
-        # request while still tracking meaningful activity.
-        if (
+        touch_due = (
             now - last_seen_at
             >= touch_seconds
+        )
+
+        if not _register_authenticated_session(
+            user=user,
+            session=session,
+            role=role,
+            touch=touch_due,
         ):
+            logout(request)
+            return self.get_response(
+                request
+            )
+
+        if touch_due:
             session[
                 SESSION_LAST_SEEN_AT_KEY
             ] = now
 
-        return self.get_response(request)
+        session_key_before_view = (
+            session.session_key
+        )
+
+        response = self.get_response(
+            request
+        )
+
+        post_user = getattr(
+            request,
+            "user",
+            None,
+        )
+
+        if (
+            post_user is None
+            or not post_user.is_authenticated
+        ):
+            return response
+
+        post_role, post_policy = _policy_for(
+            post_user
+        )
+
+        if (
+            post_policy is None
+            or post_role != role
+        ):
+            logout(request)
+            return response
+
+        # Password changes and e-mail changes can rotate the
+        # session key inside the view. Register that new key before
+        # SessionMiddleware completes the response.
+        if (
+            session.session_key
+            != session_key_before_view
+        ):
+            if not _register_authenticated_session(
+                user=post_user,
+                session=session,
+                role=post_role,
+                touch=True,
+            ):
+                logout(request)
+
+        return response

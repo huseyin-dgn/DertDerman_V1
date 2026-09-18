@@ -305,3 +305,68 @@ class IPRiskLog(models.Model):
             f"{self.ip_address} - "
             f"{self.get_status_display()}"
         )
+
+
+class AuthenticatedSession(models.Model):
+    """
+    Indexed ownership registry for authenticated Django sessions.
+
+    The session key is already the primary key of django_session;
+    this table maps it to an application user so account-specific
+    revocation never requires scanning every serialized session.
+    """
+
+    session = models.OneToOneField(
+        "sessions.Session",
+        on_delete=models.CASCADE,
+        primary_key=True,
+        db_column="session_key",
+        related_name="+",
+    )
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="authenticated_sessions",
+    )
+
+    role = models.CharField(
+        max_length=20,
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    last_seen_at = models.DateTimeField(
+        auto_now=True,
+    )
+
+    class Meta:
+        ordering = (
+            "-last_seen_at",
+            "-created_at",
+        )
+
+        indexes = [
+            models.Index(
+                fields=(
+                    "user",
+                    "created_at",
+                ),
+                name="authsess_user_created",
+            ),
+            models.Index(
+                fields=(
+                    "user",
+                    "last_seen_at",
+                ),
+                name="authsess_user_seen",
+            ),
+        ]
+
+    def __str__(self):
+        return (
+            f"user={self.user_id} "
+            f"session={self.session_id}"
+        )

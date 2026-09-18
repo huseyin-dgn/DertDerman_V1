@@ -522,6 +522,22 @@ AUTH_SESSION_SECURITY_POLICIES = {
     },
 }
 
+AUTH_SESSION_MAX_ACTIVE_SESSIONS = {
+    "USER": _positive_env_int(
+        "DJANGO_USER_MAX_ACTIVE_SESSIONS",
+        default=5,
+    ),
+    "COMPANY": _positive_env_int(
+        "DJANGO_COMPANY_MAX_ACTIVE_SESSIONS",
+        default=3,
+    ),
+    "ADMIN": _positive_env_int(
+        "DJANGO_ADMIN_MAX_ACTIVE_SESSIONS",
+        default=2,
+    ),
+}
+
+
 for _role, _policy in (
     AUTH_SESSION_SECURITY_POLICIES.items()
 ):

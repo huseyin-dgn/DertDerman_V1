@@ -231,6 +231,9 @@ class PermanentClosureLifecycleTests(TestCase):
             status=Complaint.Status.PUBLISHED,
         )
 
+    @override_settings(
+        AUTH_SESSION_SECURITY_ENABLED=True,
+    )
     @patch("adminx.permanent_closure.false_report_category_counts")
     @patch("adminx.permanent_closure.permanent_close_eligible", return_value=True)
     def test_closure_is_terminal_and_revokes_an_existing_session(
@@ -245,7 +248,21 @@ class PermanentClosureLifecycleTests(TestCase):
         }
         user_client = Client()
         user_client.force_login(self.user)
-        old_session_key = user_client.session.session_key
+
+        # force_login() test shortcut'u gerçek HTTP login
+        # middleware zincirini çalıştırmaz. İlk authenticated
+        # request production'daki session registry kaydını oluşturur.
+        self.assertEqual(
+            user_client.get(
+                reverse("accounts:profile")
+            ).status_code,
+            200,
+        )
+
+        old_session_key = (
+            user_client.session.session_key
+        )
+
         admin_client = Client()
         admin_client.force_login(self.admin)
 

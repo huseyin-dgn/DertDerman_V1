@@ -35,6 +35,28 @@ class CredentialSessionRevocationTests(TestCase):
             is_verified=True,
         )
 
+    def activate_authenticated_session(
+        self,
+        client,
+    ):
+        """
+        force_login() test client shortcut'u gerçek HTTP login
+        middleware zincirini çalıştırmaz.
+
+        İlk authenticated request registry kaydını oluşturur ve
+        production session davranışını simüle eder.
+        """
+        response = client.get(
+            reverse("accounts:profile")
+        )
+
+        self.assertEqual(
+            response.status_code,
+            200,
+        )
+
+        return client.session.session_key
+
     def assert_login_redirect(self, response):
         self.assertEqual(
             response.status_code,
@@ -55,10 +77,14 @@ class CredentialSessionRevocationTests(TestCase):
         secondary.force_login(user)
 
         old_primary_key = (
-            primary.session.session_key
+            self.activate_authenticated_session(
+                primary
+            )
         )
         secondary_key = (
-            secondary.session.session_key
+            self.activate_authenticated_session(
+                secondary
+            )
         )
 
         response = primary.post(
@@ -145,10 +171,14 @@ class CredentialSessionRevocationTests(TestCase):
         second_device.force_login(user)
 
         first_key = (
-            first_device.session.session_key
+            self.activate_authenticated_session(
+                first_device
+            )
         )
         second_key = (
-            second_device.session.session_key
+            self.activate_authenticated_session(
+                second_device
+            )
         )
 
         reset_client = Client()
@@ -233,10 +263,14 @@ class CredentialSessionRevocationTests(TestCase):
         secondary.force_login(user)
 
         old_primary_key = (
-            primary.session.session_key
+            self.activate_authenticated_session(
+                primary
+            )
         )
         secondary_key = (
-            secondary.session.session_key
+            self.activate_authenticated_session(
+                secondary
+            )
         )
 
         token = make_email_change_token(
