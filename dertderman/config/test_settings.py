@@ -894,3 +894,83 @@ assert (
             result,
             "DJANGO_LOG_LEVEL",
         )
+
+
+    def test_framework_request_logs_use_sanitizing_handler(
+        self,
+    ):
+        code = """
+from config import settings
+
+config = settings.LOGGING
+
+assert (
+    "safe_framework_request"
+    in config["filters"]
+)
+
+assert (
+    config["loggers"][
+        "django.request"
+    ]["handlers"]
+    == ["safe_framework_console"]
+)
+
+assert (
+    config["loggers"][
+        "django.security"
+    ]["handlers"]
+    == ["safe_framework_console"]
+)
+"""
+
+        result = self.run_settings(
+            code,
+            env=self.production_env,
+        )
+
+        self.assertEqual(
+            result.returncode,
+            0,
+            result.stderr,
+        )
+
+
+    def test_framework_request_logs_use_sanitizing_handler(
+        self,
+    ):
+        code = """
+from config import settings
+
+config = settings.LOGGING
+
+assert (
+    "safe_framework_request"
+    in config["filters"]
+)
+
+assert (
+    config["loggers"][
+        "django.request"
+    ]["handlers"]
+    == ["safe_framework_console"]
+)
+
+assert (
+    config["loggers"][
+        "django.security"
+    ]["handlers"]
+    == ["safe_framework_console"]
+)
+"""
+
+        result = self.run_settings(
+            code,
+            env=self.production_env,
+        )
+
+        self.assertEqual(
+            result.returncode,
+            0,
+            result.stderr,
+        )

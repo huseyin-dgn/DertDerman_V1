@@ -790,11 +790,28 @@ if IS_PRODUCTION:
             },
         },
 
+        "filters": {
+            "safe_framework_request": {
+                "()": (
+                    "core.logging_filters."
+                    "SafeFrameworkRequestFilter"
+                ),
+            },
+        },
+
         "handlers": {
             "console": {
                 "class": "logging.StreamHandler",
                 "formatter": "standard",
                 "stream": "ext://sys.stdout",
+            },
+            "safe_framework_console": {
+                "class": "logging.StreamHandler",
+                "formatter": "standard",
+                "stream": "ext://sys.stdout",
+                "filters": [
+                    "safe_framework_request",
+                ],
             },
         },
 
@@ -816,7 +833,7 @@ if IS_PRODUCTION:
 
             "django.request": {
                 "handlers": [
-                    "console",
+                    "safe_framework_console",
                 ],
                 "level": "WARNING",
                 "propagate": False,
@@ -824,7 +841,7 @@ if IS_PRODUCTION:
 
             "django.security": {
                 "handlers": [
-                    "console",
+                    "safe_framework_console",
                 ],
                 "level": "WARNING",
                 "propagate": False,

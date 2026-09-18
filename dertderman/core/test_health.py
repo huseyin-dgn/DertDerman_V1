@@ -129,3 +129,68 @@ class HealthEndpointTests(TestCase):
             "cache unavailable",
             status_code=503,
         )
+
+
+class HealthLoggingSafetyTests(TestCase):
+    def test_dependency_exception_messages_are_not_logged(
+        self,
+    ):
+        database_secret = (
+            "postgres-password-DO-NOT-LOG"
+        )
+
+        cache_secret = (
+            "redis-secret-DO-NOT-LOG"
+        )
+
+        with (
+            patch(
+                "core.health.connection.cursor",
+                side_effect=RuntimeError(
+                    database_secret
+                ),
+            ),
+            patch(
+                "core.health.cache.get",
+                side_effect=ValueError(
+                    cache_secret
+                ),
+            ),
+            patch(
+                "core.health.logger.error"
+            ) as mocked_logger,
+        ):
+            response = self.client.get(
+                reverse(
+                    "core:health_ready"
+                )
+            )
+
+        self.assertEqual(
+            response.status_code,
+            503,
+        )
+
+        logged = repr(
+            mocked_logger.call_args_list
+        )
+
+        self.assertNotIn(
+            database_secret,
+            logged,
+        )
+
+        self.assertNotIn(
+            cache_secret,
+            logged,
+        )
+
+        self.assertIn(
+            "RuntimeError",
+            logged,
+        )
+
+        self.assertIn(
+            "ValueError",
+            logged,
+        )

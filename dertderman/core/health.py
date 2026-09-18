@@ -51,11 +51,13 @@ def readiness(request):
                 "Database readiness query returned an unexpected result."
             )
 
-    except Exception:
+    except Exception as exc:
         healthy = False
 
-        logger.exception(
-            "Readiness database check failed."
+        logger.error(
+            "Readiness database check failed: "
+            "exception_type=%s",
+            exc.__class__.__name__,
         )
 
     try:
@@ -65,11 +67,13 @@ def readiness(request):
             "__dertderman_readiness_probe__"
         )
 
-    except Exception:
+    except Exception as exc:
         healthy = False
 
-        logger.exception(
-            "Readiness cache check failed."
+        logger.error(
+            "Readiness cache check failed: "
+            "exception_type=%s",
+            exc.__class__.__name__,
         )
 
     if not healthy:
