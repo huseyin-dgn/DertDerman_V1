@@ -1,4 +1,4 @@
-﻿.git
+.git
 .gitignore
 .github
 
@@ -32,3 +32,6 @@ staticfiles
 _backup_*
 
 _a5_patch
+
+# Runtime production secrets - never send to build context
+secrets/

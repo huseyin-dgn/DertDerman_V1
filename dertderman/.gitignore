@@ -3,6 +3,7 @@
 .env.*
 !.env.example
 !.env.docker.example
+!.env.production.example
 
 # Python
 __pycache__/
@@ -42,3 +43,6 @@ debug_resend.py
 
 # Logs
 *.log
+
+# Production secrets - NEVER commit
+secrets/

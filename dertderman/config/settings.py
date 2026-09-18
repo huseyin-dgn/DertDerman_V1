@@ -40,8 +40,37 @@ def _required_env(name):
     return value
 
 
+def _required_env_or_file(name):
+    direct_value = os.getenv(name, "").strip()
+    file_value = os.getenv(f"{name}_FILE", "").strip()
+
+    if direct_value and file_value:
+        raise ImproperlyConfigured(
+            f"{name} and {name}_FILE must not both be configured."
+        )
+
+    if file_value:
+        try:
+            value = Path(file_value).read_text(
+                encoding="utf-8"
+            ).strip()
+        except OSError as exc:
+            raise ImproperlyConfigured(
+                f"{name}_FILE could not be read."
+            ) from exc
+    else:
+        value = direct_value
+
+    if not value:
+        raise ImproperlyConfigured(
+            f"{name} or {name}_FILE is required in production."
+        )
+
+    return value
+
+
 def _production_secret_key():
-    value = _required_env("DJANGO_SECRET_KEY")
+    value = _required_env_or_file("DJANGO_SECRET_KEY")
 
     if len(value) < 50:
         raise ImproperlyConfigured(
@@ -294,7 +323,7 @@ if IS_PRODUCTION:
     POSTGRES_DATABASE_USER = _required_env(
         "POSTGRES_USER"
     )
-    POSTGRES_DATABASE_PASSWORD = _required_env(
+    POSTGRES_DATABASE_PASSWORD = _required_env_or_file(
         "POSTGRES_PASSWORD"
     )
     POSTGRES_DATABASE_HOST = _required_env(
