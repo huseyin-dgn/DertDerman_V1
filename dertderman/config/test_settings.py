@@ -80,6 +80,10 @@ class SettingsProfileTests(SimpleTestCase):
         "RESEND_WEBHOOK_MAX_BODY_BYTES",
         "RESEND_WEBHOOK_SECRET",
         "SITE_BASE_URL",
+        "SENTRY_ENABLED",
+        "SENTRY_DSN",
+        "SENTRY_ENVIRONMENT",
+        "SENTRY_RELEASE",
     }
 
     def run_settings(self, code, *, env=None, omitted=()):
@@ -967,6 +971,140 @@ assert (
         result = self.run_settings(
             code,
             env=self.production_env,
+        )
+
+        self.assertEqual(
+            result.returncode,
+            0,
+            result.stderr,
+        )
+
+
+    def test_sentry_is_disabled_by_default(
+        self,
+    ):
+        code = """
+from config import settings
+import sentry_sdk
+
+assert settings.SENTRY_ENABLED is False
+assert settings.SENTRY_DSN == ""
+assert sentry_sdk.is_initialized() is False
+"""
+
+        result = self.run_settings(
+            code,
+            env=self.production_env,
+        )
+
+        self.assertEqual(
+            result.returncode,
+            0,
+            result.stderr,
+        )
+
+    def test_sentry_enabled_requires_dsn(
+        self,
+    ):
+        env = {
+            **self.production_env,
+            "SENTRY_ENABLED":
+                "True",
+        }
+
+        result = self.run_settings(
+            "import config.settings",
+            env=env,
+            omitted={
+                "SENTRY_DSN",
+            },
+        )
+
+        self.assert_configuration_error(
+            result,
+            "SENTRY_DSN",
+        )
+
+    def test_sentry_cannot_be_enabled_in_development(
+        self,
+    ):
+        result = self.run_settings(
+            "import config.settings",
+            env={
+                "DJANGO_ENV":
+                    "development",
+
+                "SENTRY_ENABLED":
+                    "True",
+
+                "SENTRY_DSN":
+                    (
+                        "https://public-key@"
+                        "sentry.example/1"
+                    ),
+            },
+        )
+
+        self.assert_configuration_error(
+            result,
+            "SENTRY_ENABLED",
+        )
+
+    def test_valid_production_sentry_profile_initializes_client(
+        self,
+    ):
+        env = {
+            **self.production_env,
+
+            "SENTRY_ENABLED":
+                "True",
+
+            "SENTRY_DSN":
+                (
+                    "https://public-key@"
+                    "sentry.example/1"
+                ),
+
+            "SENTRY_ENVIRONMENT":
+                "production",
+
+            "SENTRY_RELEASE":
+                "stage5-test",
+        }
+
+        code = """
+from config import settings
+import sentry_sdk
+from sentry_sdk.integrations.logging import LoggingIntegration
+
+client = sentry_sdk.get_client()
+
+assert settings.SENTRY_ENABLED is True
+assert sentry_sdk.is_initialized() is True
+assert client.is_active() is True
+
+assert client.options["send_default_pii"] is False
+assert client.options["max_request_body_size"] == "never"
+assert client.options["include_local_variables"] is False
+assert client.options["include_source_context"] is False
+
+assert client.options["enable_logs"] is False
+assert client.options["enable_tracing"] is False
+assert client.options["propagate_traces"] is False
+assert client.options["trace_propagation_targets"] == []
+
+assert client.options["traces_sample_rate"] == 0.0
+assert client.options["profiles_sample_rate"] == 0.0
+
+assert client.options["environment"] == "production"
+assert client.options["release"] == "stage5-test"
+
+assert client.get_integration(LoggingIntegration) is None
+"""
+
+        result = self.run_settings(
+            code,
+            env=env,
         )
 
         self.assertEqual(

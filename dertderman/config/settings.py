@@ -886,3 +886,61 @@ if IS_PRODUCTION:
             },
         },
     }
+
+
+# Optional production error monitoring.
+#
+# Explicit opt-in is required. Merely setting a DSN does not
+# enable third-party error reporting.
+SENTRY_ENABLED = _strict_env_bool(
+    "SENTRY_ENABLED",
+    default=False,
+)
+
+SENTRY_DSN = (
+    os.getenv(
+        "SENTRY_DSN",
+        "",
+    )
+    or ""
+).strip()
+
+SENTRY_ENVIRONMENT = (
+    os.getenv(
+        "SENTRY_ENVIRONMENT",
+        "production",
+    )
+    or "production"
+).strip()
+
+SENTRY_RELEASE = (
+    os.getenv(
+        "SENTRY_RELEASE",
+        "",
+    )
+    or ""
+).strip()
+
+
+if SENTRY_ENABLED:
+    if not IS_PRODUCTION:
+        raise ImproperlyConfigured(
+            "SENTRY_ENABLED may only be enabled "
+            "in the production profile."
+        )
+
+    if not SENTRY_DSN:
+        raise ImproperlyConfigured(
+            "SENTRY_DSN is required when "
+            "SENTRY_ENABLED is True."
+        )
+
+    from .sentry import (
+        configure_sentry,
+    )
+
+    configure_sentry(
+        dsn=SENTRY_DSN,
+        environment=SENTRY_ENVIRONMENT,
+        release=SENTRY_RELEASE,
+    )
