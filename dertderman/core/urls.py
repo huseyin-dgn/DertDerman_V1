@@ -1,5 +1,10 @@
 from django.urls import path
 
+from .health import (
+    liveness,
+    readiness,
+)
+
 from .views import (
     about,
     community_rules,
@@ -19,6 +24,16 @@ from .views import (
 app_name = "core"
 
 urlpatterns = [
+    path(
+        "health/live/",
+        liveness,
+        name="health_live",
+    ),
+    path(
+        "health/ready/",
+        readiness,
+        name="health_ready",
+    ),
     path("intro/reset/", intro_reset, name="intro_reset"),
     path("intro/", intro, name="intro"),
     path("hakkimizda/", about, name="about"),
