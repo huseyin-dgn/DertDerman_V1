@@ -206,6 +206,59 @@ services:
       start_period: 20s
 
 
+  email-worker:
+    build:
+      context: .
+
+    restart: unless-stopped
+
+    read_only: true
+
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+
+    security_opt:
+      - no-new-privileges:true
+
+    cap_drop:
+      - ALL
+
+    env_file:
+      - .env.production
+
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: ${POSTGRES_APP_USER:?POSTGRES_APP_USER is required}
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_app_password
+
+      DJANGO_SECRET_KEY_FILE: /run/secrets/django_secret_key
+
+      REDIS_URL: redis://redis:6379/0
+
+    secrets:
+      - django_secret_key
+      - postgres_app_password
+
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+      redis:
+        condition: service_healthy
+
+    networks:
+      - frontend
+      - backend
+
+    command:
+      [
+        "python",
+        "manage.py",
+        "process_email_outbox"
+      ]
+
+
   nginx:
     image: nginx:1.30.5-alpine3.24-slim@sha256:0ae85631d55f78b0ad8e8468baadd7fa82c1a1285152c63055fd6333dded4e06
     restart: unless-stopped
