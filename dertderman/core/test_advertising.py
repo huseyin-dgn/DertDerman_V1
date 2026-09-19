@@ -49,6 +49,12 @@ class AdvertisingPageTests(SimpleTestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context["plan"].price_tl, 2500)
-        self.assertContains(response, "2500 TL")
+        self.assertEqual(
+            response.context["plan"].price_tl,
+            STANDARD.price_tl,
+        )
+        self.assertContains(
+            response,
+            f"{STANDARD.price_tl} TL",
+        )
         self.assertNotContains(response, "999999 TL")

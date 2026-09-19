@@ -71,8 +71,7 @@
 
     volumes:
       - static_data:/var/lib/dertderman/static
-      - media_data:/var/lib/dertderman/media
-
+      - ./media:/var/lib/dertderman/media
     healthcheck:
       test:
         [
