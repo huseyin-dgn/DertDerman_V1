@@ -69,6 +69,7 @@
     <link rel="stylesheet" href="{% static 'css/components.css' %}">
     <link rel="stylesheet" href="{% static 'css/pages.css' %}">
     <link rel="stylesheet" href="{% static 'css/public.css' %}">
+    <link rel="stylesheet" href="{% static 'css/advertising.css' %}">
     <link rel="stylesheet" href="{% static 'css/motion.css' %}">
     <link rel="stylesheet" href="{% static 'css/pagination.css' %}">
 
@@ -198,6 +199,10 @@
                     <a href="{% url 'core:categories' %}">
     Kategoriler
 </a>
+
+                    <a href="{% url 'core:advertising' %}">
+                        Reklam Ver
+                    </a>
 
 
                     {% if not request.user.is_authenticated %}

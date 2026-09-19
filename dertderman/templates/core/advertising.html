@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}DertDerman'da Reklam Ver | DertDerman{% endblock %}
+
+{% block body_class %}public-site advertising-page{% endblock %}
+
+{% block content %}
+<main id="main-content">
+    <header class="advertising-hero">
+        <div class="section-inner advertising-hero-inner">
+            <p class="section-kicker">REKLAM PAKETLERİ</p>
+            <h1>DertDerman'da Reklam Ver</h1>
+            <p>
+                Markanızı, deneyimlerini araştıran ve çözüm arayan
+                kullanıcılarla buluşturun.
+            </p>
+        </div>
+    </header>
+
+    <section class="advertising-plans" aria-labelledby="plans-title">
+        <div class="section-inner">
+            <div class="advertising-section-heading">
+                <p class="section-kicker">PAKET SEÇİMİ</p>
+                <h2 id="plans-title">İhtiyacınıza uygun paketi inceleyin.</h2>
+            </div>
+
+            <div class="advertising-plan-grid">
+                {% for plan in advertising_plans %}
+                    <article class="advertising-plan-card{% if plan.slug == 'pro' %} advertising-plan-card--featured{% endif %}">
+                        <div class="advertising-plan-head">
+                            <span>{{ plan.name }}</span>
+                            <strong>{{ plan.price_tl }} TL</strong>
+                        </div>
+
+                        <ul>
+                            {% for feature in plan.features %}
+                                <li>{{ feature }}</li>
+                            {% endfor %}
+                        </ul>
+
+                        <a
+                            class="primary-action"
+                            href="{% url 'core:advertising_payment' %}?plan={{ plan.slug }}"
+                        >
+                            Paketi Seç
+                        </a>
+                    </article>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+</main>
+{% endblock %}

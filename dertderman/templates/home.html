@@ -554,6 +554,39 @@ public-site home-public
     {% endif %}
 
 
+    <section class="advertising-home-cta">
+
+        <div class="section-inner advertising-home-cta-inner">
+
+            <div>
+                <p class="section-kicker">
+                    Markalar için
+                </p>
+
+                <h2>
+                    DertDerman'da Reklam Ver
+                </h2>
+
+                <p>
+                    Markanızı, deneyimlerini araştıran ve çözüm arayan
+                    kullanıcılarla buluşturun.
+                </p>
+            </div>
+
+            <a
+                class="primary-action button-lg"
+                href="{% url 'core:advertising' %}"
+            >
+                Reklam Paketlerini İncele
+
+                {% include 'components/icon.html' %}
+            </a>
+
+        </div>
+
+    </section>
+
+
     <section class="content-section corporate-discovery">
 
         <div class="section-inner corporate-discovery-grid">

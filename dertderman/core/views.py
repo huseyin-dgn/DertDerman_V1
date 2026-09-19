@@ -13,6 +13,7 @@ from complaints.selectors import (
     public_complaint_filter,
 )
 from blog.selectors import published_posts
+from .advertising_plans import ADVERTISING_PLANS
 from .presentation import HERO_BRAND_MESSAGES
 from .forms import ContactRequestForm
 
@@ -78,6 +79,41 @@ def home(request):
 @require_safe
 def about(request):
     return render(request, "core/about.html")
+
+
+@require_safe
+def advertising(request):
+    return render(
+        request,
+        "core/advertising.html",
+        {
+            "advertising_plans": tuple(
+                ADVERTISING_PLANS.values()
+            ),
+        },
+    )
+
+
+@require_safe
+def advertising_payment_preview(request):
+    plan_slug = (
+        request.GET.get("plan", "")
+        .strip()
+        .lower()
+    )
+    try:
+        plan = ADVERTISING_PLANS[plan_slug]
+    except KeyError as exc:
+        raise Http404 from exc
+
+    return render(
+        request,
+        "core/advertising_payment.html",
+        {
+            "plan": plan,
+        },
+    )
+
 
 @require_safe
 def privacy_policy(request):

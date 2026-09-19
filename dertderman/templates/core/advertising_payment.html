@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Reklam Ödeme Önizlemesi | DertDerman{% endblock %}
+
+{% block body_class %}public-site advertising-payment-page{% endblock %}
+
+{% block content %}
+<main id="main-content" class="advertising-payment-shell">
+    <div class="section-inner">
+        <a class="advertising-back-link" href="{% url 'core:advertising' %}">
+            ← Reklam paketlerine dön
+        </a>
+
+        <header class="advertising-payment-heading">
+            <p class="section-kicker">ÖDEME ÖNİZLEMESİ</p>
+            <h1>{{ plan.name }} reklam paketi</h1>
+            <p>Seçtiğiniz paketin ayrıntılarını ve toplam tutarı inceleyin.</p>
+        </header>
+
+        <div class="advertising-payment-layout">
+            <section class="advertising-payment-card" aria-labelledby="selected-plan-title">
+                <p class="section-kicker">SEÇİLEN PAKET</p>
+                <h2 id="selected-plan-title">{{ plan.name }}</h2>
+
+                <ul>
+                    {% for feature in plan.features %}
+                        <li>{{ feature }}</li>
+                    {% endfor %}
+                </ul>
+            </section>
+
+            <aside class="advertising-payment-card advertising-order-summary" aria-labelledby="order-summary-title">
+                <p class="section-kicker">SİPARİŞ ÖZETİ</p>
+                <h2 id="order-summary-title">Toplam tutar</h2>
+
+                <dl>
+                    <div>
+                        <dt>Paket</dt>
+                        <dd>{{ plan.name }}</dd>
+                    </div>
+                    <div>
+                        <dt>Paket tutarı</dt>
+                        <dd>{{ plan.price_tl }} TL</dd>
+                    </div>
+                </dl>
+
+                <div class="advertising-total">
+                    <span>Toplam</span>
+                    <strong>{{ plan.price_tl }} TL</strong>
+                </div>
+
+                <button type="button" disabled aria-disabled="true">
+                    Ödeme altyapısı hazırlanıyor
+                </button>
+
+                <p class="advertising-payment-notice">
+                    Bu ekran şu anda ödeme başlatmaz.
+                </p>
+            </aside>
+        </div>
+    </div>
+</main>
+{% endblock %}

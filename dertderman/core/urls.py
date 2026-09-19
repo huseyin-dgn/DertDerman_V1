@@ -7,6 +7,8 @@ from .health import (
 
 from .views import (
     about,
+    advertising,
+    advertising_payment_preview,
     community_rules,
     contact,
     cookie_policy,
@@ -36,6 +38,12 @@ urlpatterns = [
     ),
     path("intro/reset/", intro_reset, name="intro_reset"),
     path("intro/", intro, name="intro"),
+    path("reklam-ver/", advertising, name="advertising"),
+    path(
+        "reklam-ver/odeme/",
+        advertising_payment_preview,
+        name="advertising_payment",
+    ),
     path("hakkimizda/", about, name="about"),
     path("firmalar-icin/", for_companies, name="for_companies"),
     path("bize-ulasin/", contact, name="contact"),
