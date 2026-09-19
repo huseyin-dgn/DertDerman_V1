@@ -33,7 +33,7 @@ from complaints.reporting_policy import (
     check_general_reporting_allowed,
 )
 from complaints.selectors import (
-    public_complaints,
+    public_complaint_cards,
 )
 
 from .badges import (
@@ -207,7 +207,7 @@ def public_company_detail(
     )
 
     complaints = (
-        public_complaints()
+        public_complaint_cards()
         .filter(
             company=company
         )

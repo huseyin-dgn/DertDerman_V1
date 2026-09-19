@@ -470,13 +470,13 @@ def public_profile(
     )
 
     from complaints.selectors import (
-        public_complaints,
+        public_complaint_cards,
     )
 
     # Sadece gerçekten herkese açık
     # şikayetleri kullanıcı profilinde göster.
     public_complaint_qs = (
-        public_complaints()
+        public_complaint_cards()
         .filter(
             user=account
         )

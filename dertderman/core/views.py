@@ -9,8 +9,8 @@ from django.views.decorators.cache import never_cache
 from companies.models import CompanyCategory
 from complaints.models import Complaint
 from complaints.selectors import (
+    public_complaint_cards,
     public_complaint_filter,
-    public_complaints,
 )
 from blog.selectors import published_posts
 from .presentation import HERO_BRAND_MESSAGES
@@ -69,7 +69,7 @@ def home(request):
             "users": get_user_model().objects.count(),
         },
         "popular_companies": popular_companies,
-        "recent_complaints": public_complaints()[:4],
+        "recent_complaints": public_complaint_cards()[:4],
         "recent_posts": published_posts().defer("content")[:3],
     }
     return render(request, "home.html", context)

@@ -2,16 +2,25 @@ from django.db.models import (
     Count,
     Exists,
     F,
+    IntegerField,
     OuterRef,
     Q,
+    Subquery,
+    Value,
 )
+from django.db.models.functions import Coalesce
 
 from companies.models import (
     Company,
     CompanyResponse,
 )
 
-from .models import Complaint
+from .models import (
+    Complaint,
+    ComplaintComment,
+    ComplaintLike,
+    ComplaintReaction,
+)
 
 
 def public_complaint_filter():
@@ -40,6 +49,137 @@ def public_complaints_for_update():
         public_complaint_records()
         .select_for_update(of=("self",))
         .select_related("company", "user")
+    )
+
+
+def public_complaint_cards():
+    """
+    Lightweight queryset for public complaint cards/lists.
+
+    Aggregate counts are calculated only for rows selected by
+    pagination/LIMIT instead of joining and grouping the entire
+    public complaint dataset.
+    """
+
+    like_count_query = (
+        ComplaintLike.objects
+        .filter(
+            complaint_id=OuterRef("pk")
+        )
+        .order_by()
+        .values(
+            "complaint_id"
+        )
+        .annotate(
+            total=Count("pk")
+        )
+        .values(
+            "total"
+        )[:1]
+    )
+
+    reaction_count_query = (
+        ComplaintReaction.objects
+        .filter(
+            complaint_id=OuterRef("pk")
+        )
+        .order_by()
+        .values(
+            "complaint_id"
+        )
+        .annotate(
+            total=Count("pk")
+        )
+        .values(
+            "total"
+        )[:1]
+    )
+
+    comment_count_query = (
+        ComplaintComment.objects
+        .filter(
+            complaint_id=OuterRef("pk"),
+            is_active=True,
+        )
+        .order_by()
+        .values(
+            "complaint_id"
+        )
+        .annotate(
+            total=Count("pk")
+        )
+        .values(
+            "total"
+        )[:1]
+    )
+
+    response_query = (
+        CompanyResponse.objects
+        .filter(
+            complaint_id=OuterRef("pk"),
+            company_id=OuterRef(
+                "company_id"
+            ),
+            is_active=True,
+        )
+    )
+
+    return (
+        public_complaint_records()
+        .select_related(
+            "company",
+        )
+        .annotate(
+            author_username=F(
+                "user__username"
+            ),
+
+            author_first_name=F(
+                "user__first_name"
+            ),
+
+            author_selected_avatar=F(
+                "user__selected_avatar"
+            ),
+
+            like_count=Coalesce(
+                Subquery(
+                    like_count_query,
+                    output_field=(
+                        IntegerField()
+                    ),
+                ),
+                Value(0),
+            ),
+
+            reaction_count=Coalesce(
+                Subquery(
+                    reaction_count_query,
+                    output_field=(
+                        IntegerField()
+                    ),
+                ),
+                Value(0),
+            ),
+
+            comment_count=Coalesce(
+                Subquery(
+                    comment_count_query,
+                    output_field=(
+                        IntegerField()
+                    ),
+                ),
+                Value(0),
+            ),
+
+            has_response=Exists(
+                response_query
+            ),
+        )
+        .order_by(
+            "-created_at",
+            "-pk",
+        )
     )
 
 

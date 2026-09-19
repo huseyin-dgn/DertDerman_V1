@@ -63,6 +63,7 @@ from .reporting_policy import (
     check_user_report_allowed,
 )
 from .selectors import (
+    public_complaint_cards,
     public_complaints,
     public_complaints_for_update,
 )
@@ -112,7 +113,7 @@ def public_complaint_list(
     request
 ):
     complaints = (
-        public_complaints()
+        public_complaint_cards()
     )
 
     search = (
@@ -440,7 +441,7 @@ def _public_detail_context(
     # ---------------------------------------------------------
 
     related_complaints = (
-        public_complaints()
+        public_complaint_cards()
         .filter(
             company_id=(
                 complaint.company_id
