@@ -851,6 +851,13 @@ RATE_LIMIT_ENABLED = _env_bool(
     default=not RUNNING_TESTS,
 )
 
+# Trust this only when a reverse proxy overwrites X-Forwarded-For with the
+# direct client address and the application is not reachable around it.
+TRUST_X_FORWARDED_FOR = _env_bool(
+    "TRUST_X_FORWARDED_FOR",
+    default=False,
+)
+
 # Only enable this in production when the origin is restricted to Cloudflare
 # or another trusted reverse proxy.
 TRUST_CLOUDFLARE_CONNECTING_IP = _env_bool(

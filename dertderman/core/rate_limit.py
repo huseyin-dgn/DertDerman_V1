@@ -1,11 +1,12 @@
 from dataclasses import dataclass
 from hashlib import sha256
 import hmac
-import ipaddress
 import logging
 
 from django.conf import settings
 from django.core.cache import cache
+
+from .client_ip import get_client_ip as client_ip
 
 
 logger = logging.getLogger(__name__)
@@ -78,23 +79,6 @@ def build_rate_limit_key(*, scope: str, identifier) -> str:
     ).hexdigest()
 
     return f"dertderman:rl:v2:{scope}:{digest}"
-
-
-def client_ip(request) -> str:
-    candidates = []
-    if getattr(settings, "TRUST_CLOUDFLARE_CONNECTING_IP", False):
-        candidates.append(request.META.get("HTTP_CF_CONNECTING_IP", ""))
-    candidates.append(request.META.get("REMOTE_ADDR", ""))
-
-    for raw in candidates:
-        raw = (raw or "").strip()
-        if not raw:
-            continue
-        try:
-            return str(ipaddress.ip_address(raw))
-        except ValueError:
-            continue
-    return "unknown"
 
 
 def rate_limit_status(

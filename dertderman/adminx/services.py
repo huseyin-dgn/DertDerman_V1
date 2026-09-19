@@ -7,6 +7,7 @@ from django.utils import timezone
 from blog.models import Post
 from accounts.models import User
 from companies.models import Company, CompanyNotification
+from core.client_ip import get_client_ip
 
 from .models import AdminAuditLog
 
@@ -53,17 +54,6 @@ def _require_current_admin(actor):
         raise ValidationError("Bu yönetim işlemi için geçerli yönetici gereklidir.")
 
 
-def _get_client_ip(request):
-    if request is None:
-        return None
-
-    forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
-    if forwarded_for:
-        return forwarded_for.split(",")[0].strip()
-
-    return request.META.get("REMOTE_ADDR")
-
-
 def record_admin_audit(
     *,
     actor,
@@ -83,7 +73,7 @@ def record_admin_audit(
         target_label=target_label or "",
         description=description or "",
         metadata=metadata or {},
-        ip_address=_get_client_ip(request),
+        ip_address=get_client_ip(request),
     )
 
 
