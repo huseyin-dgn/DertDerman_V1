@@ -44,6 +44,30 @@ class CompanyRegistrationForm(UserCreationForm):
     )
     phone = forms.CharField(label="Telefon", max_length=20)
     website = forms.URLField(label="Web sitesi", required=False)
+    terms_accepted = forms.BooleanField(
+        label="Hizmet Sözleşmesi'ni okudum ve kabul ediyorum.",
+        required=True,
+        error_messages={
+            "required": "Başvuruyu göndermek için Hizmet Sözleşmesi'ni kabul etmelisiniz.",
+        },
+        widget=forms.CheckboxInput(
+            attrs={
+                "class": "ax-consent-checkbox",
+            }
+        ),
+    )
+    privacy_notice_acknowledged = forms.BooleanField(
+        label="KVKK Aydınlatma Metni'ni okudum ve bilgilendirildim.",
+        required=True,
+        error_messages={
+            "required": "Başvuruyu göndermek için KVKK Aydınlatma Metni'ni okuduğunuzu ve bilgilendirildiğinizi teyit etmelisiniz.",
+        },
+        widget=forms.CheckboxInput(
+            attrs={
+                "class": "ax-consent-checkbox",
+            }
+        ),
+    )
 
     field_order = (
         "company_name",
@@ -55,6 +79,8 @@ class CompanyRegistrationForm(UserCreationForm):
         "website",
         "password1",
         "password2",
+        "terms_accepted",
+        "privacy_notice_acknowledged",
     )
 
     class Meta:

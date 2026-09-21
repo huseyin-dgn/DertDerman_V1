@@ -30,6 +30,8 @@ class CompanyAuthenticationFlowTests(TestCase):
             "website": "https://example.com",
             "password1": PASSWORD,
             "password2": PASSWORD,
+            "terms_accepted": "on",
+            "privacy_notice_acknowledged": "on",
             # Public POST verileri ayrıcalık yükseltememeli.
             "username": f"public-{suffix}",
             "user_type": User.UserType.ADMIN,
@@ -122,6 +124,38 @@ class CompanyAuthenticationFlowTests(TestCase):
         self.assertIn(
             "Şirket başvurunuz alındı. Yönetim onayından sonra kurumsal hesabınız aktif olacaktır.",
             [str(message) for message in get_messages(response.wsgi_request)],
+        )
+
+    def test_registration_requires_terms_acceptance(self):
+        data = self.registration_data("missing-terms")
+        data.pop("terms_accepted")
+
+        response = self.client.post(reverse("company_auth:register"), data)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            "Başvuruyu göndermek için Hizmet Sözleşmesi'ni kabul etmelisiniz.",
+        )
+        self.assertFalse(
+            User.objects.filter(email="company-missing-terms@example.com").exists()
+        )
+
+    def test_registration_requires_privacy_notice_acknowledgement(self):
+        data = self.registration_data("missing-privacy-notice")
+        data.pop("privacy_notice_acknowledged")
+
+        response = self.client.post(reverse("company_auth:register"), data)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            "Başvuruyu göndermek için KVKK Aydınlatma Metni'ni okuduğunuzu ve bilgilendirildiğinizi teyit etmelisiniz.",
+        )
+        self.assertFalse(
+            User.objects.filter(
+                email="company-missing-privacy-notice@example.com"
+            ).exists()
         )
 
     def test_registration_normalizes_email_and_rejects_case_insensitive_duplicate(self):

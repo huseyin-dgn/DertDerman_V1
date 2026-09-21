@@ -116,11 +116,13 @@
 /* Metrics and feed retain the editorial structure with more deliberate depth. */
 .home-public .stats-section { background: linear-gradient(180deg, #fff, #f8fbfe); border-block: 1px solid var(--public-rule); }
 .home-public .stats-layout { padding-block: clamp(54px, 5.5vw, 80px); }
-.home-public .stats-layout header { display: grid; grid-template-columns: 52px 1fr auto; align-items: end; border-bottom: 1px solid var(--public-rule); padding-bottom: 24px; }
+.home-public .stats-layout header { display: grid; grid-template-columns: 52px minmax(0,1fr); align-items: end; border-bottom: 1px solid var(--public-rule); padding-bottom: 24px; }
 .home-public .stats-layout header .section-index { align-self: start; }
 .home-public .stats-layout header .section-kicker { margin-bottom: 12px; }
 .home-public .stats-layout h2 { font-size: clamp(2rem, 3.4vw, 3.25rem); }
 .home-public .stats-grid { gap: 0; margin-top: 28px; padding-block: 0; overflow: hidden; border: 1px solid var(--public-rule); border-radius: 18px; background: rgb(255 255 255 / 88%); box-shadow: 0 16px 44px rgb(16 42 67 / 6%); }
+.home-public .stats-layout,.home-public .stats-grid,.home-public .stat-item,.home-public .split-section > * { min-width: 0; }
+.home-public .metric-animated[data-count-suffix='+']::after { content: '+'; }
 .home-public .stat-item { position: relative; border-top: 0; border-right: 1px solid var(--public-rule); padding: 26px clamp(18px, 2vw, 28px); transition: background-color 180ms ease, box-shadow 180ms ease, transform 180ms ease; }
 .home-public .stat-item::before { content: ''; display: block; width: 24px; height: 3px; margin-bottom: 18px; border-radius: 99px; background: linear-gradient(90deg, var(--dd-primary), #75b9ee); }
 .home-public .stat-item:last-child::before { background: var(--dd-success); }
@@ -199,6 +201,7 @@
 
 /* Public complaint experience V2 */
 .public-complaint-tools { display: grid; grid-template-columns: minmax(280px, 1fr) auto; gap: 18px; align-items: center; margin-bottom: 28px; padding: 16px; border: 1px solid var(--public-rule); border-radius: 16px; background: #fff; box-shadow: 0 10px 30px rgb(16 42 67 / 5%); }
+.complaints-index .public-complaint-tools,.complaints-index .public-search,.complaints-index .complaint-category-select,.complaints-index .public-complaint-grid { min-width: 0; max-width: 100%; }
 .public-search { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; overflow: hidden; border: 1px solid #cfdeea; border-radius: 11px; background: #fbfdff; color: var(--dd-muted); }
 .public-search .icon { width: 18px; height: 18px; margin-left: 14px; }
 .public-search input { min-width: 0; min-height: 46px; padding: 10px 12px; border: 0; outline: 0; background: transparent; }

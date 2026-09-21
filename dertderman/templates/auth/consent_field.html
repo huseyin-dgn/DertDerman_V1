@@ -1,0 +1,70 @@
+<div class="ax-consent-list">
+  <div class="ax-consent">
+    <div class="ax-consent-control">
+      {{ terms_field }}
+      <label for="{{ terms_field.id_for_label }}">
+        <button type="button" class="ax-consent-trigger" data-legal-dialog-target="service-agreement-dialog" aria-haspopup="dialog" aria-controls="service-agreement-dialog">Hizmet Sözleşmesi</button>'ni
+        okudum ve kabul ediyorum.
+      </label>
+    </div>
+    {% if terms_field.errors %}
+      <div class="field-error" id="{{ terms_field.auto_id }}_error" role="alert">
+        <ul>{% for error in terms_field.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+      </div>
+    {% endif %}
+  </div>
+  <div class="ax-consent">
+    <div class="ax-consent-control">
+      {{ privacy_field }}
+      <label for="{{ privacy_field.id_for_label }}">
+        <button type="button" class="ax-consent-trigger" data-legal-dialog-target="privacy-notice-dialog" aria-haspopup="dialog" aria-controls="privacy-notice-dialog">KVKK Aydınlatma Metni</button>'ni
+        okudum ve bilgilendirildim.
+      </label>
+    </div>
+    {% if privacy_field.errors %}
+      <div class="field-error" id="{{ privacy_field.auto_id }}_error" role="alert">
+        <ul>{% for error in privacy_field.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<dialog class="ax-legal-dialog" id="service-agreement-dialog" aria-labelledby="service-agreement-dialog-title">
+  <div class="ax-legal-dialog-shell">
+    <header class="ax-legal-dialog-header">
+      <div>
+        <span>Yasal metin</span>
+        <h2 id="service-agreement-dialog-title">Hizmet Sözleşmesi</h2>
+      </div>
+      <button type="button" class="ax-legal-dialog-close" data-legal-dialog-close aria-label="Hizmet Sözleşmesi penceresini kapat">×</button>
+    </header>
+    <div class="ax-legal-dialog-body" tabindex="0">
+      <div class="ax-legal-copy terms-page">
+        {% include 'core/legal/_terms_content.html' with modal_view=True %}
+      </div>
+    </div>
+    <footer class="ax-legal-dialog-footer">
+      <button type="button" class="ax-legal-dialog-accept" data-legal-dialog-accept data-checkbox-id="{{ terms_field.id_for_label }}" disabled>Okudum ve kabul ediyorum</button>
+    </footer>
+  </div>
+</dialog>
+
+<dialog class="ax-legal-dialog" id="privacy-notice-dialog" aria-labelledby="privacy-notice-dialog-title">
+  <div class="ax-legal-dialog-shell">
+    <header class="ax-legal-dialog-header">
+      <div>
+        <span>Bilgilendirme metni</span>
+        <h2 id="privacy-notice-dialog-title">KVKK Aydınlatma Metni</h2>
+      </div>
+      <button type="button" class="ax-legal-dialog-close" data-legal-dialog-close aria-label="KVKK Aydınlatma Metni penceresini kapat">×</button>
+    </header>
+    <div class="ax-legal-dialog-body" tabindex="0">
+      <div class="ax-legal-copy kvkk-page">
+        {% include 'core/legal/_disclosure_content.html' with modal_view=True %}
+      </div>
+    </div>
+    <footer class="ax-legal-dialog-footer">
+      <button type="button" class="ax-legal-dialog-accept" data-legal-dialog-accept data-checkbox-id="{{ privacy_field.id_for_label }}" disabled>Okudum ve bilgilendirildim</button>
+    </footer>
+  </div>
+</dialog>

@@ -14,6 +14,43 @@
 .directory-page .discovery-network{background:linear-gradient(115deg,#e5effa,#eef7fb);border-color:#cbdfee}
 .directory-page .discovery-network .secondary-action{color:#245678;background:#fff;border-color:#aecbdf}
 .directory-page .discovery-network .secondary-action:hover{background:#e2eff9;border-color:#648eae}
+.directory-page .discovery-container,
+.directory-page .discovery-tools,
+.directory-page .company-directory-search,
+.directory-page .company-directory-search > *,
+.directory-page .directory-grid,
+.directory-page .directory-card,
+.directory-page .directory-card-top,
+.directory-page .directory-card-footer,
+.directory-page .discovery-network,
+.directory-page .discovery-network > * {
+    min-width: 0;
+}
+
+.directory-page .discovery-tools,
+.directory-page .company-directory-search,
+.directory-page .directory-grid {
+    width: 100%;
+}
+
+.directory-page .directory-logo {
+    max-width: 100%;
+}
+
+.directory-page .directory-card h2,
+.directory-page .directory-description,
+.directory-page .directory-card-footer > *,
+.directory-page .discovery-network h2,
+.directory-page .discovery-network p {
+    overflow-wrap: anywhere;
+}
+
+.directory-page .directory-card-footer a,
+.directory-page .company-network-actions,
+.directory-page .company-network-actions > * {
+    max-width: 100%;
+    min-width: 0;
+}
 @media(max-width:767px){.directory-page .discovery-tools{padding:17px;gap:14px}.directory-page .discovery-hero{padding-block:33px}.directory-page .directory-card-footer{gap:10px}.directory-page .directory-card-footer>span{font-size:9px;align-self:auto}.directory-page .dd-pagination{padding:16px}.directory-page .discovery-network{padding:24px}}
 /* Company plan badges */
 
@@ -25,7 +62,9 @@
     display: flex;
     flex-direction: column;
     align-items: flex-end;
+    flex: 1 1 auto;
     gap: 6px;
+    max-width: 100%;
     min-width: 0;
 }
 
@@ -37,5 +76,14 @@
 @media(max-width: 520px) {
     .directory-card-badges {
         align-items: flex-start;
+    }
+
+    .directory-page .directory-card-footer {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .directory-page .directory-card-footer a {
+        width: 100%;
     }
 }

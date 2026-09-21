@@ -1,13 +1,36 @@
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 from django.utils import timezone
 
 from companies.models import Company
 from complaints.models import Complaint
 from complaints.selectors import public_complaints
+from core.views import _display_metric_counts
+
+
+class MetricDisplayTests(SimpleTestCase):
+    def test_every_metric_uses_its_exact_count_with_plus_suffix(self):
+        self.assertEqual(
+            _display_metric_counts(
+                {
+                    "total_complaints": 28,
+                    "published": 14,
+                    "resolved": 9,
+                    "companies": 31,
+                    "users": 1066,
+                }
+            ),
+            {
+                "total_complaints": {"value": 28, "suffix": "+"},
+                "published": {"value": 14, "suffix": "+"},
+                "resolved": {"value": 9, "suffix": "+"},
+                "companies": {"value": 31, "suffix": "+"},
+                "users": {"value": 1066, "suffix": "+"},
+            },
+        )
 
 
 class PlatformPresentationTests(TestCase):

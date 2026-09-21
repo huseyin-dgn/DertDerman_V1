@@ -7,6 +7,6 @@
     {% elif visual == 'company' %}<svg viewBox="0 0 40 40"><path d="M9 33V12l11-5 11 5v21M6 33h28M14 17h3M23 17h3M14 23h3M23 23h3M17 33v-5h6v5"/><circle class="metric-pulse" cx="31" cy="9" r="3"/></svg>
     {% else %}<svg viewBox="0 0 40 40"><circle cx="16" cy="15" r="5"/><circle cx="27" cy="17" r="4"/><path d="M7 32c1-7 5-10 9-10s8 3 9 10M23 24c5 0 8 3 9 8"/></svg>{% endif %}
   </span>
-  <span class="metric-value"><span class="metric-final">{{ value }}</span><span class="metric-animated" data-count="{{ value|unlocalize }}" aria-hidden="true"></span></span>
+  <span class="metric-value"><span class="metric-final">{{ value }}{{ suffix }}</span><span class="metric-animated" data-count="{{ value|unlocalize }}" data-count-suffix="{{ suffix }}" aria-hidden="true"></span></span>
   <p>{{ label }}</p>
 </div>

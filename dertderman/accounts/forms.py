@@ -82,6 +82,30 @@ class RegisterForm(UserCreationForm):
     selected_avatar = forms.ChoiceField(
         label="Avatar", choices=USER_AVATAR_CHOICES, required=True, widget=forms.RadioSelect,
     )
+    terms_accepted = forms.BooleanField(
+        label="Hizmet Sözleşmesi'ni okudum ve kabul ediyorum.",
+        required=True,
+        error_messages={
+            "required": "Hesap oluşturmak için Hizmet Sözleşmesi'ni kabul etmelisiniz.",
+        },
+        widget=forms.CheckboxInput(
+            attrs={
+                "class": "ax-consent-checkbox",
+            }
+        ),
+    )
+    privacy_notice_acknowledged = forms.BooleanField(
+        label="KVKK Aydınlatma Metni'ni okudum ve bilgilendirildim.",
+        required=True,
+        error_messages={
+            "required": "Hesap oluşturmak için KVKK Aydınlatma Metni'ni okuduğunuzu ve bilgilendirildiğinizi teyit etmelisiniz.",
+        },
+        widget=forms.CheckboxInput(
+            attrs={
+                "class": "ax-consent-checkbox",
+            }
+        ),
+    )
 
     class Meta:
         model = User

@@ -19,6 +19,8 @@ class AuthenticationSecurityTests(TestCase):
             "selected_avatar": "avatar-1",
             "password1": "StrongPass2026!",
             "password2": "StrongPass2026!",
+            "terms_accepted": "on",
+            "privacy_notice_acknowledged": "on",
         }
         data.update(overrides)
         return data
@@ -50,6 +52,40 @@ class AuthenticationSecurityTests(TestCase):
         self.assertTrue(user.check_password(raw_password))
         self.assertFalse(user.is_verified)
         self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_public_register_requires_terms_acceptance(self):
+        data = self.register_data(
+            username="missing-terms",
+            email="missing-terms@example.com",
+        )
+        data.pop("terms_accepted")
+
+        response = self.client.post(reverse("accounts:register"), data)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            "Hesap oluşturmak için Hizmet Sözleşmesi'ni kabul etmelisiniz.",
+        )
+        self.assertFalse(User.objects.filter(username="missing-terms").exists())
+
+    def test_public_register_requires_privacy_notice_acknowledgement(self):
+        data = self.register_data(
+            username="missing-privacy-notice",
+            email="missing-privacy-notice@example.com",
+        )
+        data.pop("privacy_notice_acknowledged")
+
+        response = self.client.post(reverse("accounts:register"), data)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            "Hesap oluşturmak için KVKK Aydınlatma Metni'ni okuduğunuzu ve bilgilendirildiğinizi teyit etmelisiniz.",
+        )
+        self.assertFalse(
+            User.objects.filter(username="missing-privacy-notice").exists()
+        )
 
     def test_public_register_prevents_privilege_escalation(self):
         response = self.client.post(

@@ -1,7 +1,7 @@
 {% extends 'layouts/auth_base.html' %}
 
 {% block title %}
-Şirket Başvurusu | DertDerman
+DertDerman | Şirket Başvurusu
 {% endblock %}
 
 {% block auth_variant %}
@@ -224,6 +224,9 @@ ax-company-register
                     </span>
 
                 </p>
+
+
+                {% include 'auth/consent_field.html' with terms_field=form.terms_accepted privacy_field=form.privacy_notice_acknowledged only %}
 
 
                 <button

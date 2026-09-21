@@ -46,6 +46,8 @@ class CompanyRegistrationRaceTests(TestCase):
             "website": "https://example.com",
             "password1": PASSWORD,
             "password2": PASSWORD,
+            "terms_accepted": "on",
+            "privacy_notice_acknowledged": "on",
         }
 
     def test_case_variant_registration_race_fails_without_partial_records(self):

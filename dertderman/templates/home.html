@@ -276,7 +276,7 @@ public-site home-public
                 <div>
 
                     <p class="section-kicker">
-                        Platformun güncel görünümü
+                        DertDerman'da bugün
                     </p>
 
                     <h2 id="stats-title">
@@ -284,10 +284,6 @@ public-site home-public
                     </h2>
 
                 </div>
-
-                <p class="stats-note">
-                    Yalnızca sistemdeki güncel ve gerçek kayıtlar.
-                </p>
 
             </header>
 
@@ -298,15 +294,15 @@ public-site home-public
                 data-motion-region
             >
 
-                {% include 'components/metric.html' with value=stats.total_complaints label='Toplam Şikayet' visual='complaint' %}
+                {% include 'components/metric.html' with value=display_stats.total_complaints.value suffix=display_stats.total_complaints.suffix label='Toplam Şikayet' visual='complaint' %}
 
-                {% include 'components/metric.html' with value=stats.published label='Yayınlanan' visual='published' %}
+                {% include 'components/metric.html' with value=display_stats.published.value suffix=display_stats.published.suffix label='Yayınlanan' visual='published' %}
 
-                {% include 'components/metric.html' with value=stats.resolved label='Çözülen' visual='resolved' %}
+                {% include 'components/metric.html' with value=display_stats.resolved.value suffix=display_stats.resolved.suffix label='Çözülen' visual='resolved' %}
 
-                {% include 'components/metric.html' with value=stats.companies label='Kayıtlı Şirket' visual='company' %}
+                {% include 'components/metric.html' with value=display_stats.companies.value suffix=display_stats.companies.suffix label='Kayıtlı Şirket' visual='company' %}
 
-                {% include 'components/metric.html' with value=stats.users label='Kullanıcı' visual='users' %}
+                {% include 'components/metric.html' with value=display_stats.users.value suffix=display_stats.users.suffix label='Kullanıcı' visual='users' %}
 
             </div>
 

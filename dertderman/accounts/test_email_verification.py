@@ -74,6 +74,8 @@ class EmailVerificationTests(TestCase):
             "password1": self.password,
             "password2": self.password,
             "selected_avatar": "avatar-1",
+            "terms_accepted": "on",
+            "privacy_notice_acknowledged": "on",
         }
         data.update(overrides)
         return data

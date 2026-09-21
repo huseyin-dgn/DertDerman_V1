@@ -78,8 +78,10 @@
         </div>
 
 
+        {% if not compact_derman_promo or request.user.is_authenticated and request.user.user_type == 'USER' %}
         <div class="derman-promo__actions">
 
+            {% if not compact_derman_promo %}
             <a
                 href="{% url 'complaints:public_list' %}"
                 class="derman-promo__primary"
@@ -89,6 +91,7 @@
                     →
                 </span>
             </a>
+            {% endif %}
 
 
             {% if request.user.is_authenticated and request.user.user_type == 'USER' %}
@@ -103,6 +106,7 @@
             {% endif %}
 
         </div>
+        {% endif %}
 
 
         <small class="derman-promo__note">

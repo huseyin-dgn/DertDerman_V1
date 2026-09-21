@@ -86,6 +86,8 @@ class AuthExperienceV2Tests(TestCase):
                 'username': f'register-{role}', 'email': f'register-{role}@example.com',
                 'password1': self.password, 'password2': self.password,
                 'selected_avatar': 'avatar-1',
+                'terms_accepted': 'on',
+                'privacy_notice_acknowledged': 'on',
                 'user_type': role, 'is_staff': 'true', 'is_superuser': 'true',
                 'is_verified': 'true', 'approval_status': 'APPROVED', 'company_name': 'Injected company'})
             self.assertRedirects(response, reverse('accounts:email_verification_pending'))
@@ -102,6 +104,8 @@ class AuthExperienceV2Tests(TestCase):
             'company_name': 'New Auth Company', 'category': self.company_category.pk, 'first_name': 'Deniz', 'last_name': 'Yılmaz',
             'email': 'new-auth-company@example.com', 'phone': '5551234567',
             'password1': self.password, 'password2': self.password,
+            'terms_accepted': 'on',
+            'privacy_notice_acknowledged': 'on',
             'username': 'injected-username', 'user_type': 'ADMIN', 'role': 'MANAGER',
             'is_staff': 'true', 'is_superuser': 'true', 'is_verified': 'true',
             'approval_status': 'APPROVED', 'is_active': 'true'}, follow=True)

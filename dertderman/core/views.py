@@ -18,6 +18,13 @@ from .presentation import HERO_BRAND_MESSAGES
 from .forms import ContactRequestForm
 
 
+def _display_metric_counts(stats):
+    return {
+        name: {"value": count, "suffix": "+"}
+        for name, count in stats.items()
+    }
+
+
 def home(request):
     if settings.DEBUG and request.GET.get("intro") == "1":
         return redirect("/intro/?preview=1")
@@ -62,13 +69,15 @@ def home(request):
             ),
         ),
     )
+    stats = {
+        **counts,
+        "companies": Company.objects.count(),
+        "users": get_user_model().objects.count(),
+    }
     context = {
         "hero_brand_messages": HERO_BRAND_MESSAGES,
-        "stats": {
-            **counts,
-            "companies": Company.objects.count(),
-            "users": get_user_model().objects.count(),
-        },
+        "stats": stats,
+        "display_stats": _display_metric_counts(stats),
         "popular_companies": popular_companies,
         "recent_complaints": public_complaint_cards()[:4],
         "recent_posts": published_posts().defer("content")[:3],
