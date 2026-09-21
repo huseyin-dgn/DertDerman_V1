@@ -1296,6 +1296,27 @@
           String(open)
         );
 
+
+        toggle.setAttribute(
+          "aria-label",
+          open
+            ? "Menüyü kapat"
+            : "Menüyü aç"
+        );
+
+
+        if (!open) {
+
+          links.querySelectorAll(
+            "[data-corporate-menu][open]"
+          ).forEach(
+            (menu) => menu.removeAttribute(
+              "open"
+            )
+          );
+
+        }
+
       };
 
 
@@ -1322,6 +1343,44 @@
             "aria-expanded"
           ) !== "true"
         );
+
+      }
+    );
+
+
+    links.addEventListener(
+      "click",
+      (event) => {
+
+        if (
+          narrow.matches &&
+          event.target.closest("a")
+        ) {
+
+          setOpen(false);
+
+        }
+
+      }
+    );
+
+
+    document.addEventListener(
+      "click",
+      (event) => {
+
+        if (
+          narrow.matches &&
+          toggle.getAttribute(
+            "aria-expanded"
+          ) === "true" &&
+          !links.contains(event.target) &&
+          !toggle.contains(event.target)
+        ) {
+
+          setOpen(false);
+
+        }
 
       }
     );
