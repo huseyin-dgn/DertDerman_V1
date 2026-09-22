@@ -233,6 +233,7 @@ class RouteAccessTests(TestCase):
             "username": "route-smoke-user", "email": "route-smoke@example.com",
             "password1": self.password, "password2": self.password,
             "selected_avatar": "avatar-1",
+            "terms_accepted": "on", "privacy_notice_acknowledged": "on",
         }), "/hesap/eposta-dogrulama-bekleniyor/")
         self.assertNotIn("_auth_user_id", client.session)
         self.assertRedirects(client.get("/panel/"), "/hesap/giris/?next=/panel/")

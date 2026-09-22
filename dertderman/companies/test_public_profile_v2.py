@@ -1,4 +1,5 @@
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone as datetime_timezone
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.db import connection
@@ -16,6 +17,7 @@ from complaints.models import (
 )
 
 from .models import Company, CompanyCategory, CompanyResponse, InternalCompanyNote
+from .selectors import public_company_performance
 
 
 User = get_user_model()
@@ -149,6 +151,61 @@ class PublicCompanyProfileV2Tests(TestCase):
         self.assertEqual(metrics["resolved"], 1)
         self.assertEqual(metrics["resolved_ratio"], 33)
         self.assertEqual(response.context["average_response"], "3 sa")
+
+    def test_performance_aggregate_preserves_legacy_timing_and_activity(self):
+        base = datetime(2026, 2, 1, 12, tzinfo=datetime_timezone.utc)
+        first = self.complaint("İlk yanıt")
+        legacy = self.complaint("Yayından önceki yanıt")
+        invalid_duration = self.complaint("Oluşturulmadan önceki yanıt")
+        self.complaint("Yanıtsız çözüm", Complaint.Status.RESOLVED)
+        hidden = self.complaint("Gizli yanıt", Complaint.Status.PENDING)
+
+        for complaint, created_at, published_at in (
+            (first, base - timedelta(hours=1), base),
+            (legacy, base + timedelta(days=1, hours=-1), base + timedelta(days=1, hours=5)),
+            (invalid_duration, base + timedelta(days=2, hours=3), base + timedelta(days=2, hours=5)),
+        ):
+            Complaint.objects.filter(pk=complaint.pk).update(created_at=created_at)
+            ComplaintEvent.objects.filter(
+                complaint=complaint, event_type=ComplaintEvent.Type.PUBLISHED,
+            ).update(occurred_at=published_at)
+
+        for complaint, at, active in (
+            (first, base + timedelta(hours=1), False),
+            (first, base + timedelta(hours=2), True),
+            (first, base + timedelta(days=4), True),
+            (legacy, base + timedelta(days=1, hours=2), True),
+            (invalid_duration, base + timedelta(days=2, hours=2), True),
+            (hidden, base + timedelta(days=3), True),
+        ):
+            reply = self.response(complaint, active=active)
+            CompanyResponse.objects.filter(pk=reply.pk).update(created_at=at)
+
+        metrics = public_company_performance(self.company)
+
+        self.assertEqual(metrics, {
+            "total": 4,
+            "answered": 3,
+            "resolved": 1,
+            "response_ratio": 75,
+            "resolved_ratio": 25,
+            "average_response_seconds": 9000.0,
+            "response_activity_days": 3,
+            "response_span_days": 2,
+        })
+
+    def test_performance_aggregate_uses_one_query_without_row_iteration(self):
+        for index in range(40):
+            self.complaint(f"Yoğun profil kaydı {index}")
+
+        with patch("django.db.models.query.QuerySet.__iter__", side_effect=AssertionError(
+            "Complaint rows must not be iterated in Python.",
+        )):
+            with self.assertNumQueries(1):
+                metrics = public_company_performance(self.company)
+
+        self.assertEqual(metrics["total"], 40)
+        self.assertEqual(metrics["answered"], 0)
 
     def test_no_data_fallback_is_clear(self):
         response = self.client.get(self.url)

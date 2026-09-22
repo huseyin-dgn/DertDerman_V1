@@ -22,6 +22,7 @@ class AvatarFinalizationTests(TestCase):
         data = {
             "username": "avatar-user", "email": "avatar@example.com",
             "password1": PASSWORD, "password2": PASSWORD, "selected_avatar": "avatar-12",
+            "terms_accepted": "on", "privacy_notice_acknowledged": "on",
         }
         data.update(overrides)
         return data

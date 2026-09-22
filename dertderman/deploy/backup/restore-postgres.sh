@@ -44,7 +44,7 @@ echo "Backup integrity verified."
 echo
 echo "DANGER:"
 echo "This operation replaces PostgreSQL application data."
-echo "The web application must not be serving writes."
+echo "Database-writing application services must be stopped."
 echo
 
 
@@ -59,9 +59,9 @@ running_services="$(
 
 
 if printf '%s\n' "${running_services}" |
-    grep -qx "web"
+    grep -Eq '^(web|email-worker|migrate|db-bootstrap)$'
 then
-    echo "Refusing restore while web service is running." >&2
+    echo "Refusing restore while a database-writing application service is running." >&2
     exit 1
 fi
 

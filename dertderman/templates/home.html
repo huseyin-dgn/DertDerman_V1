@@ -103,7 +103,7 @@
 
 
 {% block title %}
-DertDerman | Derdinizi Anlatın, Süreci Takip Edin
+DertDerman | Ana Sayfa
 {% endblock %}
 
 
@@ -384,6 +384,8 @@ public-site home-public
                 {% endfor %}
 
             </div>
+
+            {% include 'components/ad_slot.html' with placement='home' only %}
 
         </div>
 

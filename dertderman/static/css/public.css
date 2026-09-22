@@ -195,6 +195,44 @@
 .editorial-grid .blog-card:last-child { padding-right: 0; border-right: 0; }
 .editorial-grid .blog-card-body { gap: 12px; padding: 18px 0 0; }
 .editorial-grid .blog-placeholder { background: var(--dd-navy); color: #8ec9f8; }
+.public-ad-slot { width: 100%; max-width: 100%; min-width: 0; margin-top: 24px; padding: 16px 20px; border: 1px solid var(--public-rule, #dce5ec); border-radius: 12px; background: var(--dd-surface-soft); color: var(--public-ink-soft, #36516a); overflow-wrap: anywhere; }
+.public-ad-slot[hidden] { display: none; }
+.public-ad-slot__label { display: block; margin-bottom: 4px; font-size: .6875rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.public-ad-slot__placeholder { margin: 0; font-size: .8125rem; }
+@media (min-width: 601px) {
+  .home-public .editorial-grid { align-items: stretch; }
+  .home-public .editorial-grid > .blog-card { display: flex; min-width: 0; height: 100%; flex-direction: column; }
+  .home-public .editorial-grid .blog-card-body { display: flex; min-width: 0; height: 100%; flex: 1 1 auto; flex-direction: column; }
+  .home-public .editorial-grid .blog-card-body > h2 {
+    display: -webkit-box;
+    height: 2.7em;
+    min-height: 2.7em;
+    max-height: 2.7em;
+    flex: 0 0 2.7em;
+    overflow: hidden;
+    line-height: 1.35;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+  .home-public .editorial-grid .blog-card-body > p {
+    display: -webkit-box;
+    height: 6.4em;
+    min-height: 6.4em;
+    max-height: 6.4em;
+    flex: 0 0 6.4em;
+    overflow: hidden;
+    line-height: 1.6;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+  }
+  .home-public .editorial-grid .blog-card-body > a.detail-cta {
+    height: 44px;
+    min-height: 44px;
+    max-height: 44px;
+    flex: 0 0 44px;
+    margin-top: auto;
+  }
+}
 .trust-section { padding-block: clamp(56px, 6vw, 84px); background: linear-gradient(135deg, #eaf3fa, #f5f9fc); border-top: 1px solid var(--public-rule); }
 .trust-copy { padding-top: 32px; border-top: 1px solid var(--dd-primary); }
 .trust-copy p { max-width: 58ch; color: var(--public-ink-soft); font-size: 1.05rem; }

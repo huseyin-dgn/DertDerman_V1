@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block title %}
-{{ company.name }} | DertDerman
+DertDerman | {{ company.name|truncatechars:55 }}
 {% endblock %}
 
 {% block body_class %}

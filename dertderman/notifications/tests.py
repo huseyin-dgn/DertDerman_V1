@@ -268,7 +268,8 @@ class NotificationCenterTests(TestCase):
         response = self.client.post(reverse('company_auth:register'), {
             'company_name': 'Notification Application', 'first_name': 'Deniz', 'last_name': 'Yılmaz',
             'email': 'notification-application@example.com', 'phone': '5551234567',
-            'password1': 'RiverMountain2026!safe', 'password2': 'RiverMountain2026!safe' , 'category': self.company_category.pk,})
+            'password1': 'RiverMountain2026!safe', 'password2': 'RiverMountain2026!safe' , 'category': self.company_category.pk,
+            'terms_accepted': 'on', 'privacy_notice_acknowledged': 'on',})
         self.assertEqual(response.status_code, 302)
         company = Company.objects.get(name='Notification Application')
         self.assertEqual(Notification.objects.filter(company=company, notification_type='APPLICATION').count(), 2)

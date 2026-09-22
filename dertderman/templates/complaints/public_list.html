@@ -3,7 +3,7 @@
 
 
 {% block title %}
-Şikayetler | DertDerman
+DertDerman | Şikayetler
 {% endblock %}
 
 
@@ -414,6 +414,9 @@ public-site public-index complaints-index
                 </div>
 
             {% endif %}
+
+
+            {% include 'components/ad_slot.html' with placement='complaint-list' only %}
 
 
             {% include 'components/pagination.html' %}

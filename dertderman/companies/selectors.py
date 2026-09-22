@@ -1,5 +1,10 @@
-from django.db.models import DateTimeField, OuterRef, Subquery
-from django.db.models.functions import Coalesce
+from datetime import timezone as datetime_timezone
+
+from django.db.models import (
+    Case, Count, DateTimeField, DurationField, ExpressionWrapper,
+    F, Max, Min, OuterRef, Q, Subquery, Sum, When,
+)
+from django.db.models.functions import Coalesce, TruncDate
 
 from complaints.models import Complaint, ComplaintEvent
 
@@ -15,7 +20,7 @@ def public_companies():
 
 
 def public_company_performance(company):
-    """Return public performance data with one annotated complaint query."""
+    """Return public performance data without loading complaint rows."""
     first_response = CompanyResponse.objects.filter(
         complaint_id=OuterRef("pk"),
         company_id=OuterRef("company_id"),
@@ -25,7 +30,7 @@ def public_company_performance(company):
         complaint_id=OuterRef("pk"),
         event_type=ComplaintEvent.Type.PUBLISHED,
     ).order_by("occurred_at", "pk")
-    rows = (
+    metrics = (
         Complaint.objects.filter(
             company=company,
             status__in=(Complaint.Status.PUBLISHED, Complaint.Status.RESOLVED),
@@ -46,26 +51,47 @@ def public_company_performance(company):
                 "created_at",
             ),
         )
-        .values_list("status", "created_at", "published_at", "first_response_at")
+        .annotate(
+            response_start_at=Case(
+                When(first_response_at__gte=F("published_at"), then=F("published_at")),
+                default=F("created_at"),
+                output_field=DateTimeField(),
+            ),
+        )
+        .annotate(
+            response_duration=ExpressionWrapper(
+                F("first_response_at") - F("response_start_at"),
+                output_field=DurationField(),
+            ),
+        )
+        .aggregate(
+            total=Count("pk"),
+            answered=Count("pk", filter=Q(first_response_at__isnull=False)),
+            resolved=Count("pk", filter=Q(status=Complaint.Status.RESOLVED)),
+            response_duration_total=Sum(
+                "response_duration",
+                filter=Q(first_response_at__gte=F("response_start_at")),
+            ),
+            response_duration_count=Count(
+                "pk",
+                filter=Q(first_response_at__gte=F("response_start_at")),
+            ),
+            response_activity_days=Count(
+                TruncDate("first_response_at", tzinfo=datetime_timezone.utc),
+                distinct=True,
+            ),
+            first_response_seen=Min("first_response_at"),
+            last_response_seen=Max("first_response_at"),
+        )
     )
 
-    total = answered = resolved = 0
-    response_seconds = []
-    response_days = set()
-    first_response_seen = last_response_seen = None
-    for status, created_at, published_at, first_response_at in rows:
-        total += 1
-        resolved += status == Complaint.Status.RESOLVED
-        if first_response_at is None:
-            continue
-        answered += 1
-        response_days.add(first_response_at.date())
-        first_response_seen = min(first_response_seen or first_response_at, first_response_at)
-        last_response_seen = max(last_response_seen or first_response_at, first_response_at)
-        # Legacy/imported data can contain a reply predating its publication event.
-        started_at = published_at if first_response_at >= published_at else created_at
-        if first_response_at >= started_at:
-            response_seconds.append((first_response_at - started_at).total_seconds())
+    total = metrics["total"]
+    answered = metrics["answered"]
+    resolved = metrics["resolved"]
+    response_duration_total = metrics["response_duration_total"]
+    response_duration_count = metrics["response_duration_count"]
+    first_response_seen = metrics["first_response_seen"]
+    last_response_seen = metrics["last_response_seen"]
 
     return {
         "total": total,
@@ -74,9 +100,10 @@ def public_company_performance(company):
         "response_ratio": round(answered * 100 / total) if total else None,
         "resolved_ratio": round(resolved * 100 / total) if total else None,
         "average_response_seconds": (
-            sum(response_seconds) / len(response_seconds) if response_seconds else None
+            response_duration_total.total_seconds() / response_duration_count
+            if response_duration_count else None
         ),
-        "response_activity_days": len(response_days),
+        "response_activity_days": metrics["response_activity_days"],
         "response_span_days": (
             (last_response_seen - first_response_seen).days
             if first_response_seen and last_response_seen else 0

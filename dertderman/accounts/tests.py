@@ -63,9 +63,9 @@ class AuthenticationSecurityTests(TestCase):
         response = self.client.post(reverse("accounts:register"), data)
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(
-            response,
+        self.assertIn(
             "Hesap oluşturmak için Hizmet Sözleşmesi'ni kabul etmelisiniz.",
+            response.context["form"].errors["terms_accepted"],
         )
         self.assertFalse(User.objects.filter(username="missing-terms").exists())
 
@@ -79,9 +79,9 @@ class AuthenticationSecurityTests(TestCase):
         response = self.client.post(reverse("accounts:register"), data)
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(
-            response,
+        self.assertIn(
             "Hesap oluşturmak için KVKK Aydınlatma Metni'ni okuduğunuzu ve bilgilendirildiğinizi teyit etmelisiniz.",
+            response.context["form"].errors["privacy_notice_acknowledged"],
         )
         self.assertFalse(
             User.objects.filter(username="missing-privacy-notice").exists()

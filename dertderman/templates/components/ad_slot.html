@@ -1,0 +1,5 @@
+{# An empty placement stays hidden until a real ad or a demo placeholder is supplied. #}
+<aside class="public-ad-slot" aria-label="Reklam" data-ad-placement="{{ placement }}" {% if not show_placeholder %}hidden{% endif %}>
+    <span class="public-ad-slot__label">Reklam</span>
+    <p class="public-ad-slot__placeholder">Reklam alanı</p>
+</aside>
