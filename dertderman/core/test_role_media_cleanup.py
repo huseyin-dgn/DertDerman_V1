@@ -151,7 +151,7 @@ class CompanyImageControlUiTests(TestCase):
 
         self.client.force_login(self.manager)
         page = self.client.get(reverse("companies:profile"))
-        self.assertContains(page, "Şirket Görseli")
+        self.assertContains(page, "Şirket logosu")
         self.assertContains(page, "data-logo-trigger")
         self.assertContains(page, 'class="cp-logo-native-input"')
         response = self.client.post(reverse("companies:profile"), {
