@@ -227,6 +227,17 @@
     transform: translateY(-1px);
 }
 
+.public-complaint-page .company-detail-cta:focus-visible {
+    outline: 3px solid #8cc6ef;
+    outline-offset: 3px;
+}
+
+.public-complaint-page .company-detail-cta:active {
+    border-color: #0f477d;
+    background: #0f477d;
+    transform: translateY(0);
+}
+
 
 /* ---------------------------------------------------------
    COMPLAINT TITLE
@@ -1541,7 +1552,9 @@
 
     .public-complaint-page .company-detail-cta {
         width: 100%;
-        min-height: 42px;
+        min-height: 44px;
+        padding: 10px 16px;
+        text-align: center;
     }
 
 
@@ -1585,6 +1598,14 @@
 
     .public-complaint-page .emoji-options {
         width: 100%;
+    }
+
+    .public-complaint-page .emoji-option,
+    .public-complaint-page .report-trigger,
+    .public-complaint-page .comment-count-link,
+    .public-complaint-page .derman-reaction-button,
+    .public-complaint-page .derman-company-action {
+        min-height: 44px;
     }
 
 

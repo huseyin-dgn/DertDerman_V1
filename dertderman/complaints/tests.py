@@ -511,6 +511,22 @@ class ComplaintCreateTests(TestCase):
         self.assertIn("no-store", cache_control)
         self.assertIn("no-cache", cache_control)
 
+        html = response.content.decode()
+        self.assertLess(
+            html.index('id="complaint-create-title"'),
+            html.index('id="writing-guide-title"'),
+        )
+        self.assertLess(
+            html.index('id="writing-guide-title"'),
+            html.index('class="account-form complaint-create-form"'),
+        )
+        for guidance in (
+            "Ne yaşadığınızı açık şekilde anlatın.",
+            "Şirketten ne beklediğinizi belirtin.",
+            "Kişisel ve hassas bilgilerinizi paylaşmayın.",
+        ):
+            self.assertContains(response, guidance)
+
     def test_valid_post_creates_pending_complaint_for_logged_in_user(self):
         user = self.create_user("creator", User.UserType.USER)
         company = self.create_company()

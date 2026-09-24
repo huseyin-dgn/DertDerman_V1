@@ -34,6 +34,9 @@ class CompanyProfileForm(forms.ModelForm):
     LOCKED_IDENTITY_ERROR = (
         "Onaylanmış şirketin kimlik bilgileri panelden değiştirilemez."
     )
+    VISUAL_IDENTITY_ERROR = (
+        "Şirket logosu veya kurumsal simgeden yalnızca birini seçebilirsiniz."
+    )
 
     selected_avatar = forms.ChoiceField(
         label="Kurumsal simge", choices=COMPANY_AVATAR_CHOICES, required=False,
@@ -118,6 +121,8 @@ class CompanyProfileForm(forms.ModelForm):
         cleaned_data = super().clean()
         if self._locked_field_change_attempted():
             raise forms.ValidationError(self.LOCKED_IDENTITY_ERROR)
+        if cleaned_data.get("logo") and cleaned_data.get("selected_avatar"):
+            raise forms.ValidationError(self.VISUAL_IDENTITY_ERROR)
         return cleaned_data
 
     def clean_description(self):

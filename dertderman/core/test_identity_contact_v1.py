@@ -169,7 +169,11 @@ class ContactRequestTests(TestCase):
 
     def test_public_routes_valid_submit_and_database_record(self):
         self.assertEqual(self.client.get(reverse("core:about")).status_code, 200)
-        self.assertEqual(self.client.get(reverse("core:contact")).status_code, 200)
+        contact_page = self.client.get(reverse("core:contact"))
+        self.assertEqual(contact_page.status_code, 200)
+        html = contact_page.content.decode()
+        self.assertLess(html.index("Doğru konu, daha açık iletişim."), html.index("İletişim formu"))
+        self.assertLess(html.index("İletişim formu"), html.index("DOĞRUDAN İLETİŞİM"))
         response = self.client.post(reverse("core:contact"), self.valid_data())
         self.assertRedirects(response, reverse("core:contact") + "?sent=1")
         item = ContactRequest.objects.get()

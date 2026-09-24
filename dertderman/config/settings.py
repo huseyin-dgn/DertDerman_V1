@@ -257,7 +257,7 @@ else:
     # Production never reaches this branch and requires DJANGO_SECRET_KEY.
     SECRET_KEY = "dev-only-dertderman-secret-key-replace-before-production-2026"  # nosec B105
     DEBUG = True
-    ALLOWED_HOSTS = ["localhost", "127.0.0.1", "[::1]", "testserver"]
+    ALLOWED_HOSTS = ["localhost", "127.0.0.1", "[::1]", "testserver","192.168.1.36"]
     CSRF_TRUSTED_ORIGINS = []
 
 

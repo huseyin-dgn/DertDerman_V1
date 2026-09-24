@@ -341,6 +341,9 @@
 .cp-logo-upload-controls { min-width: 0; }
 .cp-logo-file-name { display: block; overflow: hidden; margin: 8px 0 5px; color: var(--dd-muted); font-size: .68rem; text-overflow: ellipsis; white-space: nowrap; }
 .cp-logo-uploader small { display: block; color: var(--dd-muted); font-size: .65rem; }
+.cp-visual-choice-separator { display: flex; align-items: center; gap: 12px; margin: 4px 0 22px; color: #567188; font-size: .68rem; font-weight: 850; letter-spacing: .14em; }
+.cp-visual-choice-separator::before,.cp-visual-choice-separator::after { height: 1px; flex: 1; background: #cbdde9; content: ''; }
+.cp-visual-choice-separator span { padding: 5px 10px; border: 1px solid #cbdde9; border-radius: 999px; background: #f7fafc; }
 .cp-logo-remove { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 4px; padding-top: 18px; border-top: 1px solid var(--dd-border); }
 .cp-logo-remove > span { max-width: 52ch; color: var(--dd-muted); font-size: .68rem; line-height: 1.55; }
 .primary-action--soft { border-color: #b8d8ec; background: #e8f5fc; color: #145e9d; box-shadow: none; }
@@ -503,6 +506,9 @@
 .contact-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 340px;
+  grid-template-areas:
+    "form guide"
+    "form direct";
   gap: 24px;
   align-items: start;
   padding-block: 54px;
@@ -523,10 +529,12 @@
   line-height: 1.7;
 }
 .contact-support-card {
-  position: sticky;
-  top: 90px;
+  grid-area: guide;
   background: #eaf6fb;
 }
+.contact-form-card,
+.contact-success { grid-area: form; }
+.contact-page .contact-direct { grid-area: direct; margin: 0; padding: 24px; border: 1px solid #d2e2ed; border-radius: 19px; background: #fff; box-shadow: 0 12px 32px rgb(15 55 85/5%); }
 .contact-support-card > a:not(.secondary-action) {
   display: block;
   margin: 18px 0;
@@ -618,29 +626,18 @@
   }
   .contact-page .contact-layout {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "guide"
+      "form"
+      "direct";
     grid-auto-flow: row;
     gap: 18px;
     padding-block: 36px;
   }
-  .contact-page .contact-support-card {
-    display: contents;
-  }
+  .contact-page .contact-support-card { position: static; }
   .contact-page .contact-direct {
-    order: 1;
     margin: 0;
     padding: 24px;
-    border: 1px solid #d2e2ed;
-    border-radius: 19px;
-    background: #eaf6fb;
-    box-shadow: 0 12px 32px rgb(15 55 85/5%);
-  }
-  .contact-page .contact-form-card,
-  .contact-page .contact-success {
-    order: 2;
-  }
-  .contact-page .contact-support-overview {
-    order: 3;
-    padding: 30px;
     border: 1px solid #d2e2ed;
     border-radius: 19px;
     background: #eaf6fb;

@@ -124,9 +124,7 @@
 
         <div class="cp-workspace">
 
-            <span class="cp-avatar">
-                {{ company.name|first }}
-            </span>
+            {% include 'components/company_avatar.html' with company=company image_class='cp-avatar-image' fallback_class='cp-avatar' only %}
 
             <div>
 
@@ -287,6 +285,18 @@
 
         </nav>
 
+        <form
+            class="cp-mobile-logout"
+            method="post"
+            action="{% url 'accounts:logout' %}"
+        >
+            {% csrf_token %}
+            <button class="cp-button cp-button--quiet" type="submit">
+                {% include 'companies/panel/icon.html' with name='exit' %}
+                <span>Çıkış</span>
+            </button>
+        </form>
+
 
         {% if memberships|length > 1 %}
 
@@ -396,6 +406,13 @@
 
     </aside>
 
+    <button
+        class="cp-nav-backdrop"
+        type="button"
+        aria-label="Şirket menüsünü kapat"
+        hidden
+    ></button>
+
 
     <div class="cp-main-wrap">
 
@@ -405,7 +422,7 @@
                 class="cp-menu-button"
                 type="button"
                 aria-controls="company-navigation"
-                aria-expanded="true"
+                aria-expanded="false"
                 hidden
             >
                 {% include 'components/icon.html' with name='menu' %}
@@ -460,6 +477,7 @@
 
 
                 <form
+                    class="cp-topbar-logout"
                     method="post"
                     action="{% url 'accounts:logout' %}"
                 >

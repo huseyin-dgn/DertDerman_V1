@@ -120,3 +120,11 @@ class CompanyProPanelUITests(TestCase):
             response,
             "Pro'yu \u0130ncele",
         )
+
+    def test_mobile_navigation_has_accessible_off_canvas_controls(self):
+        response = self.client.get(reverse("companies:company_panel"))
+        self.assertContains(response, 'aria-controls="company-navigation"')
+        self.assertContains(response, 'aria-expanded="false"')
+        self.assertContains(response, 'class="cp-nav-backdrop"')
+        self.assertContains(response, 'class="cp-mobile-logout"')
+        self.assertContains(response, "Çıkış")

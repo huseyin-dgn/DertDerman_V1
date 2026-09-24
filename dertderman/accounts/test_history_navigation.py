@@ -148,10 +148,11 @@ class HistorySessionPolicyTests(TestCase):
                 self.assertEqual(client.get(reverse("core:home")).status_code, 200)
                 self.assertEqual(int(client.session["_auth_user_id"]), self.users[role].pk)
 
-    def test_history_detection_uses_only_browser_traversal_signals(self):
+    def test_bfcache_restore_revalidates_without_logging_out_active_session(self):
         script = (Path(settings.BASE_DIR) / "static/js/history-session.js").read_text(encoding="utf-8")
-        self.assertIn("navigation?.type === 'back_forward'", script)
         self.assertIn("event.persisted", script)
-        self.assertIn("method: 'POST'", script)
+        self.assertIn("window.location.reload()", script)
+        self.assertNotIn("method: 'POST'", script)
+        self.assertNotIn("sessionStorage", script)
         self.assertNotIn("beforeunload", script)
         self.assertNotIn("popstate", script)

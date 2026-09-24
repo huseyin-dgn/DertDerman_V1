@@ -21,29 +21,29 @@ def create_company_entry(*, user, company_id, complaint_id, body, internal=False
     )
     model = InternalCompanyNote if internal else CompanyResponse
 
-    # Sikayet yasam dongusu servis seviyesinde de
-    # kontrol edilir. UI veya view atlatilsa bile
-    # kapali bir kayda yeni icerik yazilamaz.
+    # Şikayet yaşam döngüsü servis seviyesinde de
+    # kontrol edilir. UI veya view atlatılsa bile
+    # kapalı bir kayda yeni içerik yazılamaz.
     if not company_can_interact_with_complaint(
         complaint
     ):
         raise ValidationError(
-            "Bu sikayet sirket etkilesimine "
-            "acik degil."
+            "Bu şikayet şirket etkileşimine "
+            "açık değil."
         )
 
-    # Kurumsal yanit ve dahili not DertDerman Pro haklaridir.
-    # UI atlatilsa bile servis katmaninda tekrar kontrol edilir.
+    # Kurumsal yanıt ve dahili not DertDerman Pro haklarıdır.
+    # UI atlatılsa bile servis katmanında tekrar kontrol edilir.
     if not company_has_active_pro(membership.company):
         feature = (
             "Dahili not ekleyebilmek"
             if internal
-            else "Sikayetlere kurumsal yanit verebilmek"
+            else "Şikayetlere kurumsal yanıt verebilmek"
         )
 
         raise ValidationError(
-            f"{feature} icin "
-            "DertDerman Pro paketine gecmeniz gerekir."
+            f"{feature} için "
+            "DertDerman Pro paketine geçmeniz gerekir."
         )
 
     if not internal:

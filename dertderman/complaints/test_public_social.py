@@ -86,12 +86,37 @@ class PublicComplaintSocialTests(TestCase):
         self.assertNotContains(detail, attack)
         self.assertEqual(Notification.objects.filter(notification_type="COMMENT").count(), 1)
 
-    def test_self_actions_never_notify(self):
+    def test_owner_reaction_is_rejected_without_database_write_or_control(self):
         self.client.force_login(self.owner)
+        response = self.client.get(self.detail())
+        self.assertNotContains(
+            response,
+            reverse("complaints:react", args=[self.complaint.pk]),
+        )
+
+        reaction_response = self.client.post(
+            reverse("complaints:react", args=[self.complaint.pk]),
+            {"reaction_type": ComplaintReaction.Type.SUPPORT},
+        )
+        self.assertEqual(reaction_response.status_code, 403)
+        self.assertFalse(
+            ComplaintReaction.objects.filter(
+                complaint=self.complaint,
+                user=self.owner,
+            ).exists()
+        )
+
         self.client.post(reverse("complaints:like_toggle", args=[self.complaint.pk]))
-        self.client.post(reverse("complaints:react", args=[self.complaint.pk]), {"reaction_type": "SUPPORT"})
         self.client.post(reverse("complaints:comment_create", args=[self.complaint.pk]), {"body": "Kendi açıklamam için ek bilgi."})
         self.assertFalse(Notification.objects.filter(recipient_user=self.owner, notification_type__in=("LIKE", "REACTION", "COMMENT")).exists())
+
+    def test_anonymous_reaction_policy_remains_login_redirect(self):
+        response = self.client.post(
+            reverse("complaints:react", args=[self.complaint.pk]),
+            {"reaction_type": ComplaintReaction.Type.AGREE},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(ComplaintReaction.objects.exists())
 
     def test_comments_are_paginated_ten_per_page(self):
         ComplaintComment.objects.bulk_create([

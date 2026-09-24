@@ -654,6 +654,11 @@ def complaint_react(
         pk=pk,
     )
 
+    # Bir şikayetin sahibi, arayüz atlatılarak doğrudan POST
+    # gönderilse dahi kendi şikayetine tepki veremez.
+    if complaint.user_id == actor.pk:
+        raise PermissionDenied
+
     try:
         reaction_type = (
             validate_single_emoji(

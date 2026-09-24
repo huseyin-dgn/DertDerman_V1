@@ -143,7 +143,7 @@ class CompanyProfileSecurityTests(TestCase):
         self.assertEqual(self.company.phone, "05551112233")
         self.assert_identity_unchanged()
 
-    def test_first_logo_and_avatar_can_be_set(self):
+    def test_first_logo_and_avatar_cannot_be_set_together(self):
         response = self.client.post(
             self.url,
             self.mutable_data(
@@ -151,9 +151,34 @@ class CompanyProfileSecurityTests(TestCase):
                 logo=image_upload(),
             ),
         )
-        self.assertRedirects(response, self.url)
+        self.assertEqual(response.status_code, 400)
+        self.assertContains(
+            response,
+            "Şirket logosu veya kurumsal simgeden yalnızca birini seçebilirsiniz.",
+            status_code=400,
+        )
+        self.company.refresh_from_db()
+        self.assertFalse(self.company.logo)
+        self.assertEqual(self.company.selected_avatar, "")
+
+    def test_first_logo_or_avatar_can_be_set_separately(self):
+        logo_response = self.client.post(
+            self.url,
+            self.mutable_data(logo=image_upload("only-logo.png")),
+        )
+        self.assertRedirects(logo_response, self.url)
         self.company.refresh_from_db()
         self.assertTrue(self.company.logo)
+        self.assertEqual(self.company.selected_avatar, "")
+
+    def test_first_avatar_can_be_set_without_logo(self):
+        response = self.client.post(
+            self.url,
+            self.mutable_data(selected_avatar="company-5"),
+        )
+        self.assertRedirects(response, self.url)
+        self.company.refresh_from_db()
+        self.assertFalse(self.company.logo)
         self.assertEqual(self.company.selected_avatar, "company-5")
 
     def test_existing_logo_cannot_be_replaced_or_removed(self):
