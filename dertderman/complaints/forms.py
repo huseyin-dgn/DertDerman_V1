@@ -1,4 +1,5 @@
 from django import forms
+from django.core.validators import MaxLengthValidator
 from django.db.models import Q
 
 from companies.models import Company
@@ -10,6 +11,9 @@ from .models import (
     ContentReport,
     UserReport,
 )
+
+
+MAX_COMPLAINT_DESCRIPTION_LENGTH = 4000
 
 
 def complaint_company_queryset(
@@ -102,6 +106,7 @@ class ComplaintCreateForm(
                 forms.Textarea(
                     attrs={
                         "rows": 8,
+                        "maxlength": MAX_COMPLAINT_DESCRIPTION_LENGTH,
                         "data-character-count": "",
                     }
                 ),
@@ -152,6 +157,16 @@ class ComplaintCreateForm(
         self.fields[
             "category"
         ].required = True
+
+        self.fields["description"].max_length = (
+            MAX_COMPLAINT_DESCRIPTION_LENGTH
+        )
+        self.fields["description"].validators.append(
+            MaxLengthValidator(
+                MAX_COMPLAINT_DESCRIPTION_LENGTH,
+                message="Açıklama en fazla 4000 karakter olabilir.",
+            )
+        )
 
         if (
             not self.instance.pk

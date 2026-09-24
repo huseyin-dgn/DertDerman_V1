@@ -236,6 +236,27 @@ def _combined_content(
     ).strip()
 
 
+def _similarity_if_possible(current, previous):
+    matcher = SequenceMatcher(None, current, previous, autojunk=False)
+    if matcher.real_quick_ratio() < SIMILARITY_THRESHOLD:
+        return 0.0
+    if matcher.quick_ratio() < SIMILARITY_THRESHOLD:
+        return 0.0
+    # SequenceMatcher's matching blocks are a subsequence. LCS is therefore
+    # a safe upper bound on its ratio, even for long, repetitive text.
+    positions = {}
+    for index, character in enumerate(current):
+        positions[character] = positions.get(character, 0) | (1 << index)
+    matches = 0
+    for character in previous:
+        available = positions.get(character, 0) | matches
+        next_match = (matches << 1) | 1
+        matches = available & ~(available - next_match)
+    if (2 * matches.bit_count()) / (len(current) + len(previous)) < SIMILARITY_THRESHOLD:
+        return 0.0
+    return matcher.ratio()
+
+
 def _rejection_restriction(
     user,
     now,
@@ -306,30 +327,11 @@ def _find_duplicate_or_similar_complaint(
     title,
     description,
 ):
-    current_description = (
-        normalize_complaint_text(
-            description
-        )
-    )
-
-    current_combined = (
-        _combined_content(
-            title,
-            description,
-        )
-    )
-
-    current_compact_description = (
-        compact_complaint_text(
-            description
-        )
-    )
-
-    current_compact_combined = (
-        compact_complaint_text(
-            f"{title} {description}"
-        )
-    )
+    current_description = normalize_complaint_text(description)
+    current_title = normalize_complaint_text(title)
+    current_combined = f"{current_title} {current_description}".strip()
+    current_compact_description = current_description.replace(" ", "")
+    current_compact_combined = current_combined.replace(" ", "")
 
     if not current_description:
         return None
@@ -351,36 +353,16 @@ def _find_duplicate_or_similar_complaint(
         )[:100]
     )
 
-    best_similarity = 0.0
-    best_complaint_id = None
-    best_comparison = None
-
     for previous in complaints:
-        previous_description = (
-            normalize_complaint_text(
-                previous.description
-            )
+        previous_description = normalize_complaint_text(
+            previous.description
         )
-
+        previous_title = normalize_complaint_text(previous.title)
         previous_combined = (
-            _combined_content(
-                previous.title,
-                previous.description,
-            )
+            f"{previous_title} {previous_description}".strip()
         )
-
-        previous_compact_description = (
-            compact_complaint_text(
-                previous.description
-            )
-        )
-
-        previous_compact_combined = (
-            compact_complaint_text(
-                f"{previous.title} "
-                f"{previous.description}"
-            )
-        )
+        previous_compact_description = previous_description.replace(" ", "")
+        previous_compact_combined = previous_combined.replace(" ", "")
 
         if not previous_description:
             continue
@@ -429,51 +411,19 @@ def _find_duplicate_or_similar_complaint(
                 "comparison": "compact_combined",
             }
 
-        description_similarity = (
-            SequenceMatcher(
-                None,
-                current_description,
-                previous_description,
-                autojunk=False,
-            ).ratio()
-        )
-
-        compact_description_similarity = (
-            SequenceMatcher(
-                None,
-                current_compact_description,
-                previous_compact_description,
-                autojunk=False,
-            ).ratio()
-        )
-
-        combined_similarity = (
-            SequenceMatcher(
-                None,
-                current_combined,
-                previous_combined,
-                autojunk=False,
-            ).ratio()
-        )
-
-        compact_combined_similarity = (
-            SequenceMatcher(
-                None,
-                current_compact_combined,
-                previous_compact_combined,
-                autojunk=False,
-            ).ratio()
-        )
-
         similarity_candidates = {
-            "description":
-                description_similarity,
-            "compact_description":
-                compact_description_similarity,
-            "combined":
-                combined_similarity,
-            "compact_combined":
-                compact_combined_similarity,
+            "description": _similarity_if_possible(
+                current_description, previous_description
+            ),
+            "compact_description": _similarity_if_possible(
+                current_compact_description, previous_compact_description
+            ),
+            "combined": _similarity_if_possible(
+                current_combined, previous_combined
+            ),
+            "compact_combined": _similarity_if_possible(
+                current_compact_combined, previous_compact_combined
+            ),
         }
 
         best_type = max(
@@ -499,36 +449,6 @@ def _find_duplicate_or_similar_complaint(
                 ),
                 "comparison": best_type,
             }
-
-        if (
-            candidate_similarity
-            > best_similarity
-        ):
-            best_similarity = (
-                candidate_similarity
-            )
-
-            best_complaint_id = (
-                previous.pk
-            )
-
-            best_comparison = (
-                best_type
-            )
-
-    if best_complaint_id:
-        return {
-            "type": "different",
-            "complaint_id": (
-                best_complaint_id
-            ),
-            "similarity": (
-                best_similarity
-            ),
-            "comparison": (
-                best_comparison
-            ),
-        }
 
     return None
 
@@ -621,99 +541,6 @@ def check_complaint_submission(
                 ),
                 "minimum_seconds":
                     MIN_FORM_FILL_SECONDS,
-            },
-        )
-
-    similar = (
-        _find_duplicate_or_similar_complaint(
-            user=user,
-            company=company,
-            title=title,
-            description=description,
-        )
-    )
-
-    if (
-        similar
-        and similar["type"]
-        == "duplicate"
-    ):
-        return _block(
-            request=request,
-            event_type=(
-                AbuseAttempt.EventType.DUPLICATE_COMPLAINT
-            ),
-            message=(
-                "Bu şikayetin aynısını daha önce "
-                "gönderdiniz."
-            ),
-            detail=(
-                "Normalize edilmiş şikayet içeriği "
-                "önceki bir şikayetle tamamen eşleşti."
-            ),
-            metadata={
-                "matched_complaint_id": (
-                    similar[
-                        "complaint_id"
-                    ]
-                ),
-                "similarity": 1.0,
-                "comparison": (
-                    similar.get(
-                        "comparison"
-                    )
-                ),
-                "company_id":
-                    company.pk,
-            },
-        )
-
-    if (
-        similar
-        and similar["type"]
-        == "similar"
-    ):
-        similarity_percent = round(
-            similar["similarity"]
-            * 100,
-            1,
-        )
-
-        return _block(
-            request=request,
-            event_type=(
-                AbuseAttempt.EventType.SIMILAR_COMPLAINT
-            ),
-            message=(
-                "Bu şikayet aynı şirkete daha önce "
-                "gönderdiğiniz bir içerikle çok "
-                "benzer görünüyor."
-            ),
-            detail=(
-                "Yeni şikayet önceki bir şikayetle "
-                f"%{similarity_percent} benzer bulundu."
-            ),
-            metadata={
-                "matched_complaint_id": (
-                    similar[
-                        "complaint_id"
-                    ]
-                ),
-                "similarity": round(
-                    similar[
-                        "similarity"
-                    ],
-                    4,
-                ),
-                "threshold":
-                    SIMILARITY_THRESHOLD,
-                "comparison": (
-                    similar.get(
-                        "comparison"
-                    )
-                ),
-                "company_id":
-                    company.pk,
             },
         )
 
@@ -1094,6 +921,99 @@ def check_complaint_submission(
                 ),
                 "remaining_seconds":
                     remaining_seconds,
+            },
+        )
+
+    similar = (
+        _find_duplicate_or_similar_complaint(
+            user=user,
+            company=company,
+            title=title,
+            description=description,
+        )
+    )
+
+    if (
+        similar
+        and similar["type"]
+        == "duplicate"
+    ):
+        return _block(
+            request=request,
+            event_type=(
+                AbuseAttempt.EventType.DUPLICATE_COMPLAINT
+            ),
+            message=(
+                "Bu şikayetin aynısını daha önce "
+                "gönderdiniz."
+            ),
+            detail=(
+                "Normalize edilmiş şikayet içeriği "
+                "önceki bir şikayetle tamamen eşleşti."
+            ),
+            metadata={
+                "matched_complaint_id": (
+                    similar[
+                        "complaint_id"
+                    ]
+                ),
+                "similarity": 1.0,
+                "comparison": (
+                    similar.get(
+                        "comparison"
+                    )
+                ),
+                "company_id":
+                    company.pk,
+            },
+        )
+
+    if (
+        similar
+        and similar["type"]
+        == "similar"
+    ):
+        similarity_percent = round(
+            similar["similarity"]
+            * 100,
+            1,
+        )
+
+        return _block(
+            request=request,
+            event_type=(
+                AbuseAttempt.EventType.SIMILAR_COMPLAINT
+            ),
+            message=(
+                "Bu şikayet aynı şirkete daha önce "
+                "gönderdiğiniz bir içerikle çok "
+                "benzer görünüyor."
+            ),
+            detail=(
+                "Yeni şikayet önceki bir şikayetle "
+                f"%{similarity_percent} benzer bulundu."
+            ),
+            metadata={
+                "matched_complaint_id": (
+                    similar[
+                        "complaint_id"
+                    ]
+                ),
+                "similarity": round(
+                    similar[
+                        "similarity"
+                    ],
+                    4,
+                ),
+                "threshold":
+                    SIMILARITY_THRESHOLD,
+                "comparison": (
+                    similar.get(
+                        "comparison"
+                    )
+                ),
+                "company_id":
+                    company.pk,
             },
         )
 
