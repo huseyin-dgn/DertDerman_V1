@@ -66,17 +66,6 @@ class CompanyProfileForm(forms.ModelForm):
                 ("name", "category", "email")
             )
 
-            # Logo ve kurumsal avatar tek bir görsel kimlik
-            # olarak değerlendirilir. Bunlardan biri daha önce
-            # seçildiyse ikisi de şirket panelinde kilitlenir.
-            if (
-                self.instance.logo
-                or self.instance.selected_avatar
-            ):
-                self.locked_fields.update(
-                    ("logo", "selected_avatar")
-                )
-
         for field_name in self.locked_fields:
             self.fields.pop(field_name, None)
 
@@ -96,8 +85,6 @@ class CompanyProfileForm(forms.ModelForm):
             != (self.instance.email or "").strip().casefold(),
             "category": lambda value: value.strip()
             != (str(self.instance.category_id) if self.instance.category_id else ""),
-            "selected_avatar": lambda value: value.strip()
-            != (self.instance.selected_avatar or ""),
         }
 
         for field_name, differs in comparisons.items():
@@ -105,22 +92,24 @@ class CompanyProfileForm(forms.ModelForm):
                 if differs(self.data.get(field_name, "") or ""):
                     return True
 
-        if "logo" in self.locked_fields and self.files.get("logo"):
-            return True
-
-        if (
-            "logo" in self.locked_fields
-            and (self.data.get("logo-clear") or "").strip().lower()
-            in {"1", "true", "on", "yes"}
-        ):
-            return True
-
         return False
 
     def clean(self):
         cleaned_data = super().clean()
         if self._locked_field_change_attempted():
             raise forms.ValidationError(self.LOCKED_IDENTITY_ERROR)
+        if (self.data.get("logo-clear") or "").strip().lower() in {"1", "true", "on", "yes"}:
+            raise forms.ValidationError(self.VISUAL_IDENTITY_ERROR)
+        uploaded_logo = bool(self.files.get("logo"))
+        selected_avatar = cleaned_data.get("selected_avatar")
+        if uploaded_logo and selected_avatar:
+            raise forms.ValidationError(self.VISUAL_IDENTITY_ERROR)
+        if uploaded_logo:
+            cleaned_data["selected_avatar"] = ""
+        elif selected_avatar:
+            cleaned_data["logo"] = False
+        elif "selected_avatar" not in self.data:
+            cleaned_data["selected_avatar"] = self.instance.selected_avatar or ""
         if cleaned_data.get("logo") and cleaned_data.get("selected_avatar"):
             raise forms.ValidationError(self.VISUAL_IDENTITY_ERROR)
         return cleaned_data

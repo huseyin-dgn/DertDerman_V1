@@ -1,5 +1,5 @@
 {% extends 'layouts/public_base.html' %}
-{% block title %}Hakkımızda | DertDerman{% endblock %}
+{% block title %}DertDerman | Hakkımızda{% endblock %}
 {% block body_class %}public-site corporate-page{% endblock %}
 {% block content %}<main id="main-content">
 <section class="corporate-hero"><div class="section-inner corporate-hero-grid"><div><p class="section-kicker">DERTDERMAN KİMDİR?</p><h1>Paylaşmadan Olmaz.</h1><p class="corporate-lead">DertDerman, tüketicilerin deneyimlerini anlaşılır biçimde paylaşabildiği; şirketlerin yanıt verebildiği ve çözüm yolunun açıkça izlenebildiği tarafsız bir iletişim platformudur.</p><div class="hero-actions"><a class="primary-action" href="{% url 'complaints:public_list' %}">Deneyimleri İncele</a><a class="primary-action primary-action--soft" href="{% url 'core:contact' %}">Bize Ulaşın</a></div></div></div></section>

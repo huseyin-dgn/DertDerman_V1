@@ -109,7 +109,13 @@ def update_company_profile(*, user, company_id, data, files):
     if not form.is_valid():
         return company, form, False
 
+    old_logo_name = company.logo.name if company.logo else ""
+    old_logo_storage = company.logo.storage
     company = form.save()
+    if old_logo_name and old_logo_name != company.logo.name:
+        transaction.on_commit(
+            lambda: old_logo_storage.delete(old_logo_name)
+        )
     return company, form, True
 
 
@@ -119,6 +125,13 @@ def remove_company_logo(*, user, company_id):
         user=user,
         company_id=company_id,
     )
-    if company.logo:
-        raise ValidationError(CompanyProfileForm.LOCKED_IDENTITY_ERROR)
-    return company, False
+    if not company.logo:
+        return company, False
+    old_logo_name = company.logo.name
+    old_logo_storage = company.logo.storage
+    company.logo = ""
+    company.save(update_fields=("logo", "updated_at"))
+    transaction.on_commit(
+        lambda: old_logo_storage.delete(old_logo_name)
+    )
+    return company, True

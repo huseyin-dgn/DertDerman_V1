@@ -7,6 +7,7 @@
                 <div><p class="cp-kicker">GÖRSEL KİMLİK</p><h3>Şirket logosu</h3></div>
                 <span>PNG · JPEG · WebP</span>
             </div>
+            <p class="cp-visual-status" data-visual-status aria-live="polite">Aktif görsel: {% if company.logo %}Şirket logosu{% elif company.selected_avatar %}Kurumsal simge{% else %}Baş harf görünümü{% endif %}</p>
             <div class="cp-logo-upload-body">
                 <span class="cp-logo-upload-preview">{% include 'components/company_avatar.html' with company=company image_class='cp-logo-upload-image' fallback_class='cp-logo-upload-fallback' only %}</span>
                 <div class="cp-logo-upload-controls">

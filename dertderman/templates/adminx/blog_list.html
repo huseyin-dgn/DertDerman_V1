@@ -1,5 +1,5 @@
 {% extends 'adminx/table_base.html' %}
-{% block title %}Blog Yazıları | DertDerman Yönetim{% endblock %}
+{% block title %}DertDerman | Yönetim - Blog Yazıları{% endblock %}
 {% block content_heading %}<p class="ad-kicker">YÖNETİM MERKEZİ</p><h1>Blog Yazıları</h1><p>Taslakları hazırlayın, içerikleri düzenleyin ve yayın sürecini yönetin.</p>{% endblock %}
 {% block heading_actions %}<a class="primary-action" href="{% url 'adminx:blog_create' %}">+ Yeni Yazı Oluştur</a>{% endblock %}
 {% block table_head %}<th scope="col">Başlık</th><th scope="col">Durum</th><th scope="col">Yazar</th><th scope="col">Oluşturulma tarihi</th><th scope="col">Yayın tarihi</th><th scope="col">Aksiyon</th>{% endblock %}

@@ -1,5 +1,5 @@
 {% extends 'adminx/content_base.html' %}
-{% block title %}{{ company.name }} Başvurusu | Yönetim{% endblock %}
+{% block title %}DertDerman | Yönetim - {{ company.name }} Başvurusu{% endblock %}
 {% block content_heading %}<h1>{{ company.name }}</h1><p>Kurumsal hesap başvurusu · {{ company.get_approval_status_display }}</p>{% endblock %}
 {% block management_content %}
 <section class="account-card management-form" aria-labelledby="application-details">

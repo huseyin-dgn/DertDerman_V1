@@ -101,6 +101,16 @@ class Company(models.Model):
 
     class Meta:
         ordering = ("name",)
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    models.Q(logo__isnull=True)
+                    | models.Q(logo="")
+                    | models.Q(selected_avatar="")
+                ),
+                name="company_one_visual_identity",
+            ),
+        ]
 
     def save(self, *args, **kwargs):
         self.slug = generate_unique_slug(self, self.slug or self.name)

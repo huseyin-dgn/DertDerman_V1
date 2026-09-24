@@ -4,6 +4,7 @@ import tempfile
 from PIL import Image
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied
+from django.db import IntegrityError, transaction
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
@@ -181,17 +182,27 @@ class CompanyProfileSecurityTests(TestCase):
         self.assertFalse(self.company.logo)
         self.assertEqual(self.company.selected_avatar, "company-5")
 
-    def test_existing_logo_cannot_be_replaced_or_removed(self):
+    def test_existing_logo_can_be_replaced_and_old_file_is_cleaned_on_commit(self):
         self.company.logo.save("existing.png", image_upload("existing.png"), save=True)
         original_name = self.company.logo.name
+        storage = self.company.logo.storage
+        with self.captureOnCommitCallbacks(execute=True) as callbacks:
+            replace = self.client.post(
+                self.url,
+                self.mutable_data(logo=image_upload("replacement.png")),
+            )
+            self.assertTrue(storage.exists(original_name))
+        self.assertRedirects(replace, self.url)
+        self.assertEqual(len(callbacks), 1)
+        self.company.refresh_from_db()
+        self.assertNotEqual(self.company.logo.name, original_name)
+        self.assertTrue(storage.exists(self.company.logo.name))
+        self.assertFalse(storage.exists(original_name))
+        self.assertEqual(self.company.selected_avatar, "")
 
-        replace = self.client.post(
-            self.url,
-            self.mutable_data(logo=image_upload("replacement.png")),
-        )
-        self.assertEqual(replace.status_code, 400)
-        clear = self.client.post(reverse("companies:logo_remove"))
-        self.assertEqual(clear.status_code, 403)
+    def test_legacy_clear_request_is_rejected_without_deleting_logo(self):
+        self.company.logo.save("existing.png", image_upload("existing.png"), save=True)
+        original_name = self.company.logo.name
         legacy_clear = self.client.post(
             self.url,
             self.mutable_data(**{"logo-clear": "on"}),
@@ -199,18 +210,20 @@ class CompanyProfileSecurityTests(TestCase):
         self.assertEqual(legacy_clear.status_code, 400)
         self.company.refresh_from_db()
         self.assertEqual(self.company.logo.name, original_name)
+        self.assertTrue(self.company.logo.storage.exists(original_name))
 
-    def test_existing_avatar_cannot_be_changed(self):
+    def test_existing_avatar_can_be_changed(self):
         Company.objects.filter(pk=self.company.pk).update(selected_avatar="company-2")
         response = self.client.post(
             self.url,
             self.mutable_data(selected_avatar="company-7"),
         )
-        self.assertEqual(response.status_code, 400)
+        self.assertRedirects(response, self.url)
         self.company.refresh_from_db()
-        self.assertEqual(self.company.selected_avatar, "company-2")
+        self.assertEqual(self.company.selected_avatar, "company-7")
+        self.assertFalse(self.company.logo)
 
-    def test_existing_avatar_blocks_later_logo(self):
+    def test_existing_avatar_can_switch_to_logo(self):
         Company.objects.filter(
             pk=self.company.pk
         ).update(
@@ -226,23 +239,20 @@ class CompanyProfileSecurityTests(TestCase):
             ),
         )
 
-        self.assertEqual(
-            response.status_code,
-            400,
-        )
+        self.assertRedirects(response, self.url)
 
         self.company.refresh_from_db()
 
         self.assertEqual(
             self.company.selected_avatar,
-            "company-2",
+            "",
         )
 
-        self.assertFalse(
+        self.assertTrue(
             self.company.logo
         )
 
-    def test_existing_logo_blocks_later_avatar(self):
+    def test_existing_logo_can_switch_to_avatar_and_old_file_is_cleaned(self):
         self.company.logo.save(
             "existing-logo.png",
             image_upload(
@@ -255,29 +265,73 @@ class CompanyProfileSecurityTests(TestCase):
             self.company.logo.name
         )
 
-        response = self.client.post(
-            self.url,
-            self.mutable_data(
-                selected_avatar="company-7",
-            ),
-        )
-
-        self.assertEqual(
-            response.status_code,
-            400,
-        )
+        storage = self.company.logo.storage
+        with self.captureOnCommitCallbacks(execute=True) as callbacks:
+            response = self.client.post(
+                self.url,
+                self.mutable_data(selected_avatar="company-7"),
+            )
+            self.assertTrue(storage.exists(original_logo))
+        self.assertRedirects(response, self.url)
+        self.assertEqual(len(callbacks), 1)
 
         self.company.refresh_from_db()
 
-        self.assertEqual(
-            self.company.logo.name,
-            original_logo,
-        )
+        self.assertFalse(self.company.logo)
+        self.assertFalse(storage.exists(original_logo))
 
         self.assertEqual(
             self.company.selected_avatar,
-            "",
+            "company-7",
         )
+
+    def test_both_visuals_in_manual_post_are_rejected_with_existing_logo(self):
+        self.company.logo.save("existing.png", image_upload("existing.png"), save=True)
+        original_name = self.company.logo.name
+        with self.captureOnCommitCallbacks(execute=True) as callbacks:
+            response = self.client.post(self.url, self.mutable_data(
+                selected_avatar="company-5", logo=image_upload("other.png"),
+            ))
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(callbacks, [])
+        self.company.refresh_from_db()
+        self.assertEqual(self.company.logo.name, original_name)
+        self.assertEqual(self.company.selected_avatar, "")
+        self.assertTrue(self.company.logo.storage.exists(original_name))
+
+    def test_rolled_back_profile_change_keeps_old_logo_file(self):
+        self.company.logo.save("existing.png", image_upload("existing.png"), save=True)
+        original_name = self.company.logo.name
+        storage = self.company.logo.storage
+        with self.captureOnCommitCallbacks(execute=False) as callbacks:
+            response = self.client.post(self.url, self.mutable_data(selected_avatar="company-5"))
+        self.assertRedirects(response, self.url)
+        self.assertEqual(len(callbacks), 1)
+        self.assertTrue(storage.exists(original_name))
+
+    def test_owner_manager_and_support_visual_permissions(self):
+        for user in (self.owner, self.manager):
+            with self.subTest(user=user.username):
+                self.client.force_login(user)
+                response = self.client.post(self.url, self.mutable_data(selected_avatar="company-5"))
+                self.assertRedirects(response, self.url)
+        self.client.force_login(self.support)
+        response = self.client.post(self.url, self.mutable_data(selected_avatar="company-7"))
+        self.assertEqual(response.status_code, 403)
+        self.company.refresh_from_db()
+        self.assertEqual(self.company.selected_avatar, "company-5")
+
+    def test_sidebar_and_topbar_company_identity_link_to_profile(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        for css_class in ("cp-workspace", "cp-identity"):
+            with self.subTest(css_class=css_class):
+                self.assertContains(response, f'class="{css_class}" href="{self.url}" aria-label="Approved Company şirket profilini aç"')
+
+    def test_database_rejects_logo_and_avatar_together(self):
+        self.company.logo.save("existing.png", image_upload("existing.png"), save=True)
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            Company.objects.filter(pk=self.company.pk).update(selected_avatar="company-5")
 
     def test_support_cannot_edit_profile(self):
         self.client.force_login(self.support)
@@ -314,7 +368,7 @@ class CompanyProfileSecurityTests(TestCase):
                 "name": "Admin Renamed Company",
                 "category": str(self.other_category.pk),
                 "description": "Admin description",
-                "selected_avatar": "company-8",
+                "selected_avatar": "",
                 "website": "https://admin.example.com",
                 "email": "admin-updated@example.com",
                 "phone": "05550001122",
@@ -329,5 +383,5 @@ class CompanyProfileSecurityTests(TestCase):
         self.assertEqual(self.company.name, "Admin Renamed Company")
         self.assertEqual(self.company.category_id, self.other_category.pk)
         self.assertEqual(self.company.email, "admin-updated@example.com")
-        self.assertEqual(self.company.selected_avatar, "company-8")
+        self.assertEqual(self.company.selected_avatar, "")
         self.assertTrue(self.company.logo)

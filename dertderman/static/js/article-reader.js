@@ -101,7 +101,7 @@
       mount.replaceChildren(document.importNode(article, true));
 
       document.title =
-        `${mount.querySelector('#reader-title').textContent} | DertDerman Blog`;
+        `DertDerman | ${mount.querySelector('#reader-title').textContent}`;
     } catch (error) {
       if (
         error.name === 'AbortError' ||

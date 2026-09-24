@@ -33,12 +33,7 @@
     ></script>
 
 
-    <title>
-        {% block title %}
-            Şirket Paneli
-        {% endblock %}
-        | DertDerman
-    </title>
+    <title>DertDerman | {% block title %}Şirket Paneli{% endblock %}</title>
 
 
     <link
@@ -113,7 +108,7 @@
 
         <div class="cp-brand">
 
-            {% include 'components/brand.html' %}
+            {% include 'components/brand.html' with company_panel_brand=True %}
 
             <span>
                 ŞİRKET ÇALIŞMA ALANI
@@ -122,7 +117,7 @@
         </div>
 
 
-        <div class="cp-workspace">
+        <a class="cp-workspace" href="{% url 'companies:profile' %}" aria-label="{{ company.name }} şirket profilini aç">
 
             {% include 'components/company_avatar.html' with company=company image_class='cp-avatar-image' fallback_class='cp-avatar' only %}
 
@@ -138,7 +133,7 @@
 
             </div>
 
-        </div>
+        </a>
 
 
         <nav
@@ -433,7 +428,7 @@
             </button>
 
 
-            <div class="cp-identity">
+            <a class="cp-identity" href="{% url 'companies:profile' %}" aria-label="{{ company.name }} şirket profilini aç">
 
                 {% include 'components/company_avatar.html' with company=company image_class='cp-avatar-image' fallback_class='cp-avatar' only %}
 
@@ -452,7 +447,7 @@
 
                 </div>
 
-            </div>
+            </a>
 
 
             <div class="cp-top-actions">

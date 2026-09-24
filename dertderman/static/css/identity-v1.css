@@ -286,7 +286,7 @@
 .profile-primary-badge { margin-top: 14px; }
 .profile-primary-badge .public-user-badge { border-color: rgb(255 255 255 / 45%); background: rgb(255 255 255 / 14%); color: #fff; }
 .profile-edit-shell { width: min(1080px, 100%); }
-.profile-edit-heading { max-width: 700px; margin-bottom: 28px; }
+.profile-edit-heading { display: block; min-width: 0; max-width: 700px; margin-bottom: 28px; }
 .profile-edit-heading h1 { margin: 5px 0 10px; font-size: clamp(2rem, 4vw, 3.25rem); }
 .profile-edit-heading > p:last-child { color: var(--dd-muted); }
 .profile-edit-form { display: grid; grid-template-columns: minmax(360px, 2fr) minmax(500px, 3fr); gap: 20px; align-items: start; }

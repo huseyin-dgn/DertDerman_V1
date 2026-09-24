@@ -1,5 +1,5 @@
 {% extends 'adminx/content_base.html' %}
-{% block title %}Şirket Düzenle | Yönetim{% endblock %}
+{% block title %}DertDerman | Yönetim - Şirket Düzenle{% endblock %}
 {% block content_heading %}<h1>{{ company.name }}</h1><p>Şirketin tanıtım ve iletişim bilgileri.</p>{% endblock %}
 {% block management_content %}
 {% if company.archived_at %}<p class="ad-archive-notice">Bu şirket {{ company.archived_at|date:'d.m.Y H:i' }} tarihinde arşivlendi. Şirket görünürlüğü ve erişimi kapalıdır; geçmiş kayıtlar korunmaktadır.</p>{% endif %}

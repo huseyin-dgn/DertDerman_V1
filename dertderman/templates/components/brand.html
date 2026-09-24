@@ -1,4 +1,4 @@
-<a class="wordmark{% if compact_brand %} compact-brand{% endif %}" href="{% url 'core:home' %}" aria-label="DertDerman ana sayfa">
+<a class="wordmark{% if compact_brand %} compact-brand{% endif %}" href="{% if company_panel_brand %}{% url 'companies:profile' %}{% else %}{% url 'core:home' %}{% endif %}" aria-label="{% if company_panel_brand %}Şirket profili{% else %}DertDerman ana sayfa{% endif %}">
     {% if compact_brand %}
     <svg class="compact-brand-symbol" width="40" height="40" viewBox="0 0 40 40" aria-hidden="true">
         <circle cx="20" cy="20" r="19" fill="#18b8d4"/>

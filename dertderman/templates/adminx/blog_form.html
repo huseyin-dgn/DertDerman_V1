@@ -1,5 +1,5 @@
 {% extends 'layouts/admin_base.html' %}
-{% block title %}{% if post %}Yazıyı Düzenle{% else %}Yeni Blog Yazısı{% endif %} | DertDerman{% endblock %}
+{% block title %}DertDerman | {% if post %}Yazıyı Düzenle{% else %}Yeni Blog Yazısı{% endif %}{% endblock %}
 {% block content %}<main class="content-section" id="main-content">
 <section class="section-inner account-shell"><div class="account-card moderation-content">
 <header class="account-header"><p class="section-kicker">Blog yönetimi</p><h1>{% if post %}Yazıyı Düzenle{% else %}Yeni Blog Yazısı{% endif %}</h1><p>İçerik düz metin olarak yayınlanır. {% if post.status == 'PUBLISHED' %}Kaydedilen değişiklikler yayınlanan yazıya yansır.{% else %}Kaydetmek, taslağı yayınlamaz.{% endif %}</p>{% if post %}{% include 'blog/status_badge.html' %}{% endif %}</header>
