@@ -35,3 +35,7 @@ _a5_patch
 
 # Runtime production secrets - never send to build context
 secrets/
+*.pem
+*.key
+*.p12
+*.pfx

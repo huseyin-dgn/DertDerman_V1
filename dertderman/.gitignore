@@ -46,3 +46,7 @@ debug_resend.py
 
 # Production secrets - NEVER commit
 secrets/
+*.pem
+*.key
+*.p12
+*.pfx

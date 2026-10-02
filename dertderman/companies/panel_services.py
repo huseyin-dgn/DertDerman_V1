@@ -6,6 +6,7 @@ from django.shortcuts import get_object_or_404
 
 from complaints.models import Complaint
 from .complaint_policy import company_can_interact_with_complaint
+from .logo_cleanup import capture_logo_cleanup
 from .models import Company, CompanyMembership, CompanyResponse, InternalCompanyNote
 from .panel_forms import CompanyProfileForm
 from .panel_permissions import require_company_membership, require_profile_role
@@ -105,17 +106,13 @@ def update_company_profile(*, user, company_id, data, files):
         user=user,
         company_id=company_id,
     )
+    schedule_logo_cleanup = capture_logo_cleanup(company)
     form = CompanyProfileForm(data, files, instance=company)
     if not form.is_valid():
         return company, form, False
 
-    old_logo_name = company.logo.name if company.logo else ""
-    old_logo_storage = company.logo.storage
     company = form.save()
-    if old_logo_name and old_logo_name != company.logo.name:
-        transaction.on_commit(
-            lambda: old_logo_storage.delete(old_logo_name)
-        )
+    schedule_logo_cleanup()
     return company, form, True
 
 
@@ -127,11 +124,8 @@ def remove_company_logo(*, user, company_id):
     )
     if not company.logo:
         return company, False
-    old_logo_name = company.logo.name
-    old_logo_storage = company.logo.storage
+    schedule_logo_cleanup = capture_logo_cleanup(company)
     company.logo = ""
     company.save(update_fields=("logo", "updated_at"))
-    transaction.on_commit(
-        lambda: old_logo_storage.delete(old_logo_name)
-    )
+    schedule_logo_cleanup()
     return company, True

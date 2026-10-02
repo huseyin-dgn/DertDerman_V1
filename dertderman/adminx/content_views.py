@@ -15,6 +15,7 @@ from django.views.decorators.http import (
 
 from accounts.models import User
 from companies.models import Company, CompanyMembership
+from companies.logo_cleanup import capture_logo_cleanup
 from companies.services import decide_company_application
 from complaints.models import Complaint, ReportRestriction, UserReport, UserViolation
 from complaints.reporting_policy import (
@@ -89,6 +90,7 @@ def company_edit(request, pk):
         Company,
         pk=pk,
     )
+    schedule_logo_cleanup = capture_logo_cleanup(company)
 
     form = CompanyContentForm(
         request.POST
@@ -104,16 +106,15 @@ def company_edit(request, pk):
         request.method == "POST"
         and form.is_valid()
     ):
-        company = form.save(
-            commit=False
-        )
-
-        company.save(
-            update_fields=[
-                *CompanyContentForm.Meta.fields,
-                "updated_at",
-            ]
-        )
+        with transaction.atomic():
+            company = form.save(commit=False)
+            company.save(
+                update_fields=[
+                    *CompanyContentForm.Meta.fields,
+                    "updated_at",
+                ]
+            )
+            schedule_logo_cleanup()
 
         messages.success(
             request,

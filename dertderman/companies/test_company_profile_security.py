@@ -309,6 +309,29 @@ class CompanyProfileSecurityTests(TestCase):
         self.assertEqual(len(callbacks), 1)
         self.assertTrue(storage.exists(original_name))
 
+    def test_rolled_back_profile_transaction_keeps_database_and_old_logo(self):
+        self.company.logo.save("existing.png", image_upload("existing.png"), save=True)
+        original_name = self.company.logo.name
+        storage = self.company.logo.storage
+
+        with self.captureOnCommitCallbacks(execute=True) as callbacks:
+            with self.assertRaises(RuntimeError):
+                with transaction.atomic():
+                    _company, form, saved = update_company_profile(
+                        user=self.owner,
+                        company_id=self.company.pk,
+                        data=self.mutable_data(selected_avatar="company-5"),
+                        files={},
+                    )
+                    self.assertTrue(saved, form.errors)
+                    raise RuntimeError("force rollback")
+
+        self.assertEqual(callbacks, [])
+        self.company.refresh_from_db()
+        self.assertEqual(self.company.logo.name, original_name)
+        self.assertEqual(self.company.selected_avatar, "")
+        self.assertTrue(storage.exists(original_name))
+
     def test_owner_manager_and_support_visual_permissions(self):
         for user in (self.owner, self.manager):
             with self.subTest(user=user.username):
@@ -385,3 +408,73 @@ class CompanyProfileSecurityTests(TestCase):
         self.assertEqual(self.company.email, "admin-updated@example.com")
         self.assertEqual(self.company.selected_avatar, "")
         self.assertTrue(self.company.logo)
+
+    def test_admin_logo_changes_clean_old_file_only_after_commit(self):
+        self.company.logo.save("original.png", image_upload("original.png"), save=True)
+        old_name = self.company.logo.name
+        storage = self.company.logo.storage
+        self.client.force_login(self.admin)
+        url = reverse("adminx:company_edit", args=[self.company.pk])
+        data = {
+            "name": self.company.name,
+            "category": str(self.category.pk),
+            "description": self.company.description,
+            "website": self.company.website,
+            "email": self.company.email,
+            "phone": self.company.phone,
+        }
+
+        with self.captureOnCommitCallbacks(execute=True) as callbacks:
+            response = self.client.post(url, {**data, "logo": image_upload("new.png")})
+            self.assertTrue(storage.exists(old_name))
+        self.assertRedirects(response, url)
+        self.assertEqual(len(callbacks), 1)
+        self.company.refresh_from_db()
+        replacement_name = self.company.logo.name
+        self.assertNotEqual(replacement_name, old_name)
+        self.assertFalse(storage.exists(old_name))
+        self.assertTrue(storage.exists(replacement_name))
+
+        with self.captureOnCommitCallbacks(execute=True) as callbacks:
+            response = self.client.post(url, {**data, "selected_avatar": "company-7"})
+            self.assertTrue(storage.exists(replacement_name))
+        self.assertRedirects(response, url)
+        self.assertEqual(len(callbacks), 1)
+        self.company.refresh_from_db()
+        self.assertFalse(self.company.logo)
+        self.assertEqual(self.company.selected_avatar, "company-7")
+        self.assertFalse(storage.exists(replacement_name))
+
+    def test_admin_invalid_form_and_rollback_keep_old_logo(self):
+        self.company.logo.save("original.png", image_upload("original.png"), save=True)
+        old_name = self.company.logo.name
+        storage = self.company.logo.storage
+        self.client.force_login(self.admin)
+        url = reverse("adminx:company_edit", args=[self.company.pk])
+        data = {
+            "name": self.company.name,
+            "category": str(self.category.pk),
+            "description": self.company.description,
+            "website": self.company.website,
+            "email": self.company.email,
+            "phone": self.company.phone,
+        }
+
+        with self.captureOnCommitCallbacks(execute=True) as callbacks:
+            response = self.client.post(url, {
+                **data,
+                "selected_avatar": "company-7",
+                "logo": image_upload("invalid.png"),
+            })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(callbacks, [])
+        self.company.refresh_from_db()
+        self.assertEqual(self.company.logo.name, old_name)
+        self.assertEqual(self.company.selected_avatar, "")
+        self.assertTrue(storage.exists(old_name))
+
+        with self.captureOnCommitCallbacks(execute=False) as callbacks:
+            response = self.client.post(url, {**data, "selected_avatar": "company-7"})
+        self.assertRedirects(response, url)
+        self.assertEqual(len(callbacks), 1)
+        self.assertTrue(storage.exists(old_name))

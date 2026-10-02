@@ -126,6 +126,9 @@ class CompanyLogoControlTests(TestCase):
     def test_logo_remove_is_post_csrf_role_and_current_company_scoped(self):
         self.company.logo = image_upload()
         self.company.save(update_fields=("logo",))
+        self.other.logo = image_upload()
+        self.other.save(update_fields=("logo",))
+        other_logo_name = self.other.logo.name
         url = reverse("companies:logo_remove")
         self.client.force_login(self.owner)
         self.assertEqual(self.client.get(url).status_code, 405)
@@ -139,10 +142,12 @@ class CompanyLogoControlTests(TestCase):
                 url,
                 {"csrfmiddlewaretoken": token, "company_id": self.other.pk},
             ).status_code,
-            403,
+            302,
         )
         self.company.refresh_from_db()
-        self.assertTrue(self.company.logo)
+        self.other.refresh_from_db()
+        self.assertFalse(self.company.logo)
+        self.assertEqual(self.other.logo.name, other_logo_name)
         self.client.force_login(self.support)
         self.assertEqual(self.client.post(url).status_code, 403)
 

@@ -139,9 +139,7 @@ class CompanyImageControlUiTests(TestCase):
         CompanyMembership.objects.create(user=cls.support, company=cls.company, role=CompanyMembership.Role.SUPPORT)
 
     def test_manager_upload_ui_upload_remove_and_fallback_order(self):
-        # Görsel kimliği daha önce seçilmiş bir şirkette logo/avatar
-        # alanları kilitlidir. Upload akışını test etmek için şirketi
-        # henüz görsel kimliği seçilmemiş durumda başlatıyoruz.
+        # Boş görsel kimliğinden logo yükleme ve kaldırma akışını kontrol et.
         Company.objects.filter(
             pk=self.company.pk
         ).update(
@@ -168,9 +166,10 @@ class CompanyImageControlUiTests(TestCase):
         public = self.client.get(reverse("companies_public:company_detail", args=[self.company.slug]))
         self.assertContains(public, self.company.logo.url)
 
-        self.assertEqual(self.client.post(reverse("companies:logo_remove")).status_code, 403)
+        self.assertEqual(self.client.post(reverse("companies:logo_remove")).status_code, 302)
         self.company.refresh_from_db()
-        self.assertTrue(self.company.logo)
+        self.assertFalse(self.company.logo)
+        self.assertEqual(self.company.selected_avatar, "")
 
     def test_support_is_read_only_and_cross_company_fields_do_not_change_target(self):
         self.client.force_login(self.support)
